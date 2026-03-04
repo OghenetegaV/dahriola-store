@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 import Concierge from "../components/Concierge";
 import Footer from "../components/Footer";
+import AnnouncementBar from "../components/AnnouncementBar";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${inter.variable} font-sans bg-brand-white text-neutral-900 antialiased`}
       >
+        <AnnouncementBar />
         <Navbar />
         <main>{children}</main>
         <Concierge />

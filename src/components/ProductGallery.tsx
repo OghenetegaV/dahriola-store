@@ -10,7 +10,7 @@ export default function ProductGallery({ images }: { images: any[] }) {
   if (!images || images.length === 0) return <div className="aspect-[3/4] bg-neutral-100" />;
 
   return (
-    <div className="flex flex-col-reverse lg:flex-row gap-4">
+    <div className="flex flex-col-reverse lg:flex-row gap-4 pb-12">
       {/* Thumbnail Strip */}
       <div className="flex lg:flex-col gap-4 overflow-x-auto lg:overflow-visible no-scrollbar">
         {images.map((image, index) => (
@@ -32,7 +32,7 @@ export default function ProductGallery({ images }: { images: any[] }) {
       </div>
 
       {/* Main Feature Image */}
-      <div className="relative aspect-[3/4] w-full max-h-[80vh] bg-neutral-50 overflow-hidden">
+      <div className="relative aspect-[3/4] w-full h-full bg-neutral-50 overflow-hidden">
         <Image
           src={urlFor(images[selectedImage]).url()}
           alt="Product feature"

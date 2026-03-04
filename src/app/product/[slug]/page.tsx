@@ -72,12 +72,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {/* 2. STICKY Gallery (Takes 7 columns) 
               Locks the image to the screen while text scrolls
           */}
-          <div className="lg:col-span-7 lg:sticky lg:top-32 self-start">
+          <div className="lg:col-span-7  lg:top-32 self-start">
             <ProductGallery images={product.images} />
           </div>
 
           {/* 3. Product Info (Takes 5 columns) */}
-          <div className="lg:col-span-5 mt-12 lg:mt-0">
+          <div className="lg:col-span-5 my-12 lg:mt-0">
             <div className="space-y-8">
               {/* Header */}
               <div>

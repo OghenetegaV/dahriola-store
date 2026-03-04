@@ -19,7 +19,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="bg-neutral-50 pt-32 pb-12 border-t border-neutral-100">
+    <footer className="bg-neutral-50 pt-24 pb-12 border-t border-b border-neutral-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Top Section: The "Editorial" Header */}
@@ -48,7 +48,7 @@ export default function Footer() {
                 <input 
                   type="email" 
                   placeholder="EMAIL ADDRESS"
-                  className="w-full bg-transparent border-b border-neutral-200 py-4 text-[11px] tracking-widest focus:outline-none focus:border-brand-beryl transition-all duration-500 placeholder:text-neutral-300"
+                  className="w-full bg-transparent border border-neutral-200 pl-6 py-4 text-[11px] tracking-widest focus:outline-none focus:border-brand-beryl transition-all duration-500 placeholder:text-neutral-300"
                 />
               </div>
               <button 
@@ -63,7 +63,7 @@ export default function Footer() {
         </div>
 
         {/* Middle Section: The Navigation Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-16 gap-x-8 pb-24 border-b border-neutral-200">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-16 gap-x-8 pb-12 border-b border-neutral-200">
           
           <div className="space-y-6">
             <h5 className="text-[10px] uppercase tracking-[0.3em] font-black text-neutral-900">Collections</h5>

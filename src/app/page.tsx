@@ -1,16 +1,17 @@
 import Link from "next/link";
+import Image from "next/image";
 import { client } from "../lib/sanity";
-import ProductCard from "../components/ProductCard"; // Import the smart component
+import ProductCard from "../components/ProductCard";
+import Hero from "../components/Hero";
 
 async function getProducts() {
-  // We defined(images) in Sanity, but we fetch all of them for the hover effect
-  const query = `*[_type == "product" && defined(images)] | order(_createdAt desc) [0...4] {
+  const query = `*[_type == "product" && defined(images)] | order(_createdAt desc) [0...6] {
     _id,
     name,
     "slug": slug.current,
     productType,
     priceNGN,
-    images, // Fetch the full array
+    images,
     "categoryName": category->title
   }`;
 
@@ -22,49 +23,72 @@ export default async function HomePage() {
   const products = await getProducts();
 
   return (
-    <div className="relative w-full">
-      {/* Editorial Hero Section 
-        (Keep this section code exactly as you like it)
-      */}
-      <section className="relative h-[85vh] w-full overflow-hidden bg-neutral-100">
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-          <span className="mb-4 text-xs tracking-[0.3em] text-brand-beryl uppercase font-medium">
-            New Arrival
-          </span>
-          <h2 className="font-display text-5xl md:text-7xl lg:text-8xl text-neutral-800 mb-8 leading-tight">
-            The Art of <br /> Dressing Well
-          </h2>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link href="/shop" className="px-10 py-4 bg-brand-beryl text-white btn-premium">
-              Shop Ready-to-Wear
-            </Link>
-            <Link href="/bespoke" className="px-10 py-4 border border-brand-beryl text-brand-beryl btn-premium hover:bg-brand-sage/10">
-              Bespoke Inquiry
-            </Link>
-          </div>
-        </div>
-      </section>
+    <div className="relative w-full bg-brand-white">
+      {/* Dynamic Editorial Hero */}
+      <Hero />
 
-      {/* Featured Collection Preview (Keep styling) */}
-      <section className="py-24 px-4 max-w-7xl mx-auto">
-        <div className="flex justify-between items-end mb-16">
+      {/* Featured Collection Preview */}
+      <section className="py-32 px-4 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-6">
           <div>
-            <h3 className="font-display text-4xl">Latest Drops</h3>
-            <p className="text-neutral-500 text-sm mt-2 font-light italic">Elegance in every stitch.</p>
+            <span className="text-[10px] uppercase tracking-[0.4em] text-brand-beryl font-bold block mb-4">
+              The Selection
+            </span>
+            <h3 className="font-display text-5xl md:text-6xl lowercase tracking-tighter">
+              Latest <span className="italic text-neutral-400">Drops</span>
+            </h3>
+            <p className="text-neutral-500 text-xs mt-4 font-light uppercase tracking-widest">
+              Precision in every stitch. Vision in every couture.
+            </p>
           </div>
-          <Link href="/shop" className="text-xs uppercase tracking-widest border-b border-neutral-300 pb-1 hover:text-brand-beryl transition-colors">
-            View All
+          
+          <Link 
+            href="/shop" 
+            className="group flex items-center gap-4 text-[10px] uppercase tracking-[0.3em] font-bold pb-1 border-b border-neutral-200 hover:border-brand-beryl transition-all"
+          >
+            View Full Archive
+            <span className="group-hover:translate-x-1 transition-transform">→</span>
           </Link>
         </div>
         
-        {/* The Grid - Keep styling */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-20">
+        {/* The Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
           {products.map((product: any, index: number) => (
             <ProductCard 
               key={product._id} 
               product={{...product, priority: index < 3}} 
             />
           ))}
+        </div>
+      </section>
+
+      {/* Bespoke CTA Section with Fabric Background */}
+      <section className="relative h-[500px] w-full overflow-hidden flex items-center justify-center">
+        {/* Background Image with Blur */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/fabric.jpg"
+            alt="Fabric texture"
+            fill
+            className="object-cover scale-100"
+          />
+          {/* Overlay to ensure text stands out */}
+          <div className="absolute inset-0 bg-black/70" />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center px-6">
+          <h4 className="font-display text-4xl md:text-6xl lowercase mb-8 text-white tracking-tighter">
+            need a <span className="italic text-brand-beryl">unique</span> outfit?
+          </h4>
+          <p className="text-white/80 text-sm mb-10 max-w-md mx-auto font-light leading-relaxed">
+            Whether it&apos;s a dream design or a special occasion, let&apos;s create something that is uniquely yours.
+          </p>
+          <Link 
+            href="/bespoke" 
+            className="inline-block bg-white text-neutral-900 text-[10px] uppercase tracking-[0.4em] px-12 py-5 rounded-full hover:bg-brand-beryl hover:text-white transition-all active:scale-95"
+          >
+            Start Bespoke Inquiry
+          </Link>
         </div>
       </section>
     </div>
