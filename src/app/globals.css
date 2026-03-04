@@ -1,26 +1,115 @@
 @import "tailwindcss";
 
+
+
+@theme {
+
+  --color-brand-sage: #B2AC88;
+
+  --color-brand-beryl: #778472;
+
+  --color-brand-laurel: #A9BA9D;
+
+  --color-brand-white: #FDFDFD;
+
+  
+
+  --font-display: var(--font-playfair);
+
+  --font-sans: var(--font-inter);
+
+  /* --aspect-editorial: 3 / 4; */
+
+}
+
+
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+
+  --background: #FDFDFD;
+
+  --foreground: #1a1a1a;
+
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
 body {
-  background: var(--background);
+
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+
+  background: var(--background);
+
+  -webkit-font-smoothing: antialiased;
+
+  -moz-osx-font-smoothing: grayscale;
+
+}
+
+
+
+/* Luxury smooth scrolling */
+
+html {
+
+  scroll-behavior: smooth;
+
+}
+
+
+
+/* Custom Editorial Typography */
+
+.font-display {
+
+  font-family: var(--font-playfair), serif;
+
+}
+
+
+
+/* Premium Button - Standard CSS to avoid @apply errors */
+
+.btn-premium {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 0.75rem; /* text-xs */
+
+  letter-spacing: 0.1em; /* tracking-wider */
+
+  text-transform: uppercase;
+
+  transition: all 500ms ease-in-out;
+
+}
+
+
+
+.btn-premium:hover {
+
+  letter-spacing: 0.3em; /* tracking-widest */
+
+}
+
+
+
+/* Hide scrollbar for the magazine aesthetic */
+
+.no-scrollbar::-webkit-scrollbar {
+
+  display: none;
+
+}
+
+.no-scrollbar {
+
+  -ms-overflow-style: none;
+
+  scrollbar-width: none;
+
 }

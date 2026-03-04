@@ -1,7 +1,21 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.sanity.io',
+        port: '',
+      },
+    ],
+  },
+  // If you are using Turbopack, keep this enabled
+  experimental: {
+    turbo: {
+      // Turbopack specific settings can go here if needed
+    },
+  },
 };
 
 export default nextConfig;
