@@ -54,17 +54,17 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <header className="mb-12 relative overflow-visible z-50">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-sage via-brand-beryl to-brand-sage opacity-100 scale-110 blur-3xl" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-sage via-brand-beryl to-brand-sage opacity-10 scale-110 blur-3xl" />
           
-          <div className="border border-white/20 rounded-sm bg-white/60 backdrop-blur-xl pb-12 pt-12 px-6 md:px-10 shadow-2xl">
+          <div className="border border-white/20 rounded-sm bg-white/60 backdrop-blur-xl pb-12 pt-12 px-6 md:px-10 shadow-1xl">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div>
                 <h1 className="font-display text-5xl md:text-8xl text-neutral-950 mb-6 lowercase tracking-tighter">
                   {displayTitle}<span className="text-brand-beryl">.</span>
                 </h1>
                 <div className="flex items-center gap-3">
-                  <span className="h-[2px] w-8 md:w-12 bg-neutral-950" />
-                  <p className="text-[10px] md:text-[12px] uppercase tracking-[0.4em] text-neutral-950 font-bold">
+                  <span className="h-[2px] w-0 md:w-12 bg-neutral-950" />
+                  <p className="text-[10px] md:text-[12px] uppercase tracking-[0.4em] text-neutral-950 font-normal">
                     {isBespoke ? 'Gallery' : 'Archive'} // {products.length} {products.length === 1 ? 'Design' : 'Selected Works'}
                   </p>
                 </div>
@@ -108,11 +108,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                   <Calendar size={14} /> Book Appointment
                 </a>
                 <a 
-                  href={`https://wa.me/${whatsappNumber}?text=Hello, I have a custom design idea I'd like to discuss with the tailor.`}
+                  href={`https://wa.me/${whatsappNumber}?text=Hello, I have a custom design idea I'd like to discuss with the designer.`}
                   target="_blank"
                   className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-neutral-950 hover:text-brand-beryl transition-colors"
                 >
-                  <MessageCircle size={14} /> Talk to Tailor
+                  <MessageCircle size={14} /> Talk to Designer
                 </a>
               </div>
             )}

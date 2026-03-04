@@ -19,7 +19,7 @@ export default function Concierge() {
             href={`tel:${phoneNumber}`}
             className="flex items-center gap-3 bg-white border border-brand-laurel/20 px-4 py-3 rounded-full shadow-xl text-brand-beryl hover:bg-brand-white transition-all"
           >
-            <span className="text-xs uppercase tracking-widest font-medium">Call Tailor</span>
+            <span className="text-xs uppercase tracking-widest font-medium">Call Designer</span>
             <Phone size={18} strokeWidth={1.5} />
           </a>
           <a
