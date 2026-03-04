@@ -4,10 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
 const messages = [
-  "custom fittings now available for the collective series",
-  "worldwide shipping on all ready-to-wear pieces",
-  "join our family for 10% off your first order",
-  "bespoke inquiries are open for the upcoming season",
+  "🚚worldwide shipping",
+  "🎟️join our family for 10% off your first order",
+  "🪡open for bespoke inquiries",
 ];
 
 export default function AnnouncementBar() {

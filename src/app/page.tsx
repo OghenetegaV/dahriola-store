@@ -31,11 +31,11 @@ export default async function HomePage() {
       <section className="py-32 px-4 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-6">
           <div>
-            <span className="text-[10px] uppercase tracking-[0.4em] text-brand-beryl font-bold block mb-4">
+            {/* <span className="text-[10px] uppercase tracking-[0.4em] text-brand-beryl font-bold block mb-4">
               The Selection
-            </span>
-            <h3 className="font-display text-5xl md:text-6xl lowercase tracking-tighter">
-              Latest <span className="italic text-neutral-400">Drops</span>
+            </span> */}
+            <h3 className="font-display text-3xl md:text-4xl lowercase tracking-tighter">
+              Latest Drops
             </h3>
             <p className="text-neutral-500 text-xs mt-4 font-light uppercase tracking-widest">
               Precision in every stitch. Vision in every couture.

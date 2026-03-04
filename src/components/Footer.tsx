@@ -141,7 +141,7 @@ export default function Footer() {
         {/* Bottom Section */}
         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-8">
           <p className="text-[9px] uppercase tracking-[0.4em] text-neutral-400 font-bold">
-            © {new Date().getFullYear()} Dahriola Studio. All Rights Reserved.
+            © {new Date().getFullYear()} Dahriola Store. All Rights Reserved.
           </p>
           <div className="flex gap-12 text-[9px] uppercase tracking-[0.4em] text-neutral-400 font-bold">
              <Link href="/privacy" className="hover:text-neutral-900 transition-colors">Privacy Policy</Link>
