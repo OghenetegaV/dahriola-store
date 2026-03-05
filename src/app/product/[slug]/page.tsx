@@ -134,7 +134,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <Truck size={20} strokeWidth={1.2} className="text-brand-beryl" />
                   <div>
                     <h4 className="text-[10px] uppercase tracking-widest font-bold text-neutral-900 mb-1">Global Shipping</h4>
-                    <p className="text-[10px] text-neutral-500 leading-tight">Express delivery from Lagos studio.</p>
+                    <p className="text-[10px] text-neutral-500 leading-tight">Express delivery from Lagos store.</p>
                   </div>
                 </div>
               </div>
