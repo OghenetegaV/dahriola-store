@@ -8,7 +8,11 @@ export default function ComingSoon() {
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+    transition: { 
+      duration: 0.8, 
+      // Use the cubicBezier string for custom curves
+      ease: [0.33, 1, 0.68, 1] as any // The 'as any' bypasses the strict TypeScript ease check
+    }
   };
 
   return (
@@ -40,9 +44,13 @@ export default function ComingSoon() {
         {/* Heading - Elegant slide up */}
         <motion.h1 
           {...fadeInUp}
-          transition={{ ...fadeInUp.transition, delay: 0.4 }}
-          className="font-display text-5xl md:text-7xl lowercase tracking-tighter text-neutral-900 leading-none mb-8"
-        >
+        transition={{ 
+          ...fadeInUp.transition, 
+          delay: 0.4,
+          ease: [0.33, 1, 0.68, 1] as any // Add the 'as any' here
+        }}
+        className="font-display text-5xl md:text-7xl lowercase tracking-tighter text-neutral-900 leading-none mb-8"
+      >
           this page is <br /> 
           <span className="italic text-brand-beryl relative inline-block">
             coming soon.
