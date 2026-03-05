@@ -7,8 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Concierge() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const whatsappNumber = "234XXXXXXXXXX"; 
-  const phoneNumber = "+234XXXXXXXXXX";
+  const whatsappNumber = "+2347065364401"; 
+  const phoneNumber = "+2347065364401";
 
   return (
     <div className="fixed bottom-8 right-8 z-[150] flex flex-col items-end gap-3">

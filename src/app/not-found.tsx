@@ -37,7 +37,7 @@ export default function ComingSoon() {
           className="mb-10 flex justify-center"
         >
           <span className="bg-neutral-100 px-4 py-1 text-[9px] uppercase tracking-[0.4em] text-neutral-400 font-bold">
-            Archive // Progress
+            In Progress
           </span>
         </motion.div>
         
