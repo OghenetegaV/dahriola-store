@@ -65,7 +65,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 <div className="flex items-center gap-3">
                   <span className="h-[2px] w-0 md:w-12 bg-neutral-950" />
                   <p className="text-[10px] md:text-[12px] uppercase tracking-[0.4em] text-neutral-950 font-normal">
-                    {isBespoke ? 'Gallery' : 'Archive'} // {products.length} {products.length === 1 ? 'Design' : 'Selected Works'}
+                    {isBespoke ? 'Gallery' : 'Available'} // {products.length} {products.length === 1 ? 'Design' : 'Selected Works'}
                   </p>
                 </div>
               </div>
