@@ -114,7 +114,7 @@ export default function ProductCard({
           <div className="col-span-12 md:col-span-4 md:text-right mt-2 md:mt-0">
              <PriceDisplay 
               priceNGN={product.priceNGN} 
-              className="font-sans text-[11px] font-bold tracking-tight text-neutral-900 mt-0"
+              className="font-sans text-[16px] font-bold tracking-tight text-neutral-900 mt-0"
             />
           </div>
         )}

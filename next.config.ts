@@ -6,16 +6,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'cdn.sanity.io',
-        port: '',
       },
     ],
   },
-  // If you are using Turbopack, keep this enabled
-  experimental: {
-    turbo: {
-      // Turbopack specific settings can go here if needed
-    },
-  },
+  // Remove the 'experimental: { turbo: { ... } }' block entirely
 };
 
 export default nextConfig;

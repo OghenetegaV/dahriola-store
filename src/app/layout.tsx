@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import Concierge from "../components/Concierge";
 import Footer from "../components/Footer";
 import AnnouncementBar from "../components/AnnouncementBar";
+import NewsletterPopup from "../components/NewsletterPopup";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <Concierge />
+        <NewsletterPopup />
         <Footer />
       </body>
     </html>

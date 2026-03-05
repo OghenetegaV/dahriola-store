@@ -43,10 +43,10 @@ export default async function HomePage() {
           </div>
           
           <Link 
-            href="/shop" 
+            href="/category/all" 
             className="group flex items-center gap-4 text-[10px] uppercase tracking-[0.3em] font-bold pb-1 border-b border-neutral-200 hover:border-brand-beryl transition-all"
           >
-            View Full Archive
+            View Full Collection
             <span className="group-hover:translate-x-1 transition-transform">→</span>
           </Link>
         </div>
