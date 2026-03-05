@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useStore } from "@/store/useStore";
+import { useStore } from "@/src/store/useStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function CurrencyModal() {

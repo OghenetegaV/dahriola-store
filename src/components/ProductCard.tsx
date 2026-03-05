@@ -3,7 +3,9 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { urlFor } from "../lib/sanity";
+import { urlFor } from "@/src/lib/sanity";
+import PriceDisplay from "./PriceDisplay";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ProductCard({ 
   product, 
@@ -40,42 +42,48 @@ export default function ProductCard({
 
   const ImageContainer = (
     <div 
-      className={`relative w-full aspect-[3/4] max-h-[500px] lg:max-h-[500px] overflow-hidden bg-neutral-50 transition-shadow duration-500`}
+      className="relative w-full aspect-[2/3] lg:aspect-[3/4] overflow-hidden bg-white"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {product.images.map((img: any, index: number) => (
-        <Image
-          key={img._key || index}
-          src={urlFor(img).url()}
-          alt={product.name}
-          fill
-          sizes="(max-width: 768px) 100vw, 50vw"
-          className={`object-cover transition-opacity duration-700 ease-in-out ${
-            index === currentImageIndex ? "opacity-100" : "opacity-0"
-          }`}
-          priority={index === 0}
-        />
-      ))}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentImageIndex}
+          initial={{ opacity: 0, scale: 1.02 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7, ease: [0.32, 0, 0.67, 0] }}
+          className="absolute inset-0"
+        >
+          <Image
+            src={urlFor(product.images[currentImageIndex]).url()}
+            alt={product.name}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover"
+            priority={currentImageIndex === 0}
+          />
+        </motion.div>
+      </AnimatePresence>
 
       {!galleryOnly && (
-        <div className="absolute top-6 left-6 z-10">
-          <span className="bg-white/95 backdrop-blur-sm px-4 py-1.5 text-[10px] uppercase tracking-[0.2em] text-brand-beryl font-semibold">
-            {product.productType === 'rtw' ? 'Ready to Wear' : 'Bespoke'}
+        <div className="absolute top-5 right-5 z-10">
+          <span className="text-[7px] uppercase tracking-[0.5em] font-bold text-neutral-900 border border-neutral-900/10 px-3 py-1.5 bg-white/40 backdrop-blur-md">
+            {product.productType === 'rtw' ? 'RTW' : 'Bespoke'}
           </span>
         </div>
       )}
 
       {product.images.length > 1 && (
-        <div className="absolute inset-x-0 bottom-4 flex justify-center gap-1.5 lg:hidden z-10">
+        <div className="absolute bottom-5 right-5 flex gap-1 z-10">
           {product.images.map((_: any, index: number) => (
             <div 
               key={index}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                index === currentImageIndex ? 'w-4 bg-brand-beryl' : 'w-1 bg-brand-beryl/30'
+              className={`h-[1px] transition-all duration-500 ${
+                index === currentImageIndex ? 'w-4 bg-neutral-900' : 'w-1 bg-neutral-900/20'
               }`}
             />
           ))}
@@ -84,31 +92,39 @@ export default function ProductCard({
     </div>
   );
 
-  if (galleryOnly) {
-    return ImageContainer;
-  }
+  if (galleryOnly) return ImageContainer;
+
+  const productSlug = typeof product.slug === 'string' ? product.slug : product.slug?.current;
 
   return (
-    <Link 
-      href={`/product/${product.slug}`} 
-      className="group block"
-    >
+    <Link href={`/product/${productSlug}`} className="group block space-y-6">
       {ImageContainer}
 
-      <div className="mt-8 flex justify-between items-start">
-        <div className="space-y-1">
-          <h3 className="font-display text-3xl text-neutral-800 leading-none group-hover:text-brand-beryl transition-colors">
-            {product.name}
-          </h3>
-          <p className="text-[11px] text-neutral-400 uppercase tracking-[0.25em]">
+      <div className="grid grid-cols-12 gap-x-4 items-start pt-2 px-1">
+        <div className="col-span-12 md:col-span-8 space-y-2">
+          <p className="text-[8px] uppercase tracking-[0.6em] text-neutral-400 font-bold leading-none">
             {product.categoryName}
           </p>
+          <h3 className="font-display text-2xl lowercase text-neutral-900 group-hover:text-brand-beryl transition-colors leading-[0.95]">
+            {product.name}
+          </h3>
         </div>
+        
         {product.productType === 'rtw' && product.priceNGN && (
-          <p className="font-sans text-lg tracking-tight text-brand-beryl">
-            ₦{product.priceNGN.toLocaleString()}
-          </p>
+          <div className="col-span-12 md:col-span-4 md:text-right mt-2 md:mt-0">
+             <PriceDisplay 
+              priceNGN={product.priceNGN} 
+              className="font-sans text-[11px] font-bold tracking-tight text-neutral-900 mt-0"
+            />
+          </div>
         )}
+      </div>
+
+      <div className="space-y-3 px-1">
+        <div className="h-[1px] w-0 group-hover:w-full bg-brand-beryl/20 transition-all duration-1000 ease-out" />
+        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-700 text-[8px] uppercase tracking-[0.4em] text-neutral-500 font-bold flex items-center gap-2">
+          View Details <span className="h-[1px] w-3 bg-neutral-300"></span>
+        </span>
       </div>
     </Link>
   );
