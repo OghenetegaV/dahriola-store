@@ -82,7 +82,7 @@ export default function CheckoutPage() {
   if (!hasHydrated) return null;
 
   return (
-    <div className="bg-white min-h-screen pt-32 pb-20 px-4">
+    <div className="bg-white min-h-screen pt-12 pb-20 px-4">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16">
         
         {/* LEFT: Shipping Form (7 Columns) */}

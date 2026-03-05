@@ -53,7 +53,7 @@ export default function AddToCartButton({ product }: { product: any }) {
                 onClick={() => setSelectedSize(size)}
                 className={`w-14 h-14 flex items-center justify-center text-[11px] border transition-all duration-300 ${
                   selectedSize === size 
-                    ? 'border-neutral-900 bg-neutral-900 text-white font-bold' 
+                    ? 'border-brand-beryl bg-brand-beryl text-white font-bold' 
                     : 'border-neutral-100 text-neutral-400 hover:border-neutral-900'
                 }`}
               >
@@ -106,7 +106,7 @@ export default function AddToCartButton({ product }: { product: any }) {
         onClick={handleAdd}
         disabled={isAdded}
         className={`group relative w-full overflow-hidden py-7 px-8 transition-all duration-500 cursor-pointer ${
-          isAdded ? 'bg-brand-beryl' : 'bg-neutral-900 hover:bg-brand-beryl shadow-lg hover:shadow-brand-beryl/20'
+          isAdded ? 'bg-neutral-900' : 'bg-brand-beryl hover:bg-neutral-900 shadow-lg hover:shadow-brand-beryl/20'
         }`}
       >
         <AnimatePresence mode="wait">
