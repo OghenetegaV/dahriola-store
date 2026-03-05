@@ -161,7 +161,7 @@ export default function Navbar() {
 
           <div className="mt-auto pt-10">
             <div className="flex gap-8 items-center">
-              <a href="https://instagram.com/dahriola" target="_blank" className="text-neutral-800"><Instagram strokeWidth={1.2} size={22} /></a>
+              <a href="https://instagram.com/dahriola_" target="_blank" className="text-neutral-800"><Instagram strokeWidth={1.2} size={22} /></a>
             </div>
           </div>
         </div>
