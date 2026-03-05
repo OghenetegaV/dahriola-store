@@ -95,7 +95,7 @@ export default function ComingSoon() {
           {/* Social Links */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4 pt-4">
-            <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-300">Stay updated</p>
+            <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-500">Stay updated</p>
             <a href="https://instagram.com/dahriola_" className="text-neutral-400 hover:text-neutral-900 transition-colors">
               <Instagram size={16} strokeWidth={1.5} />
             </a>
