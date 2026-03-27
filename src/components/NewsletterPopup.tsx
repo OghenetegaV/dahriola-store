@@ -59,7 +59,7 @@ export default function NewsletterPopup() {
             {/* Left Side: Visual (Editorial Image) */}
             <div className="relative w-full md:w-1/2 h-[300px] md:h-auto bg-neutral-100">
               <Image 
-                src="/newsletter-visual.jpg" // Add a high-res editorial shot here
+                src="/newsletter-visual.jpg" 
                 alt="Dahriola Couture"
                 fill
                 className="object-cover"

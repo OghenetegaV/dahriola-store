@@ -119,3 +119,67 @@ html {
   @apply w-full border-b border-neutral-200 py-4 focus:border-brand-beryl outline-none transition-colors text-sm lowercase font-light placeholder:text-neutral-300;
   
 }
+
+/* =========================
+   DAHRIOLA HERO ONLY
+   Scoped so it won't affect other sections
+========================= */
+
+.dahriola-hero {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  color: #fdfdfd;
+  background: #111;
+}
+
+.dahriola-hero__image {
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.04);
+  animation: dahriolaHeroZoom 7s ease forwards;
+}
+
+.dahriola-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.2) 36%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.08) 45%, rgba(0, 0, 0, 0.14) 100%);
+}
+
+.dahriola-fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: dahriolaFadeUp 0.9s ease forwards;
+}
+
+.dahriola-fade-up-delay-1 {
+  animation-delay: 0.15s;
+}
+
+.dahriola-fade-up-delay-2 {
+  animation-delay: 0.3s;
+}
+
+.dahriola-fade-up-delay-3 {
+  animation-delay: 0.45s;
+}
+
+.dahriola-glass-btn {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@keyframes dahriolaFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dahriolaHeroZoom {
+  to {
+    transform: scale(1);
+  }
+}

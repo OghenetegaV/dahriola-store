@@ -4,14 +4,20 @@ import { useState, useEffect } from "react";
 import { useStore } from "@/src/store/useStore";
 import Image from "next/image";
 import { useFlutterwave, closePaymentModal } from "flutterwave-react-v3";
-import { Loader2, Truck, ShieldCheck, CreditCard } from "lucide-react";
+import { Loader2, Truck, CreditCard, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { getShippingRates } from "@/src/app/actions/shipping";
+import { verifyPayment } from "@/src/app/actions/payment"; // Ensure this action exists
+import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
-  const { cart, currency, exchangeRates } = useStore();
+  const router = useRouter();
+  const { cart, currency, exchangeRates, clearCart } = useStore();
   const [hasHydrated, setHasHydrated] = useState(false);
   const [loadingRates, setLoadingRates] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [shippingRates, setShippingRates] = useState<any[]>([]);
   const [selectedRate, setSelectedRate] = useState<any>(null);
+  const [shippingError, setShippingError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -27,41 +33,48 @@ export default function CheckoutPage() {
     setHasHydrated(true);
   }, []);
 
-  // 1. Calculate Subtotal
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const convertedSubtotal = subtotal * exchangeRates[currency];
+  const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
   
-  // 2. Fetch Terminal Africa Rates
   const fetchRates = async () => {
-    if (!formData.city || !formData.state) return;
+    if (!formData.address || !formData.city || !formData.state) return;
     
     setLoadingRates(true);
+    setShippingError(null);
     try {
-      const response = await fetch("/api/shipping/rates", {
-        method: "POST",
-        body: JSON.stringify({
-          city: formData.city,
-          state: formData.state,
-          items: cart,
-        }),
-      });
-      const data = await response.json();
-      setShippingRates(data.rates || []);
+      const deliveryData = {
+        line1: formData.address,
+        city: formData.city,
+        state: formData.state,
+        country: "NG",
+      };
+      
+      const rates = await getShippingRates(deliveryData);
+      
+      if (rates && rates.length > 0) {
+        setShippingRates(rates);
+        setSelectedRate(rates[0]);
+      } else {
+        setShippingRates([]);
+        setShippingError("We couldn't find shipping rates for this location. Please check the address details.");
+      }
     } catch (error) {
-      console.error("Error fetching rates:", error);
+      setShippingError("Network error: Unable to reach the shipping server.");
     } finally {
       setLoadingRates(false);
     }
   };
 
-  // 3. Final Total Calculation
-  const shippingCost = selectedRate ? selectedRate.amount : 0;
-  const finalTotal = convertedSubtotal + (shippingCost * (currency === "NGN" ? 1 : exchangeRates[currency]));
+  const shippingAmountNGN = selectedRate ? selectedRate.amount : 0;
+  const convertedShipping = currency === "NGN" 
+    ? shippingAmountNGN 
+    : shippingAmountNGN * (exchangeRates[currency] || 1);
+    
+  const finalTotal = convertedSubtotal + convertedShipping;
 
-  // 4. Flutterwave Config
   const fwConfig = {
     public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_KEY!,
-    tx_ref: Date.now().toString(),
+    tx_ref: `dahriola-${Date.now()}`,
     amount: finalTotal,
     currency: currency,
     payment_options: "card,mobilemoney,ussd",
@@ -79,111 +92,164 @@ export default function CheckoutPage() {
 
   const handleFlutterPayment = useFlutterwave(fwConfig);
 
+  const handlePaymentSuccess = async (response: any) => {
+    closePaymentModal();
+    setIsProcessing(true);
+
+    try {
+      // Server-side verification
+      const verification = await verifyPayment(response.transaction_id);
+
+      if (verification.success) {
+        clearCart();
+        router.push(`/success?tx_ref=${response.tx_ref}`);
+      } else {
+        setShippingError("Payment verification failed. Please contact support.");
+        setIsProcessing(false);
+      }
+    } catch (error) {
+      console.error("Verification Error:", error);
+      setIsProcessing(false);
+    }
+  };
+
   if (!hasHydrated) return null;
 
   return (
     <div className="bg-white min-h-screen pt-12 pb-20 px-4">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16">
         
-        {/* LEFT: Shipping Form (7 Columns) */}
         <div className="lg:col-span-7 space-y-12">
           <section>
             <h2 className="font-display text-4xl lowercase tracking-tighter mb-10">delivery info</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input 
                 type="text" placeholder="full name" 
-                className="checkout-input"
+                className="checkout-input border-b border-neutral-200 py-3 outline-none focus:border-black transition-colors"
+                value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
               <input 
                 type="email" placeholder="email" 
-                className="checkout-input"
+                className="checkout-input border-b border-neutral-200 py-3 outline-none focus:border-black transition-colors"
+                value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
               <input 
                 type="tel" placeholder="phone number" 
-                className="checkout-input"
+                className="checkout-input border-b border-neutral-200 py-3 outline-none focus:border-black transition-colors"
+                value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
               <input 
                 type="text" placeholder="street address" 
-                className="checkout-input"
+                className="checkout-input border-b border-neutral-200 py-3 outline-none focus:border-black transition-colors"
+                value={formData.address}
+                onBlur={fetchRates}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
               />
               <input 
                 type="text" placeholder="city" 
-                className="checkout-input"
+                className="checkout-input border-b border-neutral-200 py-3 outline-none focus:border-black transition-colors"
+                value={formData.city}
                 onBlur={fetchRates}
                 onChange={(e) => setFormData({...formData, city: e.target.value})}
               />
               <input 
                 type="text" placeholder="state" 
-                className="checkout-input"
+                className="checkout-input border-b border-neutral-200 py-3 outline-none focus:border-black transition-colors"
+                value={formData.state}
                 onBlur={fetchRates}
                 onChange={(e) => setFormData({...formData, state: e.target.value})}
               />
             </div>
           </section>
 
-          {/* Terminal Africa Rates Display */}
           <section>
-            <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-neutral-400 mb-6">shipping options</h3>
+            <h3 className="text-[10px] uppercase tracking-[0.3em] font-bold text-neutral-400 mb-6 flex items-center gap-2">
+              <Truck size={14} /> shipping options
+            </h3>
+            
             {loadingRates ? (
-              <div className="flex items-center gap-3 text-sm text-neutral-500 italic">
-                <Loader2 className="animate-spin" size={16} /> Fetching best rates from carriers...
+              <div className="flex items-center gap-3 text-sm text-neutral-500 italic p-6 border border-neutral-100 rounded-xl">
+                <Loader2 className="animate-spin text-neutral-400" size={16} /> 
+                <span className="tracking-tight">Calculating live delivery rates...</span>
+              </div>
+            ) : shippingError ? (
+              <div className="p-6 border border-red-100 rounded-xl bg-red-50/50 flex flex-col items-center gap-4 text-center">
+                <div className="flex items-center gap-2 text-red-600 text-xs font-bold uppercase tracking-widest">
+                  <AlertCircle size={14} /> Error
+                </div>
+                <p className="text-[11px] text-neutral-600 leading-relaxed">{shippingError}</p>
+                <button onClick={fetchRates} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-neutral-900">
+                  <RefreshCw size={12} /> Retry
+                </button>
               </div>
             ) : shippingRates.length > 0 ? (
               <div className="space-y-3">
                 {shippingRates.map((rate) => (
                   <label 
                     key={rate.id}
-                    className={`flex items-center justify-between p-5 border cursor-pointer rounded-xl transition-all ${selectedRate?.id === rate.id ? 'border-brand-beryl bg-neutral-50 shadow-sm' : 'border-neutral-100'}`}
+                    className={`flex items-center justify-between p-5 border cursor-pointer rounded-xl transition-all ${
+                      selectedRate?.id === rate.id ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-100'
+                    }`}
                   >
                     <div className="flex items-center gap-4">
-                      <input type="radio" name="rate" className="accent-brand-beryl" onChange={() => setSelectedRate(rate)} />
-                      <span className="text-xs font-bold uppercase tracking-widest">{rate.carrier_name} ({rate.service_name})</span>
+                      <input 
+                        type="radio" name="rate" className="accent-neutral-900" 
+                        checked={selectedRate?.id === rate.id}
+                        onChange={() => setSelectedRate(rate)} 
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold uppercase tracking-widest text-neutral-900">{rate.carrier_name}</span>
+                        <span className="text-[10px] text-neutral-400 uppercase tracking-tighter">{rate.service_name} — {rate.delivery_time}</span>
+                      </div>
                     </div>
-                    <span className="text-sm font-medium">₦{rate.amount.toLocaleString()}</span>
+                    <span className="text-sm font-medium text-neutral-900">₦{rate.amount.toLocaleString()}</span>
                   </label>
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] text-neutral-400 italic">Enter city and state to see shipping options.</p>
+              <div className="p-8 border border-neutral-100 rounded-xl bg-neutral-50/50 text-center">
+                <p className="text-[10px] text-neutral-400 uppercase tracking-[0.2em] italic">
+                  Enter delivery details to reveal shipping options.
+                </p>
+              </div>
             )}
           </section>
 
           <button
             onClick={() => handleFlutterPayment({
-              callback: (response) => {
-                console.log(response);
-                closePaymentModal();
-              },
-              onClose: () => {},
+              callback: handlePaymentSuccess,
+              onClose: () => setIsProcessing(false),
             })}
-            disabled={!selectedRate || !formData.email}
-            className="w-full bg-neutral-900 text-white py-7 rounded-full text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-brand-beryl transition-all disabled:opacity-30 flex items-center justify-center gap-3"
+            disabled={!selectedRate || !formData.email || loadingRates || isProcessing}
+            className="w-full bg-neutral-900 text-white py-7 rounded-full text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-black transition-all disabled:opacity-20 flex items-center justify-center gap-3"
           >
-            <CreditCard size={16} /> Pay {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(finalTotal)}
+            {isProcessing ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              <CreditCard size={16} />
+            )}
+            {isProcessing ? "Verifying Transaction..." : `Pay ${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(finalTotal)}`}
           </button>
         </div>
 
-        {/* RIGHT: Summary (5 Columns) */}
         <div className="lg:col-span-5">
           <div className="bg-neutral-50 p-10 rounded-[2.5rem] sticky top-32">
             <h2 className="font-display text-2xl mb-8">Order Summary</h2>
-            <div className="space-y-6 mb-10 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-6 mb-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {cart.map((item) => (
                 <div key={`${item._id}-${item.size}`} className="flex gap-4">
-                  <div className="relative w-16 h-20 rounded-lg overflow-hidden bg-white">
+                  <div className="relative w-16 h-20 rounded-lg overflow-hidden bg-white shadow-sm">
                     <Image src={item.image} alt={item.name} fill className="object-cover" />
                   </div>
                   <div className="flex-1 flex flex-col justify-center">
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest">{item.name}</h4>
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-neutral-900">{item.name}</h4>
                     <p className="text-[9px] text-neutral-400 mt-1 uppercase">Size: {item.size} / Qty: {item.quantity}</p>
-                    {item.notes && <p className="text-[9px] text-brand-beryl italic mt-1 line-clamp-1">Note: {item.notes}</p>}
                   </div>
-                  <span className="text-xs font-medium self-center">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(item.price * item.quantity * exchangeRates[currency])}
+                  <span className="text-xs font-medium self-center text-neutral-900">
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(item.price * item.quantity * (exchangeRates[currency] || 1))}
                   </span>
                 </div>
               ))}
@@ -192,15 +258,19 @@ export default function CheckoutPage() {
             <div className="border-t border-neutral-200 pt-6 space-y-4">
               <div className="flex justify-between text-xs uppercase tracking-widest text-neutral-500">
                 <span>Subtotal</span>
-                <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(convertedSubtotal)}</span>
+                <span className="text-neutral-900">{new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(convertedSubtotal)}</span>
               </div>
               <div className="flex justify-between text-xs uppercase tracking-widest text-neutral-500">
                 <span>Shipping</span>
-                <span>{selectedRate ? `₦${selectedRate.amount.toLocaleString()}` : "—"}</span>
+                <span className="text-neutral-900">
+                  {selectedRate ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(convertedShipping)}` : "—"}
+                </span>
               </div>
-              <div className="flex justify-between text-xl font-display pt-6 border-t border-neutral-200">
+              <div className="flex justify-between text-xl font-display pt-6 border-t border-neutral-200 text-neutral-900">
                 <span>Total</span>
-                <span className="text-brand-beryl">{new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(finalTotal)}</span>
+                <span className="text-neutral-900">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(finalTotal)}
+                </span>
               </div>
             </div>
           </div>

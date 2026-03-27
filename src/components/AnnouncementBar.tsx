@@ -20,7 +20,8 @@ export default function AnnouncementBar() {
   }, []);
 
   return (
-    <div className="relative w-full bg-neutral-900 h-9 flex items-center justify-center overflow-hidden px-4">
+    <div className="fixed top-0 z-[100] w-full bg-black h-9 
+    flex items-center justify-center overflow-hidden px-4">
       <AnimatePresence mode="wait">
         <motion.p
           key={index}

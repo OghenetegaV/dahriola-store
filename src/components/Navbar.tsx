@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ShoppingBag, Menu, Phone, X, ChevronDown, Instagram, Globe } from "lucide-react";
 import { client } from "@/src/lib/sanity";
 import { useStore } from "@/src/store/useStore";
-import CartDrawer from "./CartDrawer"; // Assuming you've created this component
+import CartDrawer from "./CartDrawer";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,35 +14,54 @@ export default function Navbar() {
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Pulling from Zustand Store
   const { cart, currency, setCurrency } = useStore();
 
   useEffect(() => {
     setHasHydrated(true);
+    
+    // Handle scroll logic
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    
     const fetchCategories = async () => {
       const data = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
       setCategories(data);
     };
+    
     fetchCategories();
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  // Dynamic Class logic
+  const navBg = scrolled 
+    ? "bg-brand-white/80 backdrop-blur-md border-b-[1.2px] border-brand-laurel/30" 
+    : "bg-transparent border-transparent";
+    
+  const textColor = scrolled ? "text-neutral-600" : "text-white";
+  const iconColor = scrolled ? "text-brand-beryl" : "text-white";
+
   return (
     <>
-      <nav className="sticky top-0 z-[100] w-full border-b-[1.2px] border-brand-laurel/30 bg-brand-white/80 backdrop-blur-md">
+      <nav className={`fixed top-8 z-[100] w-full transition-all duration-500 ease-in-out ${navBg}`}>
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 relative">
           
           {/* LEFT: Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-8 text-[10px] uppercase tracking-[0.2em] font-bold text-neutral-600">
+          <div className={`hidden lg:flex items-center gap-8 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors ${textColor}`}>
             <div className="relative group py-4 cursor-pointer">
-              <Link href="/category/rtw" className="flex items-center gap-1 hover:text-brand-beryl transition-colors">
+              <Link href="/category/rtw" className="flex items-center gap-1 hover:opacity-70 transition-opacity">
                 Ready to Wear <ChevronDown size={10} className="group-hover:rotate-180 transition-transform duration-300" />
               </Link>
 
+              {/* Dropdown Menu */}
               <div className="absolute left-0 top-full pt-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 z-[110]">
-                <div className="bg-white/95 backdrop-blur-2xl border border-neutral-100 shadow-2xl py-6 min-w-[220px] rounded-sm">
+                <div className="bg-white border border-neutral-100 shadow-2xl py-6 min-w-[220px] rounded-sm">
                   <Link href="/category/rtw" className="block px-8 py-3 text-[9px] text-brand-beryl hover:pl-10 transition-all tracking-[0.3em] uppercase font-bold">
                     View All RTW //
                   </Link>
@@ -56,19 +75,19 @@ export default function Navbar() {
               </div>
             </div>
 
-            <Link href="/category/bespoke" className="hover:text-brand-beryl transition-colors">
+            <Link href="/category/bespoke" className="hover:opacity-70 transition-opacity">
               Bespoke
             </Link>
 
-            {/* Currency Selector (Desktop) */}
+            {/* Currency Selector */}
             <div className="relative group py-4 cursor-pointer ml-4">
-              <div className="flex items-center gap-1 hover:text-brand-beryl transition-colors">
-                <Globe size={12} className="text-brand-beryl" />
+              <div className="flex items-center gap-1 hover:opacity-70 transition-opacity">
+                <Globe size={12} className={iconColor} />
                 <span>{currency}</span>
                 <ChevronDown size={8} />
               </div>
               <div className="absolute left-0 top-full pt-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 z-[110]">
-                <div className="bg-white/95 backdrop-blur-2xl border border-neutral-100 shadow-xl py-2 min-w-[100px] rounded-sm">
+                <div className="bg-white border border-neutral-100 shadow-xl py-2 min-w-[100px] rounded-sm">
                   {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
                     <button
                       key={cur}
@@ -83,30 +102,36 @@ export default function Navbar() {
             </div>
           </div>
 
-          <button onClick={() => setIsOpen(true)} className="p-2 lg:hidden text-brand-beryl">
+          <button onClick={() => setIsOpen(true)} className={`p-2 lg:hidden transition-colors ${iconColor}`}>
             <Menu strokeWidth={1.2} size={26} />
           </button>
 
           {/* CENTER: Logo */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 transition-opacity hover:opacity-80">
-            <Image src="/logo.png" alt="Dahriola Logo" width={140} height={40} className="h-8 w-auto object-contain md:h-10" priority />
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 transition-all hover:opacity-80">
+            <Image 
+              src="/logo.png" 
+              alt="Dahriola Logo" 
+              width={140} 
+              height={40} 
+              className={`h-8 w-auto object-contain md:h-10 transition-all duration-500 ${!scrolled ? 'brightness-0 invert' : ''}`} 
+              priority 
+            />
           </Link>
 
           {/* RIGHT: Action Icons */}
           <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/contact" className="p-2 text-brand-beryl hidden sm:block">
+            <Link href="/contact" className={`p-2 hidden sm:block transition-colors ${iconColor}`}>
               <Phone strokeWidth={1.2} size={20} />
             </Link>
             
-            {/* Active Shopping Bag */}
             <button 
               onClick={() => setIsCartOpen(true)}
-              className="relative p-2 text-brand-beryl transition-transform active:scale-90" 
+              className={`relative p-2 transition-all active:scale-90 ${iconColor}`} 
               aria-label="Cart"
             >
               <ShoppingBag strokeWidth={1.2} size={22} />
               {hasHydrated && totalItems > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-beryl text-[9px] text-white font-bold animate-in zoom-in">
+                <span className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold animate-in zoom-in ${scrolled ? 'bg-brand-beryl text-white' : 'bg-white text-black'}`}>
                   {totalItems}
                 </span>
               )}
@@ -115,10 +140,9 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Cart Drawer Component */}
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Mobile Sidebar Menu (Added Currency Selector here too) */}
+      {/* Mobile Sidebar */}
       <aside className={`fixed top-0 left-0 z-[130] h-full w-[85%] max-w-sm bg-brand-white p-8 shadow-2xl transition-transform duration-500 ease-in-out lg:hidden ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between mb-12">
@@ -145,7 +169,6 @@ export default function Navbar() {
 
             <Link href="/category/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tighter">bespoke studio</Link>
 
-            {/* Mobile Currency Toggle */}
             <div className="flex gap-4 mt-4 py-4 border-t border-neutral-100">
               {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
                 <button 
