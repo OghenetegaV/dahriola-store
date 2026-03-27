@@ -51,7 +51,7 @@ export default function NewsletterPopup() {
             {/* Close Button */}
             <button 
               onClick={closePopup}
-              className="absolute top-6 right-6 z-20 p-2 hover:bg-neutral-50 rounded-full transition-colors text-neutral-400 hover:text-neutral-900"
+              className="absolute top-6 right-6 z-20 p-2 hover:bg-neutral-50 rounded-full transition-colors text-neutral-700 hover:text-neutral-900"
             >
               <X size={20} strokeWidth={1.5} />
             </button>
