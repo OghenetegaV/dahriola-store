@@ -41,7 +41,7 @@ export default function Concierge() {
               href={`https://wa.me/${whatsappNumber}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center bg-brand-beryl px-6 py-4 rounded-full shadow-xl text-white hover:brightness-110 hover:shadow-brand-beryl/20 transition-all"
+              className="flex items-center bg-brand-beryl px-6 py-3 rounded-full shadow-xl text-white hover:brightness-110 hover:shadow-brand-beryl/20 transition-all"
             >
               <span className="text-[11px] uppercase tracking-[0.3em] font-bold mr-3 border-r border-white/20 pr-3">WhatsApp</span>
               <MessageCircle size={20} strokeWidth={1.5} />
@@ -55,7 +55,7 @@ export default function Concierge() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="h-16 w-16 rounded-full bg-brand-beryl flex items-center justify-center text-white shadow-2xl z-10"
+        className="h-12 w-12 rounded-full bg-brand-beryl flex items-center justify-center text-white shadow-2xl z-10"
         aria-label="Contact Concierge"
       >
         <AnimatePresence mode="wait">

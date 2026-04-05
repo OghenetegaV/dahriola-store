@@ -32,7 +32,7 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${inter.variable} font-sans bg-brand-white text-neutral-900 antialiased`}
       >
-        <AnnouncementBar />
+        {/* <AnnouncementBar /> */}
         <Navbar />
         <main>{children}</main>
         <Concierge />

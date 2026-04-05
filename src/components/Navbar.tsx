@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, Menu, Phone, X, ChevronDown, Instagram, Globe } from "lucide-react";
 import { client } from "@/src/lib/sanity";
 import { useStore } from "@/src/store/useStore";
 import CartDrawer from "./CartDrawer";
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [isRtwOpen, setIsRtwOpen] = useState(false);
@@ -21,7 +23,6 @@ export default function Navbar() {
   useEffect(() => {
     setHasHydrated(true);
     
-    // Handle scroll logic
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
@@ -29,8 +30,12 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     
     const fetchCategories = async () => {
-      const data = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
-      setCategories(data);
+      try {
+        const data = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
+        setCategories(data);
+      } catch (error) {
+        console.error("Sanity fetch error:", error);
+      }
     };
     
     fetchCategories();
@@ -39,17 +44,21 @@ export default function Navbar() {
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Dynamic Class logic
-  const navBg = scrolled 
-    ? "bg-brand-white/80 backdrop-blur-md border-b-[1.2px] border-brand-laurel/30" 
+  // Logic: Should the navbar be solid/colored?
+  // Always true on inner pages, true on homepage only after scroll.
+  const isHomePage = pathname === "/";
+  const shouldShowSolid = scrolled || !isHomePage;
+
+  const navBg = shouldShowSolid 
+    ? "bg-brand-white/90" 
     : "bg-transparent border-transparent";
     
-  const textColor = scrolled ? "text-neutral-600" : "text-white";
-  const iconColor = scrolled ? "text-brand-beryl" : "text-white";
+  const textColor = shouldShowSolid ? "text-neutral-800" : "text-white";
+  const iconColor = shouldShowSolid ? "text-brand-beryl" : "text-white";
 
   return (
     <>
-      <nav className={`fixed top-8 z-[100] w-full transition-all duration-500 ease-in-out ${navBg}`}>
+      <nav className={`fixed ${isHomePage ? 'top-8' : 'top-0'} z-[100] w-full transition-all duration-500 ease-in-out ${navBg}`}>
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 relative">
           
           {/* LEFT: Desktop Navigation */}
@@ -66,7 +75,7 @@ export default function Navbar() {
                     View All RTW //
                   </Link>
                   <div className="h-[1px] bg-neutral-900/5 my-3 mx-8" />
-                  {categories.filter((cat: any) => cat.slug !== 'bespoke').map((cat: any) => (
+                  {categories.filter((cat) => cat.slug !== 'bespoke').map((cat) => (
                     <Link key={cat.slug} href={`/category/${cat.slug}`} className="block px-8 py-3 text-[10px] tracking-[0.2em] text-neutral-500 hover:text-brand-beryl hover:pl-10 transition-all">
                       {cat.title}
                     </Link>
@@ -91,7 +100,7 @@ export default function Navbar() {
                   {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
                     <button
                       key={cur}
-                      onClick={() => setCurrency(cur as any)}
+                      onClick={() => setCurrency(cur)}
                       className={`block w-full text-left px-6 py-2 text-[9px] tracking-widest hover:bg-neutral-50 ${currency === cur ? 'text-brand-beryl font-black' : 'text-neutral-500'}`}
                     >
                       {cur}
@@ -113,7 +122,7 @@ export default function Navbar() {
               alt="Dahriola Logo" 
               width={140} 
               height={40} 
-              className={`h-8 w-auto object-contain md:h-10 transition-all duration-500 ${!scrolled ? 'brightness-0 invert' : ''}`} 
+              className={`h-8 w-auto object-contain md:h-10 transition-all duration-500 ${!shouldShowSolid ? 'brightness-0 invert' : ''}`} 
               priority 
             />
           </Link>
@@ -131,7 +140,7 @@ export default function Navbar() {
             >
               <ShoppingBag strokeWidth={1.2} size={22} />
               {hasHydrated && totalItems > 0 && (
-                <span className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold animate-in zoom-in ${scrolled ? 'bg-brand-beryl text-white' : 'bg-white text-black'}`}>
+                <span className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold animate-in zoom-in ${shouldShowSolid ? 'bg-brand-beryl text-white' : 'bg-white text-black'}`}>
                   {totalItems}
                 </span>
               )}
@@ -160,7 +169,7 @@ export default function Navbar() {
               <div className={`overflow-hidden transition-all duration-500 ${isRtwOpen ? 'max-h-[500px] mt-6' : 'max-h-0'}`}>
                 <div className="flex flex-col gap-5 pl-4 border-l border-brand-beryl/20">
                   <Link href="/category/rtw" onClick={() => setIsOpen(false)} className="text-[11px] uppercase tracking-[0.3em] text-brand-beryl font-bold">View All RTW //</Link>
-                  {categories.filter((cat: any) => cat.slug !== 'bespoke').map((cat: any) => (
+                  {categories.filter((cat) => cat.slug !== 'bespoke').map((cat) => (
                     <Link key={cat.slug} href={`/category/${cat.slug}`} onClick={() => setIsOpen(false)} className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">{cat.title}</Link>
                   ))}
                 </div>
@@ -173,7 +182,7 @@ export default function Navbar() {
               {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
                 <button 
                   key={cur} 
-                  onClick={() => setCurrency(cur as any)}
+                  onClick={() => setCurrency(cur)}
                   className={`text-[10px] font-bold tracking-widest ${currency === cur ? 'text-brand-beryl' : 'text-neutral-300'}`}
                 >
                   {cur}
@@ -184,7 +193,7 @@ export default function Navbar() {
 
           <div className="mt-auto pt-10">
             <div className="flex gap-8 items-center">
-              <a href="https://instagram.com/dahriola_" target="_blank" className="text-neutral-800"><Instagram strokeWidth={1.2} size={22} /></a>
+              <a href="https://instagram.com/dahriola_" target="_blank" rel="noopener noreferrer" className="text-neutral-800"><Instagram strokeWidth={1.2} size={22} /></a>
             </div>
           </div>
         </div>

@@ -20,9 +20,7 @@ export default function ProductCard({
 
   const hasImages = product.images && product.images.length > 0;
   
-  const handleMouseEnter = () => {
-    if (product.images?.length > 1) setCurrentImageIndex(1);
-  };
+  const handleMouseEnter = () => { if (product.images?.length > 1) setCurrentImageIndex(1); };
   const handleMouseLeave = () => setCurrentImageIndex(0);
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
@@ -42,7 +40,7 @@ export default function ProductCard({
 
   const ImageContainer = (
     <div 
-      className="relative w-full aspect-[2/3] lg:aspect-[3/4] overflow-hidden bg-white"
+      className="relative w-full aspect-[4/5] overflow-hidden rounded-sm bg-neutral-50 group"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -52,41 +50,32 @@ export default function ProductCard({
       <AnimatePresence mode="wait">
         <motion.div
           key={currentImageIndex}
-          initial={{ opacity: 0, scale: 1.02 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.7, ease: [0.32, 0, 0.67, 0] }}
+          transition={{ duration: 0.5 }}
           className="absolute inset-0"
         >
           <Image
             src={urlFor(product.images[currentImageIndex]).url()}
             alt={product.name}
             fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover"
+            sizes="(max-width: 500px) 50vw, 25vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
             priority={currentImageIndex === 0}
           />
         </motion.div>
       </AnimatePresence>
 
-      {!galleryOnly && (
-        <div className="absolute top-5 right-5 z-10">
-          <span className="text-[7px] uppercase tracking-[0.5em] font-bold text-neutral-900 border border-neutral-900/10 px-3 py-1.5 bg-white/40 backdrop-blur-md">
-            {product.productType === 'rtw' ? 'RTW' : 'Bespoke'}
-          </span>
-        </div>
-      )}
-
-      {product.images.length > 1 && (
-        <div className="absolute bottom-5 right-5 flex gap-1 z-10">
-          {product.images.map((_: any, index: number) => (
-            <div 
-              key={index}
-              className={`h-[1px] transition-all duration-500 ${
-                index === currentImageIndex ? 'w-4 bg-neutral-900' : 'w-1 bg-neutral-900/20'
-              }`}
+      {/* 1. THE PRICE POP CIRCLE */}
+      {product.productType === 'rtw' && product.priceNGN && (
+        <div className="absolute bottom-3 right-3 z-20">
+          <div className="w-18 h-18 rounded-full bg-brand-beryl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-500 border-2 border-white/30">
+            <PriceDisplay 
+              priceNGN={product.priceNGN} 
+              className="font-sans text-[14px] font-black text-white tracking-tighter"
             />
-          ))}
+          </div>
         </div>
       )}
     </div>
@@ -97,34 +86,42 @@ export default function ProductCard({
   const productSlug = typeof product.slug === 'string' ? product.slug : product.slug?.current;
 
   return (
-    <Link href={`/product/${productSlug}`} className="group block space-y-6">
+    <Link 
+      href={`/product/${productSlug}`} 
+      className="group block w-full max-w-[320px] mx-auto overflow-hidden bg-white border border-neutral-100 shadow-sm hover:shadow-md transition-all duration-500 p-2 rounded-sm"
+    >
       {ImageContainer}
 
-      <div className="grid grid-cols-12 gap-x-4 items-start pt-2 px-1">
-        <div className="col-span-12 md:col-span-8 space-y-2">
-          <p className="text-[8px] uppercase tracking-[0.6em] text-neutral-400 font-bold leading-none">
-            {product.categoryName}
-          </p>
-          <h3 className="font-display text-2xl lowercase text-neutral-900 group-hover:text-brand-beryl transition-colors leading-[0.95]">
+      {/* 2. REORDERED TEXT SECTION */}
+      <div className="pt-4 px-1 pb-1">
+        <div className="space-y-1">
+          {/* Name First */}
+          <h3 className="font-display text-xl lg:text-2xl lowercase text-neutral-900 leading-none tracking-tight group-hover:text-brand-beryl transition-colors">
             {product.name}
           </h3>
-        </div>
-        
-        {product.productType === 'rtw' && product.priceNGN && (
-          <div className="col-span-12 md:col-span-4 md:text-right mt-2 md:mt-0">
-             <PriceDisplay 
-              priceNGN={product.priceNGN} 
-              className="font-sans text-[16px] font-bold tracking-tight text-neutral-900 mt-0"
-            />
-          </div>
-        )}
-      </div>
 
-      <div className="space-y-3 px-1">
-        <div className="h-[1px] w-0 group-hover:w-full bg-brand-beryl/20 transition-all duration-1000 ease-out" />
-        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-700 text-[8px] uppercase tracking-[0.4em] text-neutral-500 font-bold flex items-center gap-2">
-          View Details <span className="h-[1px] w-3 bg-neutral-300"></span>
-        </span>
+          {/* Category Second */}
+          <p className="text-[9px] uppercase tracking-[0.3em] text-brand-beryl font-bold">
+            {product.categoryName}
+          </p>
+
+          {/* Static Sizes */}
+          <div className="flex gap-2 pt-2">
+            {['S', 'M', 'L', 'XL'].map((size) => (
+              <span key={size} className="text-[8px] font-bold text-neutral-300 group-hover:text-neutral-400 transition-colors">
+                {size}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Detail */}
+        <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+           <div className="h-[0.5px] flex-1 bg-neutral-100" />
+           <span className="text-[7px] uppercase tracking-widest text-neutral-400 font-bold">
+             View Product
+           </span>
+        </div>
       </div>
     </Link>
   );

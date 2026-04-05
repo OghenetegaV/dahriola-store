@@ -26,7 +26,7 @@
 
 :root {
 
-  --background: #FDFDFD;
+  --background: #FCFAFA;
 
   --foreground: #1a1a1a;
 
@@ -182,4 +182,129 @@ html {
   to {
     transform: scale(1);
   }
+}
+
+@layer utilities {
+  @keyframes slow-zoom {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slow-zoom {
+    animation: slow-zoom 20s ease-out infinite alternate;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 1.2s cubic-bezier(0.215, 0.61, 0.355, 1);
+  }
+}
+
+@layer utilities {
+  /* The Reveal: Slides text up from a hidden boundary */
+  @keyframes reveal-text {
+    from {
+      transform: translateY(100%);
+      clip-path: inset(0 0 100% 0);
+    }
+    to {
+      transform: translateY(0);
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  /* The Pan: Very slow movement for the background */
+  @keyframes subtle-pan {
+    from { transform: scale(1.05) translateX(-1%); }
+    to { transform: scale(1.1) translateX(1%); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-reveal-text {
+    animation: reveal-text 1.5s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+  }
+
+  .animate-subtle-pan {
+    animation: subtle-pan 20s ease-in-out infinite alternate;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 1.2s ease-out forwards;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  @keyframes reveal-card {
+    from {
+      opacity: 0;
+      transform: translateY(40px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes bounce-slow {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(8px);
+      opacity: 1;
+    }
+  }
+
+  .animate-reveal-card {
+    opacity: 0;
+    animation: reveal-card 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .animate-bounce-slow {
+    animation: bounce-slow 2.5s ease-in-out infinite;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
