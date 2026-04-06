@@ -9,10 +9,19 @@ import { client } from "@/src/lib/sanity";
 import { useStore } from "@/src/store/useStore";
 import CartDrawer from "./CartDrawer";
 
+// Define the interface to fix the TypeScript 'never' error
+interface Category {
+  title: string;
+  slug: string;
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
+  
+  // Explicitly type the categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -31,7 +40,8 @@ export default function Navbar() {
     
     const fetchCategories = async () => {
       try {
-        const data = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
+        // Cast the Sanity fetch result to the Category array type
+        const data: Category[] = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
         setCategories(data);
       } catch (error) {
         console.error("Sanity fetch error:", error);
@@ -44,8 +54,6 @@ export default function Navbar() {
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Logic: Should the navbar be solid/colored?
-  // Always true on inner pages, true on homepage only after scroll.
   const isHomePage = pathname === "/";
   const shouldShowSolid = scrolled || !isHomePage;
 
@@ -201,3 +209,4 @@ export default function Navbar() {
     </>
   );
 }
+
