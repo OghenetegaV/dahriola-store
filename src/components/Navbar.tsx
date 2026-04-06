@@ -105,7 +105,7 @@ export default function Navbar() {
               </div>
               <div className="absolute left-0 top-full pt-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 z-[110]">
                 <div className="bg-white border border-neutral-100 shadow-xl py-2 min-w-[100px] rounded-sm">
-                  {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
+                  {(['NGN', 'USD', 'GBP', 'EUR'] as const).map((cur) => (
                     <button
                       key={cur}
                       onClick={() => setCurrency(cur)}
@@ -187,7 +187,7 @@ export default function Navbar() {
             <Link href="/category/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tighter">bespoke studio</Link>
 
             <div className="flex gap-4 mt-4 py-4 border-t border-neutral-100">
-              {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
+              {(['NGN', 'USD', 'GBP', 'EUR'] as const).map((cur) => (
                 <button 
                   key={cur} 
                   onClick={() => setCurrency(cur)}
