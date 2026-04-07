@@ -38,7 +38,7 @@ export default function Footer() {
       <div 
         className="absolute inset-0 bg-[#0A0A0A] transition-all duration-[1500ms] cubic-bezier(0.22, 1, 0.36, 1)"
         style={{ 
-          clipPath: 'ellipse(180% 100% at 50% 100%)',
+          // clipPath: 'ellipse(200% 100% at 50% 100%)',
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'translateY(0)' : 'translateY(100px)'
         }}

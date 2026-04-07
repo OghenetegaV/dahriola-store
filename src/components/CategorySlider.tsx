@@ -15,19 +15,23 @@ const categories = [
   { title: "Bubu", slug: "bubu", image: "/kimono.png" },
 ];
 
+// Double the categories to create the infinite loop effect
+const infiniteCategories = [...categories, ...categories];
+
 export default function CategorySlider() {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.unobserve(entry.target); // Run only once
+          observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.1 } // Triggers when 10% of the section is visible
+      { threshold: 0.1 }
     );
 
     if (sectionRef.current) {
@@ -35,6 +39,43 @@ export default function CategorySlider() {
     }
 
     return () => observer.disconnect();
+  }, []);
+
+  // Infinite Soft Glide Logic
+  useEffect(() => {
+    const slider = scrollRef.current;
+    if (!slider) return;
+
+    let animationId: number;
+    let scrollSpeed = 0.8; // Adjust this number to make it faster or slower
+
+    const scroll = () => {
+      if (slider) {
+        slider.scrollLeft += scrollSpeed;
+
+        // When we reach the halfway point (the end of the first set), 
+        // snap back to the start of the first set instantly.
+        if (slider.scrollLeft >= slider.scrollWidth / 2) {
+          slider.scrollLeft = 0;
+        }
+      }
+      animationId = requestAnimationFrame(scroll);
+    };
+
+    animationId = requestAnimationFrame(scroll);
+
+    // Pause on hover
+    const pause = () => cancelAnimationFrame(animationId);
+    const resume = () => animationId = requestAnimationFrame(scroll);
+
+    slider.addEventListener("mouseenter", pause);
+    slider.addEventListener("mouseleave", resume);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      slider.removeEventListener("mouseenter", pause);
+      slider.removeEventListener("mouseleave", resume);
+    };
   }, []);
 
   return (
@@ -45,16 +86,19 @@ export default function CategorySlider() {
     >
 
       {/* Scrollable Container */}
-      <div className="flex gap-4 overflow-x-auto px-5 sm:px-8 lg:px-12 pb-10 no-scrollbar snap-x snap-mandatory">
-        {categories.map((cat, index) => (
+      <div 
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto px-5 sm:px-8 lg:px-12 pb-10 no-scrollbar"
+      >
+        {infiniteCategories.map((cat, index) => (
           <Link 
-            key={cat.slug} 
+            key={`${cat.slug}-${index}`} 
             href={`/category/${cat.slug}`}
-            className={`group relative min-w-[280px] sm:min-w-[350px] aspect-[3/4] overflow-hidden rounded-sm snap-start transition-all duration-[1200ms] cubic-bezier(0.22, 1, 0.36, 1)`}
+            className={`group relative min-w-[280px] sm:min-w-[350px] aspect-[3/4] overflow-hidden rounded-sm transition-all duration-[1200ms] cubic-bezier(0.22, 1, 0.36, 1)`}
             style={{ 
               opacity: isVisible ? 1 : 0,
               transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(60px) scale(0.9)',
-              transitionDelay: `${index * 100}ms` 
+              transitionDelay: `${(index % categories.length) * 50}ms` 
             }}
           >
             <Image
@@ -79,7 +123,7 @@ export default function CategorySlider() {
         ))}
       </div>
 
-      {/* Explore More - Bottom of Curve */}
+      {/* Explore More */}
       <div className={`absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 transition-opacity duration-1000 delay-[1000ms] ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <span className="text-[9px] uppercase tracking-[0.4em] text-neutral-500 font-medium">
           Explore More

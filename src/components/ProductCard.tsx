@@ -88,7 +88,7 @@ export default function ProductCard({
   return (
     <Link 
       href={`/product/${productSlug}`} 
-      className="group block w-full max-w-[320px] mx-auto overflow-hidden bg-white border border-neutral-100 shadow-sm hover:shadow-md transition-all duration-500 p-2 rounded-sm"
+      className="group block w-full max-w-[320px] mx-auto overflow-hidden bg-white border border-neutral-100 shadow-sm hover:shadow-md transition-all duration-500 p-1 rounded-sm"
     >
       {ImageContainer}
 
