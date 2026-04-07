@@ -9,10 +9,19 @@ import { client } from "@/src/lib/sanity";
 import { useStore } from "@/src/store/useStore";
 import CartDrawer from "./CartDrawer";
 
+// Define the interface to fix the TypeScript 'never' error
+interface Category {
+  title: string;
+  slug: string;
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
+  
+  // Explicitly type the categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -31,7 +40,8 @@ export default function Navbar() {
     
     const fetchCategories = async () => {
       try {
-        const data = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
+        // Cast the Sanity fetch result to the Category array type
+        const data: Category[] = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
         setCategories(data);
       } catch (error) {
         console.error("Sanity fetch error:", error);
@@ -44,8 +54,6 @@ export default function Navbar() {
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Logic: Should the navbar be solid/colored?
-  // Always true on inner pages, true on homepage only after scroll.
   const isHomePage = pathname === "/";
   const shouldShowSolid = scrolled || !isHomePage;
 
@@ -97,7 +105,7 @@ export default function Navbar() {
               </div>
               <div className="absolute left-0 top-full pt-2 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-300 z-[110]">
                 <div className="bg-white border border-neutral-100 shadow-xl py-2 min-w-[100px] rounded-sm">
-                  {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
+                  {(['NGN', 'USD', 'GBP', 'EUR'] as const).map((cur) => (
                     <button
                       key={cur}
                       onClick={() => setCurrency(cur)}
@@ -179,7 +187,7 @@ export default function Navbar() {
             <Link href="/category/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tighter">bespoke studio</Link>
 
             <div className="flex gap-4 mt-4 py-4 border-t border-neutral-100">
-              {['NGN', 'USD', 'GBP', 'EUR'].map((cur) => (
+              {(['NGN', 'USD', 'GBP', 'EUR'] as const).map((cur) => (
                 <button 
                   key={cur} 
                   onClick={() => setCurrency(cur)}
@@ -201,3 +209,4 @@ export default function Navbar() {
     </>
   );
 }
+

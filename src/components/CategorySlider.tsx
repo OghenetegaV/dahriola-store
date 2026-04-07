@@ -43,18 +43,6 @@ export default function CategorySlider() {
       className="relative pt-20 pb-44 bg-black overflow-hidden" 
       style={{ clipPath: 'ellipse(150% 100% at 50% 0%)' }}
     >
-      {/* Header Section
-      <div className={`px-5 sm:px-8 lg:px-12 mb-10 flex items-end justify-between transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-        <div>
-          <span className="text-[10px] uppercase tracking-[0.3em] text-brand-beryl font-bold">Explore</span>
-          <h2 className="font-display text-4xl sm:text-5xl text-white lowercase tracking-tighter mt-2">
-            The Collections
-          </h2>
-        </div>
-        <Link href="/category/all" className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 hover:text-white transition-colors pb-1 border-b border-neutral-800">
-          View All
-        </Link>
-      </div> */}
 
       {/* Scrollable Container */}
       <div className="flex gap-4 overflow-x-auto px-5 sm:px-8 lg:px-12 pb-10 no-scrollbar snap-x snap-mandatory">
