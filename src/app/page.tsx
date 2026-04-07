@@ -1,11 +1,8 @@
-import Link from "next/link";
-import Image from "next/image";
 import { client } from "../lib/sanity";
 import ProductCard from "../components/ProductCard";
 import Hero from "../components/Hero";
 import CategorySlider from "../components/CategorySlider";
 import AnnouncementBar from "../components/AnnouncementBar";
-import BrandEthos from "../components/BrandEthos";
 import AboutDahriola from "../components/AboutDahriola";
 import ServicesGrid from "../components/ServicesGrid";
 
@@ -28,40 +25,31 @@ export default async function HomePage() {
   const products = await getProducts();
 
   return (
-    <div className="relative w-full ">
-      {/* Dynamic Editorial Hero */}
+    <div className="relative w-full">
       <AnnouncementBar />
       <Hero />
       <CategorySlider />
-      {/* <BrandEthos /> */}
       <AboutDahriola />
       <ServicesGrid />
 
       {/* Featured Collection Preview */}
       <section className="py-32 px-4 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-6">
-          <div>
-            {/* <span className="text-[10px] uppercase tracking-[0.4em] text-brand-beryl font-bold block mb-4">
-              The Selection
-            </span> */}
-            <h3 className="font-display text-3xl md:text-4xl lowercase tracking-tighter">
-              Latest Drops
-            </h3>
-            <p className="text-neutral-500 text-xs mt-4 font-light uppercase tracking-widest">
-              Precision in every stitch. Vision in every couture.
-            </p>
-          </div>
-          
-          <Link 
-            href="/category/all" 
-            className="group flex items-center gap-4 text-[10px] uppercase tracking-[0.3em] font-bold pb-1 border-b border-neutral-200 hover:border-brand-beryl transition-all"
-          >
-            View Full Collection
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </Link>
-        </div>
         
-        {/* The Grid */}
+        {/* Heading Section - Simplified for Server Component */}
+        <div className="relative mb-20 text-center">
+          <h2 className="font-display text-5xl md:text-6xl text-neutral-950 lowercase tracking-tighter relative z-10 pb-4">
+            the <span className="italic font-light">latest</span> pieces
+          </h2>
+          {/* Static Brush Stroke */}
+          <div 
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-48 h-6 bg-no-repeat bg-contain bg-center z-0 opacity-20"
+            style={{ 
+              backgroundImage: "url('/images/brush-stroke-green.svg')", 
+            }}
+          />
+        </div>
+
+        {/* The Grid - Fixed closing tags and mapping */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24">
           {products.map((product: any, index: number) => (
             <ProductCard 
@@ -71,8 +59,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-      
     </div>
   );
 }
