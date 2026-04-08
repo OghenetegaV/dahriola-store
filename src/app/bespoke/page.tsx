@@ -86,7 +86,7 @@ export default function BespokeGallery() {
             className="fixed inset-0 z-[200] bg-[#fcfcfc] overflow-y-auto md:hidden"
           >
             <div className="flex justify-between items-center p-6 border-b border-neutral-100 bg-white sticky top-0 z-[210]">
-              <span className="font-display text-xl lowercase tracking-tighter">New Commission</span>
+              <span className="font-display text-xl lowercase tracking-tighter"></span>
               <button 
                 onClick={() => setIsOpen(false)}
                 className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center text-white"
