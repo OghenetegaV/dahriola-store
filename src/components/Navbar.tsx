@@ -89,7 +89,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            <Link href="/category/bespoke" className="hover:text-brand-beryl transition-colors">
+            <Link href="/bespoke" className="hover:text-brand-beryl transition-colors">
               Bespoke
             </Link>
 
@@ -181,7 +181,7 @@ export default function Navbar() {
                 ))}
               </div>
             </div>
-            <Link href="/category/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tight">bespoke studio</Link>
+            <Link href="/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tight">bespoke studio</Link>
           </nav>
 
           <div className="mt-auto pt-10 border-t border-neutral-50 flex items-center justify-between">
