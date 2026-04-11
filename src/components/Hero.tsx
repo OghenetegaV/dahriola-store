@@ -7,7 +7,7 @@ export default function Hero() {
       {/* Background Image Container */}
       <div className="absolute inset-0 w-full h-full">
         <Image
-          src="/agbada_1.jpg"
+          src="/group-jacket.jpg"
           alt="Dahriola premium contemporary fashion"
           width={1920}
           height={1080}
@@ -30,7 +30,7 @@ export default function Hero() {
             {/* Buttons - Interaction focus */}
             <div className="mt-8 flex flex-wrap items-center gap-4 sm:mt-10">
               <Link
-                href="/shop"
+                href="/category"
                 className="group relative inline-flex h-12 min-w-[140px] items-center justify-center overflow-hidden rounded-full bg-white px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-black transition-all duration-300 hover:bg-neutral-200"
               >
                 <span className="relative z-10">Shop</span>

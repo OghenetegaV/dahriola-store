@@ -6,13 +6,13 @@ import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 
 const categories = [
-  { title: "Skirts", slug: "skirts", image: "/bespoke2.jpg" },
-  { title: "Shorts", slug: "shorts", image: "/D-1.jpg" },
-  { title: "Dresses", slug: "dresses", image: "/bespoke.jpg" },
-  { title: "Linen Pieces", slug: "linen-pieces", image: "/D-40.jpg" },
-  { title: "Shirt Dresses", slug: "shirt-dresses", image: "/agbada_2.jpg" },
-  { title: "Pants", slug: "pants", image: "/D-34.jpg" },
-  { title: "Bubu", slug: "bubu", image: "/kimono.png" },
+  { title: "Skirts", slug: "skirts", image: "/products/skirts/wura-skirt.jpg" },
+  { title: "Shorts", slug: "shorts", image: "/products/set/alafia-set/alafia-set-1.jpg" },
+  { title: "Dresses", slug: "dresses", image: "/products/dresses/new-dress-1.jpg" },
+  { title: "Jackets", slug: "jackets", image: "/products/jackets/jacket-1.jpg" },
+  { title: "Shirt Dresses", slug: "shirt-dresses", image: "/products/shirt-dresses/tolu-shirt-dress.jpg" },
+  { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.jpg" },
+  { title: "Bubu", slug: "bubu", image: "/products/kimono/kimono-1.jpg" },
 ];
 
 // Double the categories to create the infinite loop effect
@@ -81,7 +81,7 @@ export default function CategorySlider() {
   return (
     <section 
       ref={sectionRef}
-      className="relative pt-20 pb-44 bg-black overflow-hidden" 
+      className="relative pt-10 pb-44 bg-black overflow-hidden" 
       style={{ clipPath: 'ellipse(150% 100% at 50% 0%)' }}
     >
 

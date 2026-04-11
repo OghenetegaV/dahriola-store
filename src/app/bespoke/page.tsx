@@ -22,8 +22,8 @@ export default function BespokeGallery() {
   return (
     <section className="bg-black w-full overflow-hidden relative">
       <div className="pb-16 pt-32 px-6 max-w-7xl mx-auto text-center">
-        <h2 className="font-display text-4xl md:text-6xl text-[#778472] lowercase tracking-tighter">
-          the bespoke archive
+        <h2 className="font-display text-4xl md:text-6xl text-[#778472] tracking-tighter">
+          The Bespoke Gallery
         </h2>
         <p className="text-neutral-500 text-[10px] uppercase tracking-[0.5em] mt-4 font-bold">crafting narratives</p>
       </div>

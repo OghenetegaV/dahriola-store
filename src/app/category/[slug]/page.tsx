@@ -9,7 +9,7 @@ async function getData(slug: string) {
   let productFilter = '';
   if (slug === 'all') {
     productFilter = '_type == "product"';
-  } else if (slug === 'rtw' || slug === 'bespoke') {
+  } else if (slug === 'Ready to Wear' || slug === 'Bespoke') {
     productFilter = `_type == "product" && productType == "${slug}"`;
   } else {
     productFilter = `_type == "product" && category->slug.current == "${slug}"`;
@@ -45,7 +45,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
         
         {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between p-2 pb-14 mb-2 gap-6">
           <div className="space-y-2">
             <h1 className="font-display text-5xl md:text-7xl text-neutral-950 lowercase tracking-tighter leading-none">
               {slug.replace(/-/g, ' ')}
