@@ -137,7 +137,7 @@ export default function Footer() {
                 </div>
               </div>
 
-              <Link href="/category/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Bespoke</Link>
+              <Link href="/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Bespoke</Link>
             </div>
           </div>
 

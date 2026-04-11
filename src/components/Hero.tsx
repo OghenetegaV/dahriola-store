@@ -37,7 +37,7 @@ export default function Hero() {
               </Link>
 
               <Link
-                href="/BespokeGallery"
+                href="/bespoke"
                 className="inline-flex h-12 min-w-[140px] items-center justify-center rounded-full border border-white/30 bg-white/5 backdrop-blur-md px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white transition-all duration-500 hover:border-white hover:bg-white/20 hover:-translate-y-1"
               >
                 Bespoke
