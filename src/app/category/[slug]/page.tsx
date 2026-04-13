@@ -47,7 +47,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-end justify-between p-2 pb-14 mb-2 gap-6">
           <div className="space-y-2">
-            <h1 className="font-display text-5xl md:text-7xl text-neutral-950 lowercase tracking-tighter leading-none">
+            <h1 className="font-display text-5xl md:text-7xl text-neutral-950 tracking-tighter leading-none">
               {slug.replace(/-/g, ' ')}
             </h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-neutral-400 font-bold">

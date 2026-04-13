@@ -7,6 +7,7 @@ import { usePaystackPayment } from "react-paystack";
 import { Loader2, Truck, CreditCard, AlertCircle, RefreshCw } from "lucide-react";
 import { getShippingRates } from "@/src/app/actions/shipping";
 import { verifyPayment } from "@/src/app/actions/payment"; 
+import { sendOrderNotification } from "@/src/app/actions/email";
 import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
@@ -103,6 +104,17 @@ export default function CheckoutPage() {
       const verification = await verifyPayment(transactionReference);
 
       if (verification.success) {
+        // Trigger the Email Notification to info.dahriola@gmail.com
+        await sendOrderNotification({
+          orderNumber: transactionReference,
+          customerName: formData.name,
+          customerEmail: formData.email,
+          items: cart,
+          totalAmount: finalTotal,
+          currency: currency,
+          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}`,
+        });
+
         clearCart();
         router.push(`/success?reference=${transactionReference}`);
       } else {
@@ -110,7 +122,7 @@ export default function CheckoutPage() {
         setIsProcessing(false);
       }
     } catch (error) {
-      console.error("Verification Error:", error);
+      console.error("Verification/Email Error:", error);
       setIsProcessing(false);
     }
   };
@@ -123,12 +135,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="bg-white min-h-screen pt-20 pb-20 px-4">
-      {/* Container switched to flex-col-reverse for mobile, grid for desktop */}
       <div className="max-w-7xl mx-auto flex flex-col-reverse lg:grid lg:grid-cols-12 gap-16">
         
         <div className="lg:col-span-7 space-y-12">
           <section>
-            <h2 className="font-display text-4xl lowercase tracking-tighter mb-10">delivery info</h2>
+            <h2 className="font-display text-4xl  tracking-tighter mb-10">Delivery Info</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input 
                 type="text" placeholder="full name" 

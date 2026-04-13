@@ -45,7 +45,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
             <div className="px-6 py-6 flex justify-between items-center border-b border-neutral-50">
               <div className="flex items-center gap-2.5">
                 <ShoppingBag size={18} strokeWidth={1.5} className="text-brand-beryl" />
-                <h2 className="font-display text-2xl lowercase tracking-tight">
+                <h2 className="font-display text-2xl  tracking-tight">
                   Your Bag <span className="text-neutral-300 ml-1">({cart.length})</span>
                 </h2>
               </div>
