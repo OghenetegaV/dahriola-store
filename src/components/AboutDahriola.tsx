@@ -32,7 +32,7 @@ export default function AboutDahriola() {
         <div className={`relative mb-12 lg:mb-16 transition-all duration-1000 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
         }`}>
-          <h2 className="font-display text-5xl md:text-6xl text-neutral-950 lowercase tracking-tighter relative z-10 pb-4">
+          <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-4">
             About <span className="italic font-light">Dahriola</span>
           </h2>
           {/* Funky Paint Brush Underline

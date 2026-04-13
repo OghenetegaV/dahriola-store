@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/src/store/useStore";
 import Image from "next/image";
-import { useFlutterwave, closePaymentModal } from "flutterwave-react-v3";
-import { Loader2, Truck, CreditCard, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { usePaystackPayment } from "react-paystack"; 
+import { Loader2, Truck, CreditCard, AlertCircle, RefreshCw } from "lucide-react";
 import { getShippingRates } from "@/src/app/actions/shipping";
-import { verifyPayment } from "@/src/app/actions/payment"; // Ensure this action exists
+import { verifyPayment } from "@/src/app/actions/payment"; 
 import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
@@ -56,10 +56,10 @@ export default function CheckoutPage() {
         setSelectedRate(rates[0]);
       } else {
         setShippingRates([]);
-        setShippingError("We couldn't find shipping rates for this location. Please check the address details.");
+        setShippingError("We couldn't find shipping rates for this location.");
       }
     } catch (error) {
-      setShippingError("Network error: Unable to reach the shipping server.");
+      setShippingError("Network error: Unable to reach shipping server.");
     } finally {
       setLoadingRates(false);
     }
@@ -72,37 +72,39 @@ export default function CheckoutPage() {
     
   const finalTotal = convertedSubtotal + convertedShipping;
 
-  const fwConfig = {
-    public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_KEY!,
-    tx_ref: `dahriola-${Date.now()}`,
-    amount: finalTotal,
+  const paystackConfig = {
+    reference: `dahriola-${(new Date()).getTime().toString()}`,
+    email: formData.email,
+    amount: Math.round(finalTotal * 100), 
+    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
     currency: currency,
-    payment_options: "card,mobilemoney,ussd",
-    customer: {
-      email: formData.email,
-      phone_number: formData.phone,
-      name: formData.name,
-    },
-    customizations: {
-      title: "Dahriola Studio",
-      description: "Order Payment",
-      logo: "https://your-logo-url.com/logo.png",
-    },
+    metadata: {
+      custom_fields: [
+        {
+          display_name: "Customer Name",
+          variable_name: "customer_name",
+          value: formData.name,
+        },
+        {
+          display_name: "Phone Number",
+          variable_name: "phone_number",
+          value: formData.phone,
+        }
+      ]
+    }
   };
 
-  const handleFlutterPayment = useFlutterwave(fwConfig);
+  const initializePayment = usePaystackPayment(paystackConfig);
 
   const handlePaymentSuccess = async (response: any) => {
-    closePaymentModal();
     setIsProcessing(true);
-
     try {
-      // Server-side verification
-      const verification = await verifyPayment(response.transaction_id);
+      const transactionReference = response.reference || response.trxref;
+      const verification = await verifyPayment(transactionReference);
 
       if (verification.success) {
         clearCart();
-        router.push(`/success?tx_ref=${response.tx_ref}`);
+        router.push(`/success?reference=${transactionReference}`);
       } else {
         setShippingError("Payment verification failed. Please contact support.");
         setIsProcessing(false);
@@ -113,11 +115,16 @@ export default function CheckoutPage() {
     }
   };
 
+  const handlePaymentClose = () => {
+    setIsProcessing(false);
+  };
+
   if (!hasHydrated) return null;
 
   return (
     <div className="bg-white min-h-screen pt-20 pb-20 px-4">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16">
+      {/* Container switched to flex-col-reverse for mobile, grid for desktop */}
+      <div className="max-w-7xl mx-auto flex flex-col-reverse lg:grid lg:grid-cols-12 gap-16">
         
         <div className="lg:col-span-7 space-y-12">
           <section>
@@ -180,7 +187,7 @@ export default function CheckoutPage() {
                 <div className="flex items-center gap-2 text-red-600 text-xs font-bold uppercase tracking-widest">
                   <AlertCircle size={14} /> Error
                 </div>
-                <p className="text-[11px] text-neutral-600 leading-relaxed">{shippingError}</p>
+                <p className="text-[11px] text-neutral-600">{shippingError}</p>
                 <button onClick={fetchRates} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-neutral-900">
                   <RefreshCw size={12} /> Retry
                 </button>
@@ -202,7 +209,7 @@ export default function CheckoutPage() {
                       />
                       <div className="flex flex-col">
                         <span className="text-xs font-bold uppercase tracking-widest text-neutral-900">{rate.carrier_name}</span>
-                        <span className="text-[10px] text-neutral-400 uppercase tracking-tighter">{rate.service_name} — {rate.delivery_time}</span>
+                        <span className="text-[10px] text-neutral-400 uppercase">{rate.service_name} — {rate.delivery_time}</span>
                       </div>
                     </div>
                     <span className="text-sm font-medium text-neutral-900">₦{rate.amount.toLocaleString()}</span>
@@ -219,10 +226,10 @@ export default function CheckoutPage() {
           </section>
 
           <button
-            onClick={() => handleFlutterPayment({
-              callback: handlePaymentSuccess,
-              onClose: () => setIsProcessing(false),
-            })}
+            onClick={() => {
+                setIsProcessing(true);
+                initializePayment({ onSuccess: handlePaymentSuccess, onClose: handlePaymentClose });
+            }}
             disabled={!selectedRate || !formData.email || loadingRates || isProcessing}
             className="w-full bg-neutral-900 text-white py-7 rounded-full text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-black transition-all disabled:opacity-20 flex items-center justify-center gap-3"
           >
@@ -236,7 +243,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="lg:col-span-5">
-          <div className="bg-neutral-50 p-10 rounded-[2.5rem] sticky top-32">
+          <div className="bg-neutral-50 p-10 rounded-[2.5rem] lg:sticky lg:top-32">
             <h2 className="font-display text-2xl mb-8">Order Summary</h2>
             <div className="space-y-6 mb-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {cart.map((item) => (

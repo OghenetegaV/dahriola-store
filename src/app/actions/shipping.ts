@@ -6,28 +6,45 @@ export async function getShippingRates(deliveryData: {
   country: string;
   line1: string;
 }) {
+  // --- MANUAL BACKUP RATES ---
+  // These act as a safety net if the API times out or fails
+  const backupRates = [
+    {
+      id: "dahriola-std",
+      carrier_name: "Dahriola Standard",
+      service_name: "Standard Delivery",
+      delivery_time: "3-5 Business Days",
+      amount: deliveryData.state.toLowerCase() === "lagos" ? 2500 : 5000,
+    },
+    {
+      id: "dahriola-exp",
+      carrier_name: "Dahriola Express",
+      service_name: "Priority Shipping",
+      delivery_time: "1-2 Business Days",
+      amount: deliveryData.state.toLowerCase() === "lagos" ? 4500 : 8000,
+    }
+  ];
+
   try {
-    // Trim and remove any trailing slashes from the base URL
-    const baseUrl = process.env.TERMINAL_AFRICA_URL?.trim().replace(/\/+$/, "");
+    const baseUrl = "https://sandbox.api.terminal.africa/v1"; 
     const apiKey = process.env.TERMINAL_AFRICA_SECRET_KEY?.trim();
 
-    if (!baseUrl || !apiKey) {
-      console.error("DEBUG: Environment variables are missing.");
-      return [];
+    if (!apiKey) {
+      console.warn("DEBUG: Terminal Africa API Key missing. Using Dahriola backup rates.");
+      return backupRates;
     }
 
-    // Explicitly construct the full endpoint
-    const fullUrl = `${baseUrl}/rates/shipment/quotes`;
-    
-    console.log("DEBUG: Sending request to:", fullUrl);
+    // Set a 5-second timeout so the user isn't waiting indefinitely
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const response = await fetch(fullUrl, {
+    const response = await fetch(`${baseUrl}/rates/shipment/quotes`, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      // We are using a standard Lagos pickup for Dahriola Studio
       body: JSON.stringify({
         pickup_address: {
           city: "Lekki",
@@ -38,7 +55,7 @@ export async function getShippingRates(deliveryData: {
         delivery_address: {
           city: deliveryData.city,
           state: deliveryData.state,
-          country: deliveryData.country || "NG",
+          country: "NG",
           line1: deliveryData.line1,
         },
         parcel: {
@@ -50,29 +67,30 @@ export async function getShippingRates(deliveryData: {
       }),
     });
 
-    // Check if the response is actually JSON before parsing
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      const text = await response.text();
-      console.error("DEBUG: Expected JSON but got:", text);
-      return [];
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("DEBUG: Terminal Africa API Error. Switching to backups.", errorText);
+      return backupRates;
     }
 
     const data = await response.json();
-
-    if (!response.ok) {
-      console.error("DEBUG: Terminal Africa Error Response:", data);
-      return [];
+    
+    // Check if the API returned actual rates
+    if (!data.data || data.data.length === 0) {
+      return backupRates;
     }
 
+    // Return the sorted API rates
     return data.data.sort((a: any, b: any) => a.amount - b.amount);
+
   } catch (error: any) {
-    // Detailed logging for the network error you saw
-    console.error("DEBUG: Shipping Action Failure:", {
-      message: error.message,
-      code: error.code,
-      hostname: error.hostname
-    });
-    return [];
+    if (error.name === 'AbortError') {
+      console.error("DEBUG: Shipping API timed out. Falling back to Dahriola manual rates.");
+    } else {
+      console.error("DEBUG: Shipping Action Failure:", error.message);
+    }
+    return backupRates;
   }
 }

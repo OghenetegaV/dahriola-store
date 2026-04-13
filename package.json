@@ -21,6 +21,7 @@
     "next-sanity": "^12.1.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-paystack": "^6.0.0",
     "react-phone-number-input": "^3.4.16",
     "sanity": "^5.13.0",
     "styled-components": "^6.4.0"
