@@ -4,7 +4,7 @@ import { usePaystackPayment } from "react-paystack";
 
 interface PaystackProps {
   email: string;
-  amount: number; // In Naira (we will multiply by 100 for kobo)
+  amount: number; // In Naira (will be converted to kobo)
   metadata: {
     name: string;
     phone: string;
@@ -15,13 +15,27 @@ interface PaystackProps {
 
 export default function PaystackButton({ email, amount, metadata, onSuccess, onClose }: PaystackProps) {
   const config = {
-    reference: (new Date()).getTime().toString(),
+    reference: `dahriola-${new Date().getTime().toString()}`,
     email: email,
-    amount: amount * 100, // Paystack expects amount in Kobo
+    amount: Math.round(amount * 100), // Ensure it's an integer for Kobo
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY as string,
-    metadata: metadata
+    metadata: {
+      custom_fields: [
+        {
+          display_name: "Customer Name",
+          variable_name: "customer_name",
+          value: metadata.name,
+        },
+        {
+          display_name: "Phone Number",
+          variable_name: "phone_number",
+          value: metadata.phone,
+        },
+      ],
+    },
   };
 
+  // @ts-ignore - Ignore type mismatch if React 19 peer dependency warning persists
   const initializePayment = usePaystackPayment(config);
 
   return (
@@ -29,7 +43,7 @@ export default function PaystackButton({ email, amount, metadata, onSuccess, onC
       onClick={() => initializePayment({ onSuccess, onClose })}
       className="w-full bg-black text-white py-4 uppercase text-[11px] tracking-[0.3em] font-black hover:bg-neutral-800 transition-colors"
     >
-      Pay Now {amount.toLocaleString()}
+      Pay Now ₦{amount.toLocaleString()}
     </button>
   );
 }
