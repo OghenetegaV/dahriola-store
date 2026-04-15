@@ -4,101 +4,121 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Replace these with the actual paths to your transparent PNGs
 const collectionItems = [
-  { id: 1, name: "Beryl Jacket", image: "/products/set/alafia-set/alafia-set-1.jpg" }, // Use your PNG path here
-  { id: 2, name: "Alafia Shorts", image: "/products/jackets/jacket-1.jpg" },      // Use your PNG path here
-  { id: 3, name: "Tolu Dress", image: "/products/kimono/kimono-1.jpg" },         // Use your PNG path here
+  { id: 1, name: "Essential Trousers", image: "/new-collection/trousers.png" },
+  { id: 2, name: "Signature Set", image: "/new-collection/set.png" },
+  { id: 3, name: "A-Line Dress", image: "/new-collection/dress-1.png" },
+  { id: 4, name: "Sculpted Wrap Dress", image: "/new-collection/dress-2.png" },
 ];
 
 export default function CollectionTurntable() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Autonomous Swapping and 360 Rotation Logic
   useEffect(() => {
     const swapInterval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % collectionItems.length);
-    }, 10000); // Swaps every 10 seconds
-
+    }, 6000); 
     return () => clearInterval(swapInterval);
   }, []);
 
   const currentItem = collectionItems[currentIndex];
 
   return (
-    <section className="relative w-full h-[80vh] min-h-[500px] flex items-center justify-center bg-black overflow-hidden pt-20">
+    <section className="relative w-full min-h-screen flex flex-col items-center justify-between bg-white overflow-hidden pt-4 pb-1">
       
-      {/* 1. Futuristic Levitating Turntable */}
-      <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-[80%] max-w-[800px]">
-        {/* Main Base Disc */}
+      {/* 1. Heading Section */}
+      <div className="relative z-20 text-center pt-4">
+        <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-5">
+          Shop our <span className="italic font-light">latest</span> pieces
+        </h2>
         <div 
-          className="relative aspect-[5/1] bg-neutral-900 rounded-full border border-neutral-700/50 shadow-[0_0_100px_rgba(255,255,255,0.05)]"
-          style={{ transform: 'rotateX(75deg)' }}
-        >
-          {/* Central Indent */}
-          <div className="absolute inset-[15%] rounded-full bg-black/50 border border-neutral-800" />
-          
-          {/* Spotlight Beam Source (From within the base) */}
-          <div className="absolute inset-x-[30%] top-[40%] bottom-[40%] bg-gradient-to-t from-neutral-500/10 to-transparent blur-[15px]" />
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-80 h-6 bg-no-repeat bg-contain bg-center z-0 opacity-70"
+          style={{ 
+            backgroundImage: "url('/brush-stroke-green.svg')", 
+          }}
+        />
+      </div>  
+
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-50 via-white to-white" />
+
+      {/* 2. Main Image Container - Forced to 70vh */}
+      <div className="relative z-10 w-full max-w-[1200px] h-[50vh] md:h-[70vh] flex items-center justify-center">
+        
+        {/* Shadow Base */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[70%] max-w-[600px] opacity-40">
+          <div 
+            className="aspect-[5/1] bg-neutral-200 rounded-[100%] blur-3xl"
+            style={{ transform: 'rotateX(75deg)' }}
+          />
         </div>
-      </div>
 
-      {/* 2. Spotlight Cone Effect (Upward Beam) */}
-      <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 w-full h-[60%] pointer-events-none">
-        <div className="w-full h-full bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-neutral-200/5 via-neutral-900/0 to-neutral-900/0 blur-md" />
-      </div>
-
-      {/* 3. The 360 Rotating, Levitating Design */}
-      <div className="relative z-10 w-[500px] h-[500px] flex items-center justify-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentItem.id}
-            initial={{ opacity: 0, y: 50, rotate: 0 }}
+            initial={{ opacity: 0, x: 50, filter: "blur(10px)" }}
             animate={{ 
               opacity: 1, 
-              y: [0, -20, 0], // Floating motion
-              rotate: 360 // Continuous 360 rotation
+              x: 0, 
+              filter: "blur(0px)",
+              y: [0, -20, 0] 
             }}
-            exit={{ opacity: 0, y: -50 }}
+            exit={{ opacity: 0, x: -50, filter: "blur(10px)" }}
             transition={{
-              y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-              rotate: { duration: 10, repeat: Infinity, ease: "linear" }, // Control 360 speed here
-              opacity: { duration: 1 },
+              opacity: { duration: 0.8 },
+              x: { duration: 0.8, ease: "circOut" },
+              y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+              filter: { duration: 0.8 }
             }}
-            className="relative w-[300px] h-[400px]"
+            className="relative w-full h-full"
           >
             <Image
               src={currentItem.image}
               alt={currentItem.name}
               fill
               priority
-              className="object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.15)]" // Enhances spotlight popup
+              className="object-contain drop-shadow-[0_40px_80px_rgba(0,0,0,0.05)]"
             />
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* 4. Downward Reflection (Crucial for Levitating Illusion) */}
-      <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 z-0 w-[500px] h-[300px] opacity-10 pointer-events-none">
-        <div className="relative w-full h-full scale-y-[-1] blur-md">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`reflect-${currentItem.id}`}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-              className="w-full h-full flex items-center justify-center"
-            >
-              <Image src={currentItem.image} alt="reflection" fill className="object-contain" />
-            </motion.div>
-          </AnimatePresence>
+      {/* 3. Navigation / Info Section */}
+      <div className="relative flex flex-col items-center z-20 pb-2">
+        <motion.div 
+          key={`text-${currentItem.id}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <p className="text-[10px] uppercase tracking-[0.6em] font-bold text-neutral-400 mb-2">
+            New Collection
+          </p>
+          <h3 className="font-display text-3xl md:text-4xl text-black lowercase tracking-tighter">
+            {currentItem.name}
+          </h3>
+        </motion.div>
+
+        {/* Index Indicators */}
+        <div className="flex gap-2 mt-2">
+          {collectionItems.map((_, i) => (
+            <div 
+              key={i}
+              className={`h-[1px] transition-all duration-700 ${
+                i === currentIndex ? "w-12 bg-black" : "w-4 bg-neutral-200"
+              }`}
+            />
+          ))}
         </div>
       </div>
 
-      {/* 5. Minimalist Text/Controls Overlay */}
-      <div className="absolute top-10 right-10 z-20 text-right">
-        <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-neutral-500 mb-2">New Collection</p>
-        <h3 className="font-display text-3xl text-white lowercase tracking-tight">{currentItem.name}</h3>
+      {/* 4. Sidebar Counter */}
+      <div className="absolute left-10 top-1/2 -translate-y-1/2 hidden lg:block">
+        <span className="text-[12px] font-medium text-neutral-300 rotate-90 block tracking-widest uppercase">
+          {currentIndex + 1} / {collectionItems.length}
+        </span>
       </div>
+
     </section>
   );
 }

@@ -43,7 +43,7 @@ export default function AboutDahriola() {
               isVisible ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
             }`}
             style={{ 
-              backgroundImage: "url('/images/brush-stroke-green.svg')", // Link to your SVG file
+              backgroundImage: "url('/brush-stroke-green.svg')", // Link to your SVG file
             }}
           />
         </div>

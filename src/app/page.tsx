@@ -33,7 +33,7 @@ export default async function HomePage() {
       <CategorySlider />
       <AboutDahriola />
       <ServicesGrid />
-      {/* <CollectionTurntable /> */}
+      <CollectionTurntable />
 
 
       {/* Featured Collection Preview Component */}

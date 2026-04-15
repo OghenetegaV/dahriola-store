@@ -31,8 +31,8 @@ export default function BespokeGallery() {
       {/* MAIN GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[250px] md:auto-rows-[400px]">
         
-        {/* DESKTOP FORM: Fixed at position 5 in the sequence */}
-        <div className="hidden md:flex md:col-span-2 md:row-span-2 items-center justify-center z-10 relative md:order-5 bg-[#fcfcfc]">
+        {/* DESKTOP FORM: Added shadow-2xl and a slight border for better definition */}
+        <div className="hidden md:flex md:col-span-2 md:row-span-2 items-center justify-center z-10 relative md:order-5 bg-[#fcfcfc] shadow-[inset_0_0_100px_rgba(0,0,0,0.5),0_50px_100px_-20px_rgba(0,0,0,0.5)] border-x border-neutral-100">
           <BespokeEnquiry />
         </div>
 
@@ -85,8 +85,9 @@ export default function BespokeGallery() {
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed inset-0 z-[200] bg-[#fcfcfc] overflow-y-auto md:hidden"
           >
+            {/* MOBILE HEADER: Added Logo to the left of the close button */}
             <div className="flex justify-between items-center p-6 border-b border-neutral-100 bg-white sticky top-0 z-[210]">
-              <span className="font-display text-xl lowercase tracking-tighter"></span>
+              <img src="/logo.png" alt="Dahriola Logo" className="h-8 w-auto object-contain" />
               <button 
                 onClick={() => setIsOpen(false)}
                 className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center text-white"
