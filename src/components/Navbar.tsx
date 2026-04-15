@@ -63,7 +63,6 @@ export default function Navbar() {
                 Ready to Wear <ChevronDown size={10} className="group-hover:rotate-180 transition-transform duration-500" />
               </Link>
 
-              {/* DRAWER ANIMATION DROPDOWN */}
               <div className="absolute left-[-20px] top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[400px] group-hover:opacity-100 transition-all duration-500 ease-in-out z-[110]">
                 <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-sm mt-1">
                   <div className="flex flex-col">
@@ -93,7 +92,6 @@ export default function Navbar() {
               Bespoke
             </Link>
 
-            {/* Currency Selector (Drawer Style) */}
             <div className="relative group h-20 flex items-center cursor-pointer">
               <div className="flex items-center gap-2 hover:text-brand-beryl transition-colors">
                 <Globe size={13} />
@@ -153,7 +151,6 @@ export default function Navbar() {
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       
-      {/* MOBILE BACKDROP: Closes menu when clicking outside */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/5 backdrop-blur-sm z-[120] lg:hidden animate-in fade-in duration-500"
@@ -171,16 +168,28 @@ export default function Navbar() {
 
           <nav className="flex flex-col gap-10">
             <Link href="/category/all" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tight">the collection</Link>
+            
             <div className="flex flex-col">
               <p className="font-display text-2xl text-neutral-900 lowercase tracking-tight border-b border-neutral-100 pb-2">ready-to-wear</p>
               <div className="flex flex-col gap-5 mt-6 pl-4 border-l-2 border-brand-beryl/10">
-                {categories.map((cat) => (
-                  <Link key={cat.slug} href={`/category/${cat.slug}`} onClick={() => setIsOpen(false)} className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl">
-                    {cat.title}
-                  </Link>
-                ))}
+                {/* Fixed the mapping here to ensure it uses the fetched categories state */}
+                {categories.length > 0 ? (
+                  categories.filter((cat) => cat.slug !== 'bespoke').map((cat) => (
+                    <Link 
+                      key={cat.slug} 
+                      href={`/category/${cat.slug}`} 
+                      onClick={() => setIsOpen(false)} 
+                      className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl"
+                    >
+                      {cat.title}
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-[10px] uppercase text-neutral-300">Loading categories...</p>
+                )}
               </div>
             </div>
+
             <Link href="/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tight">bespoke studio</Link>
           </nav>
 
