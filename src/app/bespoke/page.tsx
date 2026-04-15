@@ -6,13 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus } from "lucide-react";
 
 const GALLERY_ITEMS = [
-  { id: 1, type: "image", src: "/bespoke.jpg", span: "md:col-span-2 md:row-span-2", order: "md:order-1" },
+  { id: 1, type: "image", src: "/bespoke/bespoke.jpg", span: "md:col-span-2 md:row-span-2", order: "md:order-1" },
   { id: 2, type: "video", src: "/videos/client-1.mp4", span: "md:col-span-1 md:row-span-1", order: "md:order-2" },
-  { id: 3, type: "image", src: "/bespoke2.jpg", span: "md:col-span-1 md:row-span-2", order: "md:order-3" },
-  { id: 4, type: "image", src: "/bespoke3.jpg", span: "md:col-span-1 md:row-span-1", order: "md:order-4" },
+  { id: 3, type: "image", src: "/bespoke/bespoke2.jpg", span: "md:col-span-1 md:row-span-2", order: "md:order-3" },
+  { id: 4, type: "image", src: "/bespoke/bespoke3.jpg", span: "md:col-span-1 md:row-span-1", order: "md:order-4" },
   { id: 5, type: "video", src: "/videos/client-2.mp4", span: "md:col-span-2 md:row-span-1", order: "md:order-6" }, // Order 5 is the Form
-  { id: 6, type: "image", src: "/bespoke4.jpg", span: "md:col-span-1 md:row-span-2", order: "md:order-7" },
-  { id: 7, type: "image", src: "/agbada_1.jpg", span: "md:col-span-2 md:row-span-2", order: "md:order-8" },
+  { id: 6, type: "image", src: "/bespoke/bespoke4.jpg", span: "md:col-span-1 md:row-span-2", order: "md:order-7" },
+  { id: 7, type: "image", src: "/bespoke/agbada_1.jpg", span: "md:col-span-2 md:row-span-2", order: "md:order-8" },
   { id: 8, type: "video", src: "/videos/client-3.mp4", span: "md:col-span-1 md:row-span-2", order: "md:order-9" },
 ];
 
