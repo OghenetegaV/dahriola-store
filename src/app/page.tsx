@@ -6,6 +6,7 @@ import AboutDahriola from "../components/AboutDahriola";
 import ServicesGrid from "../components/ServicesGrid";
 import FeaturedProducts from "../components/FeaturedProducts"; // Import the new component
 import ClientShowcase from "../components/ClientShowcase";
+import CollectionTurntable from "../components/CollectionTurntable";
 
 async function getProducts() {
   const query = `*[_type == "product" && defined(images)] | order(_createdAt desc) [0...6] {
@@ -32,6 +33,7 @@ export default async function HomePage() {
       <CategorySlider />
       <AboutDahriola />
       <ServicesGrid />
+      {/* <CollectionTurntable /> */}
 
 
       {/* Featured Collection Preview Component */}
