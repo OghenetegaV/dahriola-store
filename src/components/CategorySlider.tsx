@@ -6,13 +6,13 @@ import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 
 const categories = [
-  { title: "Skirts", slug: "skirts", image: "/products/skirts/wura-skirt.jpg" },
-  { title: "Shorts", slug: "shorts", image: "/products/set/alafia-set/alafia-set-1.jpg" },
-  { title: "Dresses", slug: "dresses", image: "/products/dresses/new-dress-1.jpg" },
-  { title: "Jackets", slug: "jackets", image: "/products/jackets/jacket-1.jpg" },
-  { title: "Shirt Dresses", slug: "shirt-dresses", image: "/products/shirt-dresses/tolu-shirt-dress.jpg" },
-  { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.jpg" },
-  { title: "Bubu", slug: "bubu", image: "/products/kimono/kimono-1.jpg" },
+  { title: "Skirts", slug: "skirts", image: "/products/skirts/wura-skirt.webp" },
+  { title: "Shorts", slug: "shorts", image: "/products/set/alafia-set/alafia-set-1.webp" },
+  { title: "Dresses", slug: "dresses", image: "/products/dresses/new-dress-1.webp" },
+  { title: "Jackets", slug: "jackets", image: "/products/jackets/jacket-1.webp" },
+  { title: "Shirt Dresses", slug: "shirt-dresses", image: "/products/shirt-dresses/tolu-shirt-dress.webp" },
+  { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.webp" },
+  { title: "Bubu", slug: "bubu", image: "/products/kimono/kimono-1.webp" },
 ];
 
 // Double the categories to create the infinite loop effect
