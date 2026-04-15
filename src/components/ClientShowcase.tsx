@@ -7,25 +7,17 @@ import { ArrowUpRight, ChevronRight, ChevronLeft, Heart, MessageCircle, Send, Bo
 const CLIENTS = [
   {
     id: 1,
-    name: "adesuaetomi",
-    displayName: "Adesua Etomi-Wellington",
-    video: "/videos/client-1.mp4",
-    link: "https://instagram.com/dahriola_",
-    caption: "Architectural silhouettes for the Wellington gala. A study in structure and grace. #DahriolaMuses",
-  },
-  {
-    id: 2,
     name: "tokemakinwa",
     video: "/videos/client-2.mp4",
     link: "https://instagram.com/dahriola_",
     caption: "The power of bespoke. Toke in our signature velvet drop. Pure luxury in every stitch.",
   },
   {
-    id: 3,
+    id: 2,
     name: "zainabbalogun",
     video: "/videos/client-3.mp4",
     link: "https://instagram.com/dahriola_",
-    caption: "Effortless movement. Zainab exploring the new RTW capsule in the heart of Lagos.",
+    caption: "One pair, endless style possibilities. @ibk.horbs didn't just style the Ankara Capri Pants - he owned them in multiple fresh and creative ways. The looks, the video, the vibe? 10/10! This is how you turn one statement piece into a full-on fashion moment. <br><br> Which look is your fave? #dahriola #explore #streetwear #ankaracargopants",
   },
 ];
 
