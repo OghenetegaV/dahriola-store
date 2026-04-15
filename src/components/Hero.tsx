@@ -35,7 +35,7 @@ export default function Hero() {
       {/* Background Image Container */}
       <div className="absolute inset-0 w-full h-full">
         <Image
-          src="/group-jacket.jpg"
+          src="/jackets/group-jacket.webp"
           alt="Dahriola premium contemporary fashion"
           fill
           priority
@@ -74,7 +74,7 @@ export default function Hero() {
                 }}
               >
                 <Image
-                  src="/group-jacket.jpg"
+                  src="/jackets/group-jacket.jpg"
                   alt="zoom-lens"
                   fill
                   className="object-cover brightness-110"
