@@ -7,7 +7,7 @@ interface FeaturedProductsProps {
 export default function FeaturedProducts({ products }: FeaturedProductsProps) {
   return (
     <section 
-      className="relative py-32 px-4 bg-no-repeat bg-fixed bg-center transition-all duration-1000"
+      className="relative py-12 px-4 bg-no-repeat bg-fixed bg-center transition-all duration-1000"
       style={{ 
         backgroundImage: "url('/images/patterned-g.jpg')", 
         backgroundSize: "cover", // Changed from 400px to cover for a single large image

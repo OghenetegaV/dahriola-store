@@ -24,7 +24,7 @@ export default function CollectionTurntable() {
   const currentItem = collectionItems[currentIndex];
 
   return (
-    <section className="relative w-full min-h-screen flex flex-col items-center justify-between bg-white overflow-hidden pt-4 pb-1">
+    <section className="relative w-full min-h-screen flex flex-col items-center justify-between bg-white overflow-hidden pt-8 pb-1">
       
       {/* 1. Heading Section */}
       <div className="relative z-20 text-center pt-4">
