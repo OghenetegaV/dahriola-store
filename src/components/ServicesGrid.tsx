@@ -32,7 +32,7 @@ export default function ServicesGridPacked() {
           {/* Left: Packed Image Container */}
           <div className="relative h-[450px] md:h-[600px] w-full overflow-hidden">
             <Image 
-              src="/rtw_female_1.jpg" // Use high-res transparent PNG
+              src="/rtw/rtw_female_1.jpg" // Use high-res transparent PNG
               alt="Ready to Wear African contemporary dress"
               fill
               className="object-cover transition-transform duration-700 hover:scale-105"
@@ -85,7 +85,7 @@ export default function ServicesGridPacked() {
           {/* Right: Packed Image Container (order-1 on mobile, order-2 on desktop) */}
           <div className="relative h-[450px] md:h-[600px] w-full overflow-hidden order-1 md:order-2">
             <Image 
-              src="/bespoke_female_2.jpg" // Use high-res transparent PNG
+              src="/bespoke/bespoke_female_2.jpg" // Use high-res transparent PNG
               alt="Bespoke tailored design session"
               fill
               className="object-cover transition-transform duration-700 hover:scale-105"

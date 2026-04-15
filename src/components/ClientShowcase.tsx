@@ -8,6 +8,13 @@ const CLIENTS = [
   {
     id: 1,
     name: "tokemakinwa",
+    video: "/videos/client-1.mp4",
+    link: "https://instagram.com/dahriola_",
+    caption: "The power of bespoke. Toke in our signature velvet drop. Pure luxury in every stitch.",
+  },
+  {
+    id: 1,
+    name: "tokemakinwa",
     video: "/videos/client-2.mp4",
     link: "https://instagram.com/dahriola_",
     caption: "The power of bespoke. Toke in our signature velvet drop. Pure luxury in every stitch.",
