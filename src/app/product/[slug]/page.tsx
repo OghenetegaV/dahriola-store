@@ -49,8 +49,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="bg-brand-white min-h-screen">
       {/* 1. Breadcrumb Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        <nav className="flex items-center gap-3 text-[9px] uppercase tracking-[0.3em] text-neutral-500 border-b border-neutral-100 pb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
+        <nav className="flex items-center gap-3 text-[9px] tracking-[0.3em] text-neutral-500 border-b border-neutral-100 pb-4">
           <Link href="/" className="hover:text-brand-beryl transition-all">Home</Link>
           <ChevronRight size={8} className="text-neutral-300" />
           <Link href="/category/all" className="hover:text-brand-beryl transition-all">Collection</Link>

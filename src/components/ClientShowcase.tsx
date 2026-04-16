@@ -16,27 +16,27 @@ import {
 const CLIENTS = [
   {
     id: 1,
-    clientName: "Toke Makinwa",
-    video: "/videos/client-1.mp4",
+    clientName: "@ibk.horbs",
+    video: "/videos/client-3.mp4",
     likes: "12,490",
     comments: "156",
-    caption: "The power of bespoke. 🖤 Toke Makinwa effortless in our signature velvet drop. Every stitch is a testament to luxury. <br><br> #Dahriola #LuxuryBespoke #LagosFashion",
+    caption: "@ibk.horbs didn't just style the Ankara Capri Pants - he owned them in multiple fresh and creative ways.🔥 <br><br> Which is your favourite? <br><br> #Dahriola #LuxuryBespoke #ankaracargopants",
   },
   {
     id: 2,
-    clientName: "Zainab Balogun",
-    video: "/videos/client-3.mp4",
+    clientName: "@naomi_anyaegbu",
+    video: "/videos/client-2.mp4",
     likes: "8,204",
     comments: "92",
-    caption: "Endless possibilities with the Ankara Capri. @zainabbalogun showing us exactly why modular fashion is the future. <br><br> Which of these looks is your favorite? Let us know! 👇",
+    caption: "@naomi_anyaegbu slayed our Wura skirt to perfection😍😍 <br><br> Beauty at it&apos;s peak! <br> Grace personified💚 <br><br> #dahriolawoman",
   },
   {
     id: 3,
-    clientName: "Adesua Etomi-Wellington",
-    video: "/videos/client-2.mp4",
+    clientName: "",
+    video: "/videos/client-1.mp4",
     likes: "15,102",
     comments: "214",
-    caption: "Grace personified. A custom Dahriola moment for a special night. ✨ <br><br> #DahriolaWoman #BespokeFashion #AdesuaEtomi",
+    caption: "Our Mide dress has been an highlight since we reposted the pretty @peacebaiyere on our story last week🥰✨ <br><br> #DahriolaWoman #BespokeFashion",
   }
 ];
 

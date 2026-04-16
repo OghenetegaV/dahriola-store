@@ -8,10 +8,6 @@ export default function FeaturedProducts({ products }: FeaturedProductsProps) {
   return (
     <section 
       className="relative py-12 px-4 bg-no-repeat bg-fixed bg-center transition-all duration-1000"
-      style={{ 
-        backgroundImage: "url('/images/patterned-g.jpg')", 
-        backgroundSize: "cover", // Changed from 400px to cover for a single large image
-      }}
     >
       {/* To increase image opacity, we reduce the opacity of this white overlay. 
           bg-white/20 makes the image very clear. 

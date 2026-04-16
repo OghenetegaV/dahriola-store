@@ -32,7 +32,7 @@ export default function CollectionTurntable() {
           Shop our <span className="italic font-light">latest</span> pieces
         </h2>
         <div 
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-80 h-6 bg-no-repeat bg-contain bg-center z-0 opacity-70"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-52 h-6 bg-no-repeat bg-contain bg-center z-0 opacity-70"
           style={{ 
             backgroundImage: "url('/brush-stroke-green.svg')", 
           }}
@@ -94,7 +94,7 @@ export default function CollectionTurntable() {
           <p className="text-[10px] uppercase tracking-[0.6em] font-bold text-neutral-400 mb-2">
             New Collection
           </p>
-          <h3 className="font-display text-3xl md:text-4xl text-black lowercase tracking-tighter">
+          <h3 className="font-display text-3xl md:text-4xl text-black tracking-tighter">
             {currentItem.name}
           </h3>
         </motion.div>
