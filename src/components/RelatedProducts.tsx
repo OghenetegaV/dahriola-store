@@ -34,7 +34,7 @@ export default async function RelatedProducts({ categoryId, currentProductId, ca
   if (!products || products.length === 0) return null;
 
   return (
-    <section className="mt-32 pt-24 border-t border-neutral-100">
+    <section className="pt-6 border-t border-neutral-100">
       <div className="flex justify-between items-end mb-12">
         <div>
           <h3 className="font-display text-4xl text-neutral-900">Related Pieces</h3>
@@ -42,7 +42,7 @@ export default async function RelatedProducts({ categoryId, currentProductId, ca
             More from the {categoryName} collection
           </p>
         </div>
-        <Link href="/shop" className="text-[10px] uppercase tracking-widest border-b border-neutral-200 pb-1 hover:text-brand-beryl transition-colors cursor-pointer">
+        <Link href="/category/all" className="text-[10px] uppercase tracking-widest border-b border-neutral-200 pb-1 hover:text-brand-beryl transition-colors cursor-pointer">
           Browse All
         </Link>
       </div>

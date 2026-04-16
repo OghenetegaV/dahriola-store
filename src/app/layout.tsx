@@ -18,7 +18,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://dahriola.com"), // Update this to your live domain when ready
+  // CRITICAL: This ensures all relative paths (/logo.png) 
+  // are converted to absolute URLs (https://dahriola.com/logo.png) for WhatsApp.
+  metadataBase: new URL("https://dahriola.com"), 
 
   title: {
     default: "Dahriola | Artisanal African Luxury",
@@ -37,7 +39,6 @@ export const metadata: Metadata = {
     "Wura Skirt",
     "Feyi Bubu",
     "Tolu Dress",
-    "Artisanal fashion brand",
   ],
 
   authors: [{ name: "Dahriola" }],
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
     description: "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
     images: [
       {
-        url: "/og-image.jpg", // Make sure to place a high-res campaign image at public/og-image.jpg
+        url: "/og-image.jpg", // Ensure this file exists at public/og-image.jpg
         width: 1200,
         height: 630,
         alt: "Dahriola Luxury Collection",
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Dahriola | Artisanal African Luxury",
+    title: "Dahriola | Premium Contemporary Fashion",
     description: "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
     images: ["/og-image.jpg"],
   },
@@ -89,7 +90,6 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${inter.variable} font-sans bg-brand-white text-neutral-900 antialiased`}
       >
-        {/* <AnnouncementBar /> */}
         <Navbar />
         <main>{children}</main>
         <Concierge />
