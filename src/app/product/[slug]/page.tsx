@@ -7,6 +7,7 @@ import { ChevronRight, ShieldCheck, Truck, Ruler } from "lucide-react";
 import RelatedProducts from "@/src/components/RelatedProducts";
 import PriceDisplay from "@/src/components/PriceDisplay";
 import AddToCartButton from "@/src/components/AddToCartButton";
+import SizeGuideModal from "@/src/components/SizeGuideModal";
 
 async function getProduct(slug: string) {
   const query = `*[_type == "product" && slug.current == $slug][0] {
@@ -116,9 +117,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <Ruler size={18} strokeWidth={1.2} className="text-brand-beryl" />
                 <div className="flex-1">
                   <h4 className="text-[10px] uppercase tracking-widest font-bold text-neutral-900">Size & Fit</h4>
-                  <p className="text-[10px] text-neutral-500">Standard African sizing. Model is 5'9 wearing M.</p>
+                  <p className="text-[10px] text-neutral-500">Standard African sizing.</p>
                 </div>
-                <button className="text-[9px] uppercase tracking-widest font-bold text-brand-beryl border-b border-brand-beryl/20">Guide</button>
+                <SizeGuideModal />
               </div>
 
               {/* Global Logistics Trust Badges */}
