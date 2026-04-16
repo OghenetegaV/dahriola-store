@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const collectionItems = [
@@ -13,36 +13,66 @@ const collectionItems = [
 
 export default function CollectionTurntable() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef(null);
 
+  // Interval for swapping items
   useEffect(() => {
     const swapInterval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % collectionItems.length);
-    }, 6000); 
+    }, 6000);
     return () => clearInterval(swapInterval);
+  }, []);
+
+  // Intersection Observer for scroll animations
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
   }, []);
 
   const currentItem = collectionItems[currentIndex];
 
   return (
-    <section className="relative w-full min-h-screen flex flex-col items-center justify-between bg-white overflow-hidden pt-8 pb-1">
-      
-      {/* 1. Heading Section */}
-      <div className="relative z-20 text-center pt-4">
-        <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-5">
-          Shop our <span className="italic font-light">latest</span> pieces
-        </h2>
-        <div 
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-52 h-6 bg-no-repeat bg-contain bg-center z-0 opacity-70"
-          style={{ 
-            backgroundImage: "url('/brush-stroke-green.svg')", 
-          }}
-        />
-      </div>  
+    <section 
+      ref={sectionRef} // Added missing ref here
+      className="relative w-full min-h-screen flex flex-col items-center justify-between bg-white overflow-hidden pt-8 pb-1"
+    >
+      {/* Centered Content Container */}
+      <div className="max-w-4xl mx-auto flex flex-col items-center text-center relative z-20">
+        
+        {/* The New Funky Heading */}
+        <div className={`relative mb-12 lg:mb-16 transition-all duration-1000 ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
+        }`}>
+          <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-4">
+            Shop our <span className="italic font-light">latest</span> pieces
+          </h2>
+          
+          {/* Funky Paint Brush Underline */}
+          <div 
+            className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-[110%] h-6 bg-no-repeat bg-contain bg-center transition-all duration-1000 delay-500 origin-left z-0 ${
+              isVisible ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
+            }`}
+            style={{ 
+              backgroundImage: "url('/brush-stroke-green.svg')", 
+            }}
+          />
+        </div> 
+      </div>
 
       {/* Background Decor */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-50 via-white to-white" />
 
-      {/* 2. Main Image Container - Forced to 70vh */}
+      {/* 2. Main Image Container */}
       <div className="relative z-10 w-full max-w-[1200px] h-[50vh] md:h-[70vh] flex items-center justify-center">
         
         {/* Shadow Base */}
@@ -84,7 +114,7 @@ export default function CollectionTurntable() {
       </div>
 
       {/* 3. Navigation / Info Section */}
-      <div className="relative flex flex-col items-center z-20 pb-2">
+      <div className="relative flex flex-col items-center z-20 pb-12">
         <motion.div 
           key={`text-${currentItem.id}`}
           initial={{ opacity: 0, y: 10 }}
@@ -100,7 +130,7 @@ export default function CollectionTurntable() {
         </motion.div>
 
         {/* Index Indicators */}
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-6">
           {collectionItems.map((_, i) => (
             <div 
               key={i}
@@ -113,12 +143,11 @@ export default function CollectionTurntable() {
       </div>
 
       {/* 4. Sidebar Counter */}
-      <div className="absolute left-10 top-1/2 -translate-y-1/2 hidden lg:block">
-        <span className="text-[12px] font-medium text-neutral-300 rotate-90 block tracking-widest uppercase">
+      <div className="absolute left-10 top-1/2 -translate-y-1/2 hidden lg:block z-20">
+        <span className="text-[12px] font-medium text-neutral-300 -rotate-90 block tracking-widest uppercase">
           {currentIndex + 1} / {collectionItems.length}
         </span>
       </div>
-
     </section>
   );
 }

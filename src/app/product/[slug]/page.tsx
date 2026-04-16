@@ -49,17 +49,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="bg-brand-white min-h-screen">
       {/* 1. Breadcrumb Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
-        <nav className="flex items-center gap-3 text-[9px] tracking-[0.3em] text-neutral-500 border-b border-neutral-100 pb-4">
-          <Link href="/" className="hover:text-brand-beryl transition-all">Home</Link>
-          <ChevronRight size={8} className="text-neutral-300" />
-          <Link href="/category/all" className="hover:text-brand-beryl transition-all">Collection</Link>
-          <ChevronRight size={8} className="text-neutral-300" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-26">
+        <nav className="flex items-center gap-3 text-[9px] tracking-[0.3em] text-neutral-500">
+          <Link href="/" className="hover:text-brand-beryl hover:border-b transition-all">Home</Link>
+          <ChevronRight size={10} className="text-neutral-500" />
+          <Link href="/category/all" className="hover:text-brand-beryl hover:border-b transition-all">Collection</Link>
+          <ChevronRight size={10} className="text-neutral-500" />
           <span className="text-brand-beryl font-bold">{product.name}</span>
         </nav>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10">
         <div className="lg:grid lg:grid-cols-12 lg:gap-x-20 items-start">
           
           {/* 2. Sticky Product Gallery */}

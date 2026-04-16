@@ -53,7 +53,7 @@ export default function Footer() {
         <p className="text-2xl">💚</p>
         {/* <div className="h-[1px] w-12 bg-brand-beryl/40" /> */}
         <p className="text-[11px] tracking-[0.6em] text-neutral-400 font-bold text-center">
-          Thanks for shopping with us
+          Thanks for shopping with us!
         </p>
         <div className="h-[1px] w-12 bg-brand-beryl/40" />
       </div>
@@ -115,7 +115,7 @@ export default function Footer() {
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">Collections</h5>
             <div className="flex flex-col gap-5">
-              <Link href="/category/all" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Archive</Link>
+              <Link href="/" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Home</Link>
               
               <div className="relative">
                 <button 
@@ -145,9 +145,9 @@ export default function Footer() {
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">The Studio</h5>
             <div className="flex flex-col gap-5">
-              <Link href="/about" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
-              <Link href="/contact" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Appointments</Link>
-              <Link href="/shipping" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Care Guide</Link>
+              <Link href="/" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
+              <Link href="/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Appointments</Link>
+              <Link href="/" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Care Guide</Link>
             </div>
           </div>
 
@@ -187,7 +187,6 @@ export default function Footer() {
           <div className="flex gap-10">
              <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
              <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-             <Link href="/accessibility" className="hover:text-white transition-colors">Accessibility</Link>
           </div>
         </div>
       </div>
