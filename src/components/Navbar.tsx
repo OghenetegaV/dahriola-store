@@ -24,6 +24,9 @@ export default function Navbar() {
 
   const { cart, currency, setCurrency } = useStore();
 
+  // --- HIDE NAVBAR ON ADMIN ROUTES ---
+  if (pathname?.startsWith("/admin")) return null;
+
   useEffect(() => {
     setHasHydrated(true);
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -167,12 +170,11 @@ export default function Navbar() {
           </div>
 
           <nav className="flex flex-col gap-10">
-            <Link href="/category/all" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tight">the collection</Link>
+            <Link href="/category/all" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 tracking-tight">The Collection</Link>
             
             <div className="flex flex-col">
-              <p className="font-display text-2xl text-neutral-900 lowercase tracking-tight border-b border-neutral-100 pb-2">ready-to-wear</p>
+              <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">ready-to-wear</p>
               <div className="flex flex-col gap-5 mt-6 pl-4 border-l-2 border-brand-beryl/10">
-                {/* Fixed the mapping here to ensure it uses the fetched categories state */}
                 {categories.length > 0 ? (
                   categories.filter((cat) => cat.slug !== 'bespoke').map((cat) => (
                     <Link 
@@ -190,7 +192,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            <Link href="/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 lowercase tracking-tight">bespoke studio</Link>
+            <Link href="/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 tracking-tight">bespoke gallery</Link>
           </nav>
 
           <div className="mt-auto pt-10 border-t border-neutral-50 flex items-center justify-between">
