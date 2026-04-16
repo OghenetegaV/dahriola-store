@@ -54,7 +54,9 @@ export default function CollectionTurntable() {
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
         }`}>
           <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-4">
-            Shop our <span className="italic font-light">latest</span> pieces
+            {/* Shop our <span className="italic font-light">latest</span> pieces */}
+           <span className="italic font-light">Coming soon</span>
+
           </h2>
           
           {/* Funky Paint Brush Underline */}
