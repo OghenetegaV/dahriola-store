@@ -16,7 +16,7 @@ import {
 const CLIENTS = [
   {
     id: 1,
-    clientName: "@ibk.horbs",
+    clientName: "",
     video: "/videos/client-3.mp4",
     likes: "12,490",
     comments: "156",
@@ -24,7 +24,7 @@ const CLIENTS = [
   },
   {
     id: 2,
-    clientName: "@naomi_anyaegbu",
+    clientName: "",
     video: "/videos/client-2.mp4",
     likes: "8,204",
     comments: "92",
