@@ -8,6 +8,14 @@ import RelatedProducts from "@/src/components/RelatedProducts";
 import PriceDisplay from "@/src/components/PriceDisplay";
 import AddToCartButton from "@/src/components/AddToCartButton";
 import SizeGuideModal from "@/src/components/SizeGuideModal";
+import { Metadata } from "next";
+import imageUrlBuilder from "@sanity/image-url";
+
+// Helper for SEO Images
+const builder = imageUrlBuilder(client);
+function urlFor(source: any) {
+  return builder.image(source);
+}
 
 async function getProduct(slug: string) {
   const query = `*[_type == "product" && slug.current == $slug][0] {
@@ -19,9 +27,53 @@ async function getProduct(slug: string) {
     allowCustomization,
     images,
     "categoryName": category->title,
-    "categoryId": category->_id
+    "categoryId": category->_id,
+    "slug": slug.current
   }`;
   return await client.fetch(query, { slug });
+}
+
+// --- DYNAMIC SEO GENERATION ---
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProduct(slug);
+
+  if (!product) return { title: "Product Not Found | Dahriola" };
+
+  const ogImage = product.images?.[0] 
+    ? urlFor(product.images[0]).width(1200).height(630).url() 
+    : "/og-image.jpg";
+
+  // Strip PortableText for the meta description if necessary
+  const descriptionText = Array.isArray(product.description)
+    ? "Discover the artisanal craftsmanship of Dahriola's latest collection."
+    : product.description;
+
+  return {
+    title: `${product.name} | Dahriola Artisanal Luxury`,
+    description: descriptionText,
+    openGraph: {
+      title: `${product.name} | Dahriola`,
+      description: descriptionText,
+      url: `https://dahriola.com/product/${product.slug}`,
+      siteName: "Dahriola",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        },
+      ],
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} | Dahriola`,
+      description: descriptionText,
+      images: [ogImage],
+    },
+  };
 }
 
 const portableTextComponents = {
