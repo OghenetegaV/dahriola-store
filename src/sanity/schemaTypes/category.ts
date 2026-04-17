@@ -10,12 +10,10 @@ export default {
       options: {
         list: [
           { title: 'Pants', value: 'pants' },
-          { title: 'Shorts', value: 'shorts' },
-          { title: 'Bubu', value: 'bubu' },
-          { title: 'Skirts', value: 'skirts' },
           { title: 'Dresses', value: 'dresses' },
-          { title: 'Set', value: 'set' },
-          { title: 'Bespoke / Custom', value: 'bespoke' },
+          { title: 'Co odds', value: 'co-odds' },
+          { title: 'Jackets', value: 'jackets' },
+          { title: 'Skirts', value: 'skirts' },
         ],
       },
       validation: (Rule: any) => Rule.required(),

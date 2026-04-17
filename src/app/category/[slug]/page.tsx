@@ -1,13 +1,14 @@
 import { client } from "@/src/lib/sanity";
-import ProductCard from "@/src/components/ProductCard";
 import ShopUtils from "@/src/components/ShopUtils";
-import Link from "next/link";
+import CategoryDropdown from "@/src/components/CategoryDropdown";
+import ProductSearch from "@/src/components/ProductSearch";
 import { notFound } from "next/navigation";
-import { ChevronRight, Grid, List } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 async function getData(slug: string) {
   let productFilter = '';
-  if (slug === 'All') {
+  if (slug === 'all') {
     productFilter = '_type == "product"';
   } else if (slug === 'Ready to Wear' || slug === 'Bespoke') {
     productFilter = `_type == "product" && productType == "${slug}"`;
@@ -40,84 +41,62 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   if (!products) notFound();
 
+  const formatTitle = (text: string) => {
+    const spaced = text.replace(/-/g, ' ');
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+  };
+
   return (
-    <div className="bg-[#fcfcfc] min-h-screen pt-20 md:pt-24 pb-20">
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12">
-        
-        {/* HEADER SECTION */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between py-4 md:pb-14 mb-2 gap-4">
-          <div className="space-y-1">
-            <h1 className="font-display text-4xl md:text-7xl text-neutral-950 uppercase tracking-tighter leading-none">
-              {slug.replace(/-/g, ' ')}
-            </h1>
-            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-neutral-400 font-bold">
-              {products.length} Designs
-            </p>
-          </div>
-
-          {/* MOBILE COMPACT NAV (Horizontal Scroll instead of vertical list) */}
-          <div className="md:hidden overflow-x-auto no-scrollbar flex items-center gap-4 py-2 border-b border-neutral-100">
-             <Link href="/category/all" className={`whitespace-nowrap text-[10px] uppercase tracking-widest ${slug === 'All' ? 'text-black font-bold' : 'text-neutral-400'}`}>All</Link>
-             {categories.map((cat: any) => (
-                <Link key={cat.slug} href={`/category/${cat.slug}`} className={`whitespace-nowrap text-[10px] uppercase tracking-widest ${slug === cat.slug ? 'text-black font-bold' : 'text-neutral-400'}`}>
-                  {cat.title}
-                </Link>
-             ))}
-          </div>
-
-          <div className="flex items-center justify-between md:justify-end gap-6">
-            <div className="hidden md:flex items-center gap-3 border-r border-neutral-200 pr-6">
-              <Grid size={16} className="text-black cursor-pointer" />
-              <List size={16} className="text-neutral-300 cursor-pointer" />
+    <div className="bg-[#fcfcfc] min-h-screen">
+      <header className="bg-neutral-50 border-b border-neutral-100 pt-24 md:pt-32 pb-10 md:pb-16 mb-12">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="space-y-3">
+              <h1 className="font-display text-5xl md:text-8xl text-neutral-950 tracking-tighter leading-none">
+                {formatTitle(slug)}
+              </h1>
+              <div className="flex items-center gap-4">
+                <p className="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-neutral-400 font-bold">
+                  {products.length} Products in Collection
+                </p>
+                <div className="md:hidden">
+                  <CategoryDropdown categories={categories} currentSlug={slug} />
+                </div>
+              </div>
             </div>
-            <ShopUtils />
+
+            <div className="flex items-center justify-between md:justify-end gap-8">
+              {/* Note: The Search button is now inside ProductSearch, which is rendered below */}
+              <ShopUtils />
+            </div>
           </div>
         </div>
+      </header>
 
-        <div className="flex flex-col md:flex-row gap-16">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12 pb-20">
+        <div className="flex flex-col md:flex-row gap-16 relative">
           
-          {/* SIDEBAR NAVIGATION (Desktop Only) */}
+          {/* DESKTOP SIDEBAR */}
           <aside className="hidden md:block w-64 shrink-0 space-y-12">
             <div>
               <h3 className="text-[11px] uppercase tracking-[0.3em] font-black text-neutral-950 mb-8 pb-4 border-b border-neutral-100">
                 Categories
               </h3>
               <nav className="flex flex-col gap-6">
-                <Link 
-                  href="/category/all" 
-                  className={`text-[11px] uppercase tracking-widest flex items-center justify-between group ${slug === 'All' ? 'text-black font-black' : 'text-neutral-400 hover:text-black'}`}
-                >
-                  All Collection <ChevronRight size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${slug === 'All' && 'opacity-100'}`} />
+                <Link href="/category/all" className={`text-[11px] uppercase tracking-widest flex items-center justify-between group ${slug === 'all' ? 'text-black font-black' : 'text-neutral-400 hover:text-black'}`}>
+                  All Collection <ChevronRight size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${slug === 'all' && 'opacity-100'}`} />
                 </Link>
                 {categories.map((cat: any) => (
-                  <Link 
-                    key={cat.slug} 
-                    href={`/category/${cat.slug}`} 
-                    className={`text-[11px] uppercase tracking-widest flex items-center justify-between group ${slug === cat.slug ? 'text-black font-black' : 'text-neutral-400 hover:text-black'}`}
-                  >
-                    {cat.title}
-                    <ChevronRight size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${slug === cat.slug && 'opacity-100'}`} />
+                  <Link key={cat.slug} href={`/category/${cat.slug}`} className={`text-[11px] uppercase tracking-widest flex items-center justify-between group ${slug === cat.slug ? 'text-black font-black' : 'text-neutral-400 hover:text-black'}`}>
+                    {cat.title} <ChevronRight size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${slug === cat.slug && 'opacity-100'}`} />
                   </Link>
                 ))}
               </nav>
             </div>
           </aside>
 
-          {/* PRODUCT GRID - Optimized for 2-column mobile */}
-          <main className="flex-1">
-            {products.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-x-3 md:gap-x-8 gap-y-10 md:gap-y-16">
-                {products.map((product: any) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
-              </div>
-            ) : (
-              <div className="h-[40vh] flex items-center justify-center border-t border-neutral-100">
-                <p className="font-display text-2xl text-neutral-300 lowercase tracking-tighter">no designs found.</p>
-              </div>
-            )}
-          </main>
-
+          {/* This component now controls both the Search Bar and the Product Grid */}
+          <ProductSearch products={products} />
         </div>
       </div>
     </div>
