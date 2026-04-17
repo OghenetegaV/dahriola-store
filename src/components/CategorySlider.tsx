@@ -7,12 +7,11 @@ import { ChevronDown } from "lucide-react";
 
 const categories = [
   { title: "Skirts", slug: "skirts", image: "/products/skirts/wura-skirt.webp" },
-  { title: "Shorts", slug: "shorts", image: "/products/set/alafia-set/alafia-set-1.webp" },
+  { title: "Set", slug: "set", image: "/products/set/alafia-set/alafia-set-1.webp" },
   { title: "Dresses", slug: "dresses", image: "/products/dresses/new-dress-1.webp" },
   { title: "Jackets", slug: "jackets", image: "/products/jackets/jacket-1.webp" },
-  { title: "Shirt Dresses", slug: "shirt-dresses", image: "/products/shirt-dresses/tolu-shirt-dress.webp" },
-  { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.webp" },
-  { title: "Bubu", slug: "bubu", image: "/products/kimono/kimono-1.webp" },
+  // { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.webp" },
+  { title: "Bubu", slug: "bubu", image: "/products/bubu/feyi-bubu.webp" },
 ];
 
 // Double the categories to create the infinite loop effect
@@ -114,7 +113,7 @@ export default function CategorySlider() {
               <p className="text-[10px] uppercase tracking-[0.4em] text-brand-beryl mb-1 opacity-0 group-hover:opacity-100 transition-opacity delay-100">
                 Discover
               </p>
-              <h3 className="font-display text-2xl text-white lowercase tracking-tight">
+              <h3 className="font-display text-2xl text-white tracking-tight">
                 {cat.title}
               </h3>
             </div>

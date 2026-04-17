@@ -166,14 +166,14 @@ export default function Navbar() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between mb-16">
             <Image src="/logo.png" alt="Dahriola" width={110} height={35} className="h-7 w-auto" />
-            <button onClick={() => setIsOpen(false)} className="text-neutral-300 hover:text-black transition-colors"><X size={28} strokeWidth={1} /></button>
+            <button onClick={() => setIsOpen(false)} className="text-neutral-300 hover:text-black "><X size={28} strokeWidth={1} /></button>
           </div>
 
           <nav className="flex flex-col gap-10">
             <Link href="/category/all" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 tracking-tight">The Collection</Link>
             
             <div className="flex flex-col">
-              <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">ready-to-wear</p>
+              <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">Ready-to-Wear</p>
               <div className="flex flex-col gap-5 mt-6 pl-4 border-l-2 border-brand-beryl/10">
                 {categories.length > 0 ? (
                   categories.filter((cat) => cat.slug !== 'bespoke').map((cat) => (
@@ -192,7 +192,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            <Link href="/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 tracking-tight">bespoke gallery</Link>
+            <Link href="/bespoke" onClick={() => setIsOpen(false)} className="font-display text-2xl text-neutral-900 tracking-tight">Bespoke Gallery</Link>
           </nav>
 
           <div className="mt-auto pt-10 border-t border-neutral-50 flex items-center justify-between">
