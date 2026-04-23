@@ -21,12 +21,12 @@ export default {
       type: 'string',
       options: {
         list: [
-          { title: 'Ready-to-Wear', value: 'rtw' },
+          { title: 'Ready-to-Wear', value: 'ready-to-wear' },
           { title: 'Bespoke / Custom', value: 'bespoke' },
         ],
         layout: 'radio',
       },
-      initialValue: 'rtw',
+      initialValue: 'ready-to-wear',
     },
     {
       name: 'category',
@@ -39,6 +39,18 @@ export default {
       title: 'Editorial Imagery',
       type: 'array',
       of: [{ type: 'image', options: { hotspot: true } }],
+    },
+    {
+      name: 'prints',
+      title: 'Available Prints',
+      type: 'array',
+      of: [
+        {
+          type: 'reference',
+          to: [{ type: 'print' }],
+        },
+      ],
+      description: 'Select the prints available for this product.',
     },
     {
       name: 'priceNGN',
@@ -63,8 +75,8 @@ export default {
     {
       name: 'description',
       title: 'Description',
-      type: 'array', 
-      of: [{ type: 'block' }] // This enables paragraphs, bold, and lists
-    }
+      type: 'array',
+      of: [{ type: 'block' }],
+    },
   ],
-}
+};

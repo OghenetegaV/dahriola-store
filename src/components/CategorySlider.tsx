@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react";
 
 const categories = [
   { title: "Skirts", slug: "skirts", image: "/products/skirts/wura-skirt.webp" },
-  { title: "Co odds", slug: "co-odds", image: "/products/set/alafia-set/alafia-set-1.webp" },
+  { title: "Co-ords", slug: "co-ords", image: "/products/set/alafia-set/alafia-set-1.webp" },
   { title: "Dresses", slug: "dresses", image: "/products/dresses/new-dress-1.webp" },
   { title: "Jackets", slug: "jackets", image: "/products/jackets/jacket-1.webp" },
   // { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.webp" },
