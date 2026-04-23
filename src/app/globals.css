@@ -14,8 +14,7 @@
 
   
 
-  --font-display: var(--font-playfair);
-
+  --font-display: var(--font-pt-serif);
   --font-sans: var(--font-inter);
 
   /* --aspect-editorial: 3 / 4; */
@@ -61,9 +60,7 @@ html {
 /* Custom Editorial Typography */
 
 .font-display {
-
-  font-family: var(--font-playfair), serif;
-
+  font-family: var(--font-pt-serif), serif;
 }
 
 

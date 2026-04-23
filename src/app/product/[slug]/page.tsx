@@ -2,16 +2,19 @@ import { client } from "@/src/lib/sanity";
 import { notFound } from "next/navigation";
 import ProductGallery from "@/src/components/ProductGallery";
 import { PortableText } from "@portabletext/react";
-import Link from "next/link";
-import { ChevronRight, ShieldCheck, Truck, Ruler } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import RelatedProducts from "@/src/components/RelatedProducts";
 import PriceDisplay from "@/src/components/PriceDisplay";
 import AddToCartButton from "@/src/components/AddToCartButton";
 import SizeGuideModal from "@/src/components/SizeGuideModal";
+import WishlistButton from "@/src/components/WishlistButton";
+import ProductPageClient from "@/src/components/ProductPageClient";
 import { Metadata } from "next";
 import imageUrlBuilder from "@sanity/image-url";
+import Link from "next/link";
 
 const builder = imageUrlBuilder(client);
+
 function urlFor(source: any) {
   return builder.image(source);
 }
@@ -22,164 +25,146 @@ async function getProduct(slug: string) {
     name,
     description,
     priceNGN,
+    compareAtPrice,
     productType,
-    allowCustomization,
     images,
     "categoryName": category->title,
     "categoryId": category->_id,
-    "slug": slug.current
+    "slug": slug.current,
+    "prints": prints[]->{
+      _id,
+      name,
+      image
+    }
   }`;
+
   return await client.fetch(query, { slug });
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
 
-  if (!product) return { title: "Product Not Found | Dahriola" };
+  if (!product) {
+    return { title: "Product Not Found" };
+  }
 
-  // Sanity .url() provides the full absolute path needed for WhatsApp
-  const ogImage = product.images?.[0] 
-    ? urlFor(product.images[0]).width(1200).height(630).fit('crop').url() 
-    : "https://dahriola.com/og-image.jpg";
-
-  const descriptionText = Array.isArray(product.description)
-    ? `${product.name} - Handcrafted artisanal luxury from Dahriola.`
-    : product.description;
+  const ogImage = product.images?.[0]
+    ? urlFor(product.images[0]).width(1200).height(630).url()
+    : "";
 
   return {
     title: `${product.name} | Dahriola`,
-    description: descriptionText,
     openGraph: {
-      title: `${product.name} | Dahriola`,
-      description: descriptionText,
-      url: `https://dahriola.com/product/${product.slug}`,
-      siteName: "Dahriola",
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: product.name,
-        },
-      ],
-      type: "article",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${product.name} | Dahriola`,
-      description: descriptionText,
-      images: [ogImage],
+      images: ogImage ? [{ url: ogImage }] : [],
     },
   };
 }
 
-const portableTextComponents = {
-  block: {
-    normal: ({ children }: any) => (
-      <p className="mb-6 last:mb-0 leading-[1.8] text-neutral-900 font-light italic">
-        {children}
-      </p>
-    ),
-  },
-  list: {
-    bullet: ({ children }: any) => (
-      <ul className="list-disc ml-5 mb-6 space-y-3 text-neutral-900 font-light">
-        {children}
-      </ul>
-    ),
-  },
-};
-
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const product = await getProduct(slug);
 
   if (!product) notFound();
 
   return (
-    <div className="bg-brand-white min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-26">
-        <nav className="flex items-center gap-3 text-[9px] tracking-[0.3em] text-neutral-500">
-          <Link href="/" className="hover:text-brand-beryl transition-all">Home</Link>
-          <ChevronRight size={10} />
-          <Link href="/category/all" className="hover:text-brand-beryl transition-all">Collection</Link>
-          <ChevronRight size={10} />
-          <span className="text-brand-beryl font-bold">{product.name}</span>
-        </nav>
-      </div>
+    <div className="bg-white min-h-screen">
+      <main className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 pt-20 md:pt-24 pb-14">
+        
+        {/* BREADCRUMB */}
+        {/* <nav
+          aria-label="Breadcrumb"
+          className="mb-6 flex flex-wrap items-center gap-2 text-[12px] text-neutral-500"
+        >
+          <Link href="/shop" className="hover:text-black">
+            Shop
+          </Link>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-x-20 items-start">
+          <ChevronRight size={14} />
+
+          {product.categoryName && (
+            <>
+              <span>{product.categoryName}</span>
+              <ChevronRight size={14} />
+            </>
+          )}
+
+          <span className="text-black font-medium">
+            {product.name}
+          </span>
+        </nav> */}
+
+        {/* BACK LINK */}
+        <div className="mb-6">
+          <Link
+            href="/shop"
+            className="text-sm font-medium hover:text-brand-beryl"
+          >
+            ← Back to Shop
+          </Link>
+        </div>
+
+        {/* MAIN GRID */}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-10">
+          
+          {/* LEFT: IMAGES */}
           <div className="lg:col-span-7">
-            <ProductGallery images={product.images} />
+            <div className="lg:sticky lg:top-24">
+              <ProductGallery images={product.images} />
+            </div>
           </div>
 
-          <div className="lg:col-span-5 my-12 lg:mt-0">
-            <div className="space-y-10">
-              <div>
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="inline-block px-3 py-1 border border-brand-beryl/20 text-[10px] uppercase tracking-widest text-brand-beryl font-bold">
-                    {product.productType === 'rtw' ? 'Ready to Wear' : 'Bespoke Studio'}
+          {/* RIGHT: INFO */}
+          <div className="lg:col-span-5 mt-6 lg:mt-0">
+            <div className="w-full max-w-[560px]">
+
+              {/* TITLE + WISHLIST */}
+              <section>
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="font-display text-[28px] leading-tight text-black">
+                    {product.name}
+                  </h1>
+
+                  <WishlistButton productId={product._id} />
+                </div>
+
+                <div className="mt-3 flex items-center gap-3">
+                  {product.compareAtPrice && (
+                    <span className="line-through text-neutral-400">
+                      <PriceDisplay priceNGN={product.compareAtPrice} />
+                    </span>
+                  )}
+
+                  <span className="text-xl font-semibold">
+                    <PriceDisplay priceNGN={product.priceNGN} />
                   </span>
                 </div>
-                
-                <h1 className="font-display text-5xl md:text-6xl text-neutral-900 leading-[1.1] lowercase tracking-tighter mb-6">
-                  {product.name}
-                </h1>
-                
-                {product.productType === 'rtw' && <PriceDisplay priceNGN={product.priceNGN} />}
-              </div>
+              </section>
 
-              <AddToCartButton product={product} />
+              {/* CLIENT INTERACTIVE SECTION */}
+              <ProductPageClient product={product} />
 
-              <div className="pt-10 border-t border-neutral-100">
-                <h3 className="text-[11px] uppercase tracking-[0.3em] font-bold text-neutral-900 mb-6">The Design Note</h3>
-                <div className="text-sm prose prose-neutral max-w-none">
-                  {Array.isArray(product.description) ? (
-                    <PortableText value={product.description} components={portableTextComponents} />
-                  ) : (
-                    <p className="leading-[1.8] text-neutral-900 font-light">{product.description}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-5 bg-neutral-50 rounded-2xl">
-                <Ruler size={18} strokeWidth={1.2} className="text-brand-beryl" />
-                <div className="flex-1">
-                  <h4 className="text-[10px] uppercase tracking-widest font-bold text-neutral-900">Size & Fit</h4>
-                  <p className="text-[10px] text-neutral-500">Standard African sizing.</p>
-                </div>
-                <SizeGuideModal />
-              </div>
-
-              <div className="pt-10 grid grid-cols-2 gap-8 border-t border-neutral-100">
-                <div className="flex gap-3">
-                  <ShieldCheck size={20} strokeWidth={1.2} className="text-brand-beryl" />
-                  <div>
-                    <h4 className="text-[10px] uppercase tracking-widest font-bold text-neutral-900 mb-1">Dahriola Quality</h4>
-                    <p className="text-[10px] text-neutral-500 leading-tight">Artisanal craftsmanship.</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Truck size={20} strokeWidth={1.2} className="text-brand-beryl" />
-                  <div>
-                    <h4 className="text-[10px] uppercase tracking-widest font-bold text-neutral-900 mb-1">Global Shipping</h4>
-                    <p className="text-[10px] text-neutral-500 leading-tight">Lagos to the World.</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="pt-6 border-t border-neutral-100">
-           <RelatedProducts 
-            categoryId={product.categoryId} 
-            currentProductId={product._id} 
+        {/* RELATED */}
+        <section className="mt-16">
+          <RelatedProducts
+            categoryId={product.categoryId}
+            currentProductId={product._id}
             categoryName={product.categoryName}
           />
-        </div>
+        </section>
+
       </main>
     </div>
   );

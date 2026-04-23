@@ -80,7 +80,7 @@ export default function ComingSoon() {
         >
           {/* Main Action with Hover Animation */}
           <a 
-            href="https://wa.me/2347065364401"
+            href="https://wa.me/2347069996877"
             target="_blank"
             rel="noopener noreferrer"
             className="group relative flex items-center gap-6 text-[11px] font-bold uppercase tracking-[0.3em] text-neutral-900 transition-colors hover:text-brand-beryl"

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { PT_Serif, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/Navbar";
 import Concierge from "../components/Concierge";
@@ -7,9 +7,10 @@ import Footer from "../components/Footer";
 import AnnouncementBar from "../components/AnnouncementBar";
 import NewsletterPopup from "../components/NewsletterPopup";
 
-const playfair = Playfair_Display({
+const ptSerif = PT_Serif({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  weight: ["400", "700"],
+  variable: "--font-pt-serif",
 });
 
 const inter = Inter({
@@ -18,9 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  // CRITICAL: This ensures all relative paths (/logo.png) 
-  // are converted to absolute URLs (https://dahriola.com/logo.png) for WhatsApp.
-  metadataBase: new URL("https://dahriola.com"), 
+  metadataBase: new URL("https://dahriola.com"),
 
   title: {
     default: "Dahriola | Artisanal African Luxury",
@@ -61,10 +60,11 @@ export const metadata: Metadata = {
     url: "https://dahriola.com",
     siteName: "Dahriola",
     title: "Dahriola | Artisanal African Luxury",
-    description: "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
+    description:
+      "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
     images: [
       {
-        url: "/og-image.jpg", // Ensure this file exists at public/og-image.jpg
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Dahriola Luxury Collection",
@@ -75,7 +75,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Dahriola | Premium Contemporary Fashion",
-    description: "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
+    description:
+      "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
     images: ["/og-image.jpg"],
   },
 };
@@ -88,7 +89,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${playfair.variable} ${inter.variable} font-sans bg-brand-white text-neutral-900 antialiased`}
+        className={`${ptSerif.variable} ${inter.variable} font-sans bg-brand-white text-neutral-900 antialiased`}
       >
         <Navbar />
         <main>{children}</main>

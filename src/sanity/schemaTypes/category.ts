@@ -11,7 +11,7 @@ export default {
         list: [
           { title: 'Pants', value: 'pants' },
           { title: 'Dresses', value: 'dresses' },
-          { title: 'Co odds', value: 'co-odds' },
+          { title: 'Co-ords', value: 'co-ords' },
           { title: 'Jackets', value: 'jackets' },
           { title: 'Skirts', value: 'skirts' },
         ],

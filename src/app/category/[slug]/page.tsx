@@ -1,5 +1,4 @@
 import { client } from "@/src/lib/sanity";
-import ShopUtils from "@/src/components/ShopUtils";
 import CategoryDropdown from "@/src/components/CategoryDropdown";
 import ProductSearch from "@/src/components/ProductSearch";
 import { notFound } from "next/navigation";
@@ -20,6 +19,7 @@ async function getData(slug: string) {
     "products": *[${productFilter}] | order(_createdAt desc) {
       _id,
       name,
+      _createdAt,
       "slug": slug.current,
       productType,
       priceNGN,
@@ -48,7 +48,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="bg-[#fcfcfc] min-h-screen">
-      <header className="bg-neutral-50 border-b border-neutral-100 pt-24 md:pt-32 pb-10 md:pb-16 mb-12">
+      {/* HEADER SECTION */}
+      <header className="bg-neutral-50 border-b border-neutral-300 pt-24 md:pt-32 pb-2 mb-6 md:mb-10 ">
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div className="space-y-3">
@@ -64,11 +65,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center justify-between md:justify-end gap-8">
-              {/* Note: The Search button is now inside ProductSearch, which is rendered below */}
-              <ShopUtils />
-            </div>
+            {/* The right side is kept clear for the absolute-positioned utils */}
+            <div className="hidden md:block w-40" />
           </div>
         </div>
       </header>
@@ -76,7 +74,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12 pb-20">
         <div className="flex flex-col md:flex-row gap-16 relative">
           
-          {/* DESKTOP SIDEBAR */}
+          {/* SIDEBAR */}
           <aside className="hidden md:block w-64 shrink-0 space-y-12">
             <div>
               <h3 className="text-[11px] uppercase tracking-[0.3em] font-black text-neutral-950 mb-8 pb-4 border-b border-neutral-100">
@@ -95,7 +93,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             </div>
           </aside>
 
-          {/* This component now controls both the Search Bar and the Product Grid */}
+          {/* INTERACTIVE GRID & UTILS */}
           <ProductSearch products={products} />
         </div>
       </div>

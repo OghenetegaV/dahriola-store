@@ -13,7 +13,7 @@ export default function CategoryDropdown({ categories, currentSlug }: { categori
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] font-bold text-brand-beryl bg-brand-beryl/5 px-2 py-1 rounded-full"
       >
-        Change Category <ChevronDown size={10} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        Select Category <ChevronDown size={10} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (

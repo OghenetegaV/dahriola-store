@@ -62,17 +62,6 @@ export default function ProductCard({
           priority
         />
       </div>
-
-      {product.productType === 'rtw' && product.priceNGN && (
-        <div className="absolute bottom-2 right-2 md:bottom-3 md:right-3 z-20">
-          <div className="w-12 h-12 md:w-18 md:h-18 rounded-full bg-brand-beryl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-500 border-2 border-white/30">
-            <PriceDisplay 
-              priceNGN={product.priceNGN} 
-              className="font-sans text-[10px] md:text-[14px] font-black text-white tracking-tighter"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -87,27 +76,42 @@ export default function ProductCard({
     >
       {ImageContainer}
 
-      <div className="pt-3 md:pt-4 px-1 pb-1">
-        <div className="space-y-0.5 md:space-y-1">
-          <h3 className="font-display text-lg md:text-xl lg:text-2xl text-neutral-900 leading-tight tracking-tight group-hover:text-brand-beryl transition-colors truncate">
-            {product.name}
-          </h3>
-          <p className="text-[7px] md:text-[9px] uppercase tracking-[0.3em] text-brand-beryl font-bold">
-            {product.categoryName}
-          </p>
-          <div className="flex gap-1.5 md:gap-2 pt-1 md:pt-2">
-            {['S', 'M', 'L', 'XL'].map((size) => (
-              <span key={size} className="text-[7px] md:text-[8px] font-bold text-neutral-300 group-hover:text-neutral-400 transition-colors">
-                {size}
-              </span>
-            ))}
+      <div className="pt-3 md:pt-4 px-1 pb-1 relative">
+        <div className="flex justify-between items-start">
+          <div className="space-y-0.5 md:space-y-1 pr-14"> {/* Added padding to prevent text overlap with the circle */}
+            <h3 className="font-display text-lg md:text-xl lg:text-2xl text-neutral-900 leading-tight tracking-tight group-hover:text-brand-beryl transition-colors truncate">
+              {product.name}
+            </h3>
+            <p className="text-[7px] md:text-[9px] uppercase tracking-[0.3em] text-brand-beryl font-bold">
+              {product.categoryName}
+            </p>
+            <div className="flex gap-1.5 md:gap-2 pt-1 md:pt-2">
+              {['S', 'M', 'L', 'XL'].map((size) => (
+                <span key={size} className="text-[7px] md:text-[8px] font-bold text-neutral-300 group-hover:text-neutral-400 transition-colors">
+                  {size}
+                </span>
+              ))}
+            </div>
           </div>
+
+          {/* EXACT PREVIOUS STYLING - MOVED TO RED CIRCLE POSITION */}
+          {product.productType === 'rtw' && product.priceNGN && (
+            <div className="absolute bottom-6 right-1 z-20">
+              <div className="w-15 h-15 md:w-20 md:h-20 rounded-full bg-brand-beryl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-500 border-2 border-white/30">
+                <PriceDisplay 
+                  priceNGN={product.priceNGN} 
+                  className="font-sans text-[9px] md:text-[13px] font-black text-white tracking-tighter"
+                />
+              </div>
+            </div>
+          )}
         </div>
+
         <div className="mt-3 md:mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-           <div className="h-[0.5px] flex-1 bg-neutral-100" />
-           <span className="text-[7px] uppercase tracking-widest text-neutral-400 font-bold">
-             View
-           </span>
+            <div className="h-[0.5px] flex-1 bg-neutral-100" />
+            <span className="text-[7px] uppercase tracking-widest text-neutral-400 font-bold">
+              View
+            </span>
         </div>
       </div>
     </Link>
