@@ -105,7 +105,7 @@ export default async function ProductPage({
         {/* BACK LINK */}
         <div className="mb-6">
           <Link
-            href="/shop"
+            href="/category/all"
             className="text-sm font-medium hover:text-brand-beryl"
           >
             ← Back to Shop
