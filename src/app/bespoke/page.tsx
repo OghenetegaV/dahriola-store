@@ -49,7 +49,6 @@ export default function BespokeGallery() {
         </p>
       </div>
 
-      {/* OUTFIT-FRIENDLY GRID */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 pb-20">
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
           {GALLERY_ITEMS.map((item, index) => (
@@ -84,15 +83,21 @@ export default function BespokeGallery() {
           ))}
         </div>
 
-        {/* DESKTOP FORM BELOW GRID */}
         <div className="hidden md:flex mt-16 items-center justify-center bg-[#fcfcfc] rounded-[2rem] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.7)] border border-neutral-100 p-6">
           <BespokeEnquiry />
         </div>
       </div>
 
-      {/* MOBILE FLOATING CTA */}
       <div className="fixed bottom-10 left-0 w-full flex justify-center z-[100] md:hidden px-6">
         <motion.button
+          initial={{ y: 0 }}
+          animate={{ y: [0, -6, 0] }}
+          transition={{
+            duration: 1.6,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatDelay: 1.5,
+          }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setIsOpen(true)}
           className="bg-white text-black px-10 py-5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-3 border border-neutral-100"
@@ -104,7 +109,6 @@ export default function BespokeGallery() {
         </motion.button>
       </div>
 
-      {/* MOBILE FULL-SCREEN ENQUIRY OVERLAY */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -135,7 +139,6 @@ export default function BespokeGallery() {
         )}
       </AnimatePresence>
 
-      {/* LIGHTBOX */}
       <AnimatePresence>
         {activeItem && (
           <motion.div

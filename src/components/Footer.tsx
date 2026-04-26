@@ -5,11 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { Instagram, ArrowRight, ChevronDown } from "lucide-react";
 import { client } from "@/src/lib/sanity";
+import PolicyModal from "./PolicyModal";
+import { POLICIES } from "@/src/constants/policies";
 
 export default function Footer() {
   const [categories, setCategories] = useState([]);
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [activePolicy, setActivePolicy] = useState<null | keyof typeof POLICIES>(null);
   const footerRef = useRef(null);
 
   useEffect(() => {
@@ -33,12 +36,11 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer ref={footerRef} className="relative pt-64 pb-12 overflow-hidden">
-      {/* 1. Animated Background Layer (The Curve) */}
+    <footer ref={footerRef} className="relative pt-64 pb-12 overflow-hidden bg-white">
+      {/* 1. Animated Background Layer (The Dark Slide-up) */}
       <div 
-        className="absolute inset-0 bg-[#0A0A0A] transition-all duration-[1500ms] cubic-bezier(0.22, 1, 0.36, 1)"
+        className="absolute inset-0 bg-[#0A0A0A] transition-all duration-[1500ms] ease-[cubic-bezier(0.22, 1, 0.36, 1)]"
         style={{ 
-          // clipPath: 'ellipse(200% 100% at 50% 100%)',
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'translateY(0)' : 'translateY(100px)'
         }}
@@ -51,8 +53,7 @@ export default function Footer() {
         }`}
       >
         <p className="text-2xl">💚</p>
-        {/* <div className="h-[1px] w-12 bg-brand-beryl/40" /> */}
-        <p className="text-[11px] tracking-[0.6em] text-neutral-400 font-bold text-center">
+        <p className="text-[11px] tracking-[0.6em] text-neutral-400 font-bold text-center uppercase">
           Thanks for shopping with us!
         </p>
         <div className="h-[1px] w-12 bg-brand-beryl/40" />
@@ -65,7 +66,7 @@ export default function Footer() {
         </h2>
       </div>
 
-      {/* 3. Main Restored Content Container */}
+      {/* 3. Main Content Container */}
       <div className={`max-w-7xl mx-auto px-6 lg:px-12 relative z-10 transition-all duration-[1200ms] delay-[800ms] ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-20"
       }`}>
@@ -108,10 +109,9 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Full Restored Navigation Grid */}
+        {/* Navigation Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-y-20 gap-x-12 pb-24 border-b border-white/5">
           
-          {/* Column 1: Restored Dropdown Logic */}
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">Collections</h5>
             <div className="flex flex-col gap-5">
@@ -141,17 +141,20 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 2: Restored Links */}
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">The Studio</h5>
             <div className="flex flex-col gap-5">
               <Link href="/" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
               <Link href="/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Appointments</Link>
-              <Link href="/" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Care Guide</Link>
+              <button 
+                onClick={() => setActivePolicy('shipping')} 
+                className="text-left text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all"
+              >
+                Shipping Guide
+              </button>
             </div>
           </div>
 
-          {/* Column 3: Restored Socials */}
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">Connect</h5>
             <div className="flex flex-col gap-5">
@@ -167,7 +170,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 4: Restored Support Info */}
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">Inquiry</h5>
             <div className="flex flex-col gap-4 text-[11px] uppercase tracking-widest text-neutral-500 leading-relaxed">
@@ -181,15 +183,39 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Restored Credits */}
+        {/* Credits & Interactive Policy Links */}
         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] uppercase tracking-[0.4em] text-neutral-600 font-bold">
           <p>© {new Date().getFullYear()} Dahriola. Precision Craftsmanship.</p>
           <div className="flex gap-10">
-             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <button 
+              onClick={() => setActivePolicy('shipping')} 
+              className="hover:text-white transition-colors uppercase tracking-[0.4em]"
+            >
+              Shipping
+            </button>
+            <button 
+              onClick={() => setActivePolicy('returns')} 
+              className="hover:text-white transition-colors uppercase tracking-[0.4em]"
+            >
+              Returns
+            </button>
+            <button 
+              onClick={() => setActivePolicy('privacy')} 
+              className="hover:text-white transition-colors uppercase tracking-[0.4em]"
+            >
+              Privacy
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Policy Modal Injection */}
+      <PolicyModal 
+        isOpen={!!activePolicy} 
+        onClose={() => setActivePolicy(null)}
+        title={activePolicy ? POLICIES[activePolicy].title : ""}
+        content={activePolicy ? POLICIES[activePolicy].content : []}
+      />
     </footer>
   );
 }
