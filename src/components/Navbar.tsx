@@ -94,7 +94,35 @@ export default function Navbar() {
 
           {/* LEFT */}
           <div className={`hidden lg:flex items-center gap-10 text-[10px] uppercase tracking-[0.3em] font-bold ${textColor}`}>
-            <Link href="/category/rtw">Ready to Wear</Link>
+            <div className="relative group h-20 flex items-center cursor-pointer">
+              <Link href="/category/all" className="flex items-center gap-2 hover:text-brand-beryl transition-colors">
+                Ready to Wear <ChevronDown size={10} className="group-hover:rotate-180 transition-transform duration-500" />
+              </Link>
+
+              <div className="absolute left-[-20px] top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[400px] group-hover:opacity-100 transition-all duration-500 ease-in-out z-[110]">
+                <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-sm mt-1">
+                  <div className="flex flex-col">
+                    <Link href="/category/rtw" className="px-6 py-3 group/item flex justify-between items-center bg-neutral-50/30 border-b border-neutral-50">
+                      <span className="text-brand-beryl font-black text-[9px] tracking-[0.2em]">All Collections</span>
+                      <span className="text-[10px] opacity-40 group-hover/item:opacity-100 transition-all">→</span>
+                    </Link>
+
+                    <div className="grid grid-rows-3 grid-flow-col gap-x-6 gap-y-0.5 p-3 min-w-max">
+                      {categories.filter((cat) => cat.slug !== "bespoke").map((cat) => (
+                        <Link
+                          key={cat.slug}
+                          href={`/category/${cat.slug}`}
+                          className="px-4 py-2 text-neutral-500 hover:text-neutral-900 transition-all flex items-center gap-2.5 whitespace-nowrap group/link"
+                        >
+                          <span className="w-1 h-1 rounded-full bg-neutral-200 group-hover/link:bg-brand-beryl transition-colors" />
+                          <span className="text-[9.5px] tracking-widest">{cat.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <Link href="/bespoke">Bespoke</Link>
 
             {/* CURRENCY RESTORED */}

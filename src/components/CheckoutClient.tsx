@@ -10,6 +10,7 @@ import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -148,6 +149,16 @@ export default function CheckoutClient() {
 
   return (
     <div className="bg-[#F9F9F9] min-h-screen pt-24 pb-16 px-4 md:px-8">
+        {/* BACK LINK */}
+        <div className="mb-6">
+          <Link
+            href="/category/all"
+            className="text-sm font-medium hover:text-brand-beryl"
+          >
+            ← Back to Shop
+          </Link>
+        </div>
+
       <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-12 gap-10">
         
         {/* LEFT: FORM SECTION */}
