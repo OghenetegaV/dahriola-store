@@ -63,11 +63,11 @@ export default function WishlistPage() {
   }
 
   if (loading) {
-    return <div className="px-4 py-16">Loading wishlist...</div>;
+    return <div className="px-4 pt-32 pb-16">Loading wishlist...</div>;
   }
 
   if (!products.length) {
-    return <div className="px-4 py-16">Your wishlist is empty.</div>;
+    return <div className="px-4 pt-32 pb-16">Your wishlist is empty.</div>;
   }
 
   return (

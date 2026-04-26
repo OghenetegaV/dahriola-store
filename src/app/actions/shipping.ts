@@ -11,14 +11,14 @@ export async function getShippingRates(deliveryData: {
   const backupRates = [
     {
       id: "dahriola-std",
-      carrier_name: "Dahriola Standard",
+      carrier_name: "Standard",
       service_name: "Standard Delivery",
       delivery_time: "3-5 Business Days",
       amount: deliveryData.state.toLowerCase() === "lagos" ? 2500 : 5000,
     },
     {
       id: "dahriola-exp",
-      carrier_name: "Dahriola Express",
+      carrier_name: "Express",
       service_name: "Priority Shipping",
       delivery_time: "1-2 Business Days",
       amount: deliveryData.state.toLowerCase() === "lagos" ? 4500 : 8000,
