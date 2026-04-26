@@ -1,59 +1,368 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import {
+  ShoppingBag,
+  Menu,
+  Phone,
+  X,
+  ChevronDown,
+  Instagram,
+  Globe,
+  Heart,
+} from "lucide-react";
+import { client } from "@/src/lib/sanity";
 import { useStore } from "@/src/store/useStore";
-import { ChevronDown } from "lucide-react";
+import CartDrawer from "./CartDrawer";
+import { getWishlist } from "@/src/lib/wishlist";
 
-export default function ShopUtils() {
-  const { currency, exchangeRates } = useStore();
+interface Category {
+  title: string;
+  slug: string;
+}
 
-  const formatPrice = (val: number) => {
-    const converted = val * (exchangeRates[currency] || 1);
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-      maximumSignificantDigits: 3,
-    }).format(converted);
-  };
+export default function Navbar() {
+  const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
-  const rangesNGN = [
-    { label: "Under", value: 50000 },
-    { min: 50000, max: 100000 },
-    { min: 100000, max: 200000 },
-    { label: "Above", value: 200000 },
-  ];
+  const { cart, currency, setCurrency } = useStore();
+
+  if (pathname?.startsWith("/admin")) return null;
+
+  useEffect(() => {
+    setHasHydrated(true);
+
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+
+    const syncWishlist = () => {
+      setWishlistCount(getWishlist().length);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("wishlistUpdated", syncWishlist);
+    window.addEventListener("storage", syncWishlist);
+
+    syncWishlist();
+
+    const fetchCategories = async () => {
+      try {
+        const data: Category[] = await client.fetch(
+          `*[_type == "category"]{ title, "slug": slug.current }`
+        );
+        setCategories(data);
+      } catch (error) {
+        console.error("Sanity fetch error:", error);
+      }
+    };
+
+    fetchCategories();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("wishlistUpdated", syncWishlist);
+      window.removeEventListener("storage", syncWishlist);
+    };
+  }, []);
+
+  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const isHomePage = pathname === "/";
+  const shouldShowSolid = scrolled || !isHomePage;
+
+  const navBg = shouldShowSolid
+    ? "bg-white/80 backdrop-blur-lg border-b border-neutral-100"
+    : "bg-transparent border-transparent";
+
+  const textColor = shouldShowSolid ? "text-neutral-900" : "text-white";
+  const iconColor = shouldShowSolid ? "text-brand-beryl" : "text-white";
 
   return (
-    <div className="flex flex-wrap items-center gap-4">
-      {/* Price Filter Dropdown */}
-      <div className="relative group cursor-pointer">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest border border-neutral-200 px-5 py-3 rounded-full hover:bg-neutral-50 transition-all">
-          Filter by Price <ChevronDown size={12} />
-        </div>
-        <div className="absolute right-0 mt-2 w-64 bg-white border border-neutral-100 shadow-2xl rounded-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-          <p className="text-[9px] uppercase tracking-widest text-neutral-400 mb-4 font-bold">Ranges ({currency})</p>
-          {rangesNGN.map((range, i) => (
-            <div key={i} className="py-2 text-[10px] uppercase tracking-wider text-neutral-600 hover:text-black cursor-pointer transition-colors border-b border-neutral-50 last:border-0">
-              {range.label === "Under" && `Under ${formatPrice(range.value!)}`}
-              {range.label === "Above" && `Above ${formatPrice(range.value!)}`}
-              {range.min && `${formatPrice(range.min)} — ${formatPrice(range.max!)}`}
-            </div>
-          ))}
-        </div>
-      </div>
+    <>
+      <nav
+        className={`fixed ${
+          isHomePage ? "top-8" : "top-0"
+        } z-[100] w-full transition-all duration-700 ease-in-out ${navBg}`}
+      >
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 relative">
+          {/* LEFT: Desktop Navigation */}
+          <div
+            className={`hidden lg:flex items-center gap-10 text-[10px] uppercase tracking-[0.3em] font-bold transition-colors ${textColor}`}
+          >
+            <div className="relative group h-20 flex items-center cursor-pointer">
+              <Link
+                href="/category/rtw"
+                className="flex items-center gap-2 hover:text-brand-beryl transition-colors"
+              >
+                Ready to Wear{" "}
+                <ChevronDown
+                  size={10}
+                  className="group-hover:rotate-180 transition-transform duration-500"
+                />
+              </Link>
 
-      {/* Sort Dropdown */}
-      <div className="relative group cursor-pointer">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest border border-neutral-200 px-5 py-3 rounded-full hover:bg-neutral-50 transition-all">
-          Sort: Newest <ChevronDown size={12} />
-        </div>
-        <div className="absolute right-0 mt-2 w-56 bg-white border border-neutral-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-          {["Newest", "Popularity", "Price: Low to High", "Price: High to Low"].map((option) => (
-            <div key={option} className="px-6 py-2.5 text-[10px] uppercase tracking-wider text-neutral-500 hover:text-black hover:bg-neutral-50 cursor-pointer transition-colors">
-              {option}
+              <div className="absolute left-[-20px] top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[400px] group-hover:opacity-100 transition-all duration-500 ease-in-out z-[110]">
+                <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-sm mt-1">
+                  <div className="flex flex-col">
+                    <Link
+                      href="/category/rtw"
+                      className="px-6 py-3 group/item flex justify-between items-center bg-neutral-50/30 border-b border-neutral-50"
+                    >
+                      <span className="text-brand-beryl font-black text-[9px] tracking-[0.2em]">
+                        All Collections
+                      </span>
+                      <span className="text-[10px] opacity-40 group-hover/item:opacity-100 transition-all">
+                        →
+                      </span>
+                    </Link>
+
+                    <div className="grid grid-rows-3 grid-flow-col gap-x-6 gap-y-0.5 p-3 min-w-max">
+                      {categories
+                        .filter((cat) => cat.slug !== "bespoke")
+                        .map((cat) => (
+                          <Link
+                            key={cat.slug}
+                            href={`/category/${cat.slug}`}
+                            className="px-4 py-2 text-neutral-500 hover:text-neutral-900 transition-all flex items-center gap-2.5 whitespace-nowrap group/link"
+                          >
+                            <span className="w-1 h-1 rounded-full bg-neutral-200 group-hover/link:bg-brand-beryl transition-colors" />
+                            <span className="text-[9.5px] tracking-widest">
+                              {cat.title}
+                            </span>
+                          </Link>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
+
+            <Link
+              href="/bespoke"
+              className="hover:text-brand-beryl transition-colors"
+            >
+              Bespoke
+            </Link>
+
+            <div className="relative group h-20 flex items-center cursor-pointer">
+              <div className="flex items-center gap-2 hover:text-brand-beryl transition-colors">
+                <Globe size={13} />
+                <span>{currency}</span>
+              </div>
+
+              <div className="absolute left-0 top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[300px] group-hover:opacity-100 transition-all duration-500 ease-in-out z-[110]">
+                <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-xl py-3 min-w-[120px] rounded-sm mt-1">
+                  {(["NGN", "USD", "GBP", "EUR"] as const).map((cur) => (
+                    <button
+                      key={cur}
+                      onClick={() => setCurrency(cur)}
+                      className={`block w-full text-left px-6 py-2 text-[9px] tracking-widest hover:bg-neutral-50/50 transition-colors ${
+                        currency === cur
+                          ? "text-brand-beryl font-black"
+                          : "text-neutral-400"
+                      }`}
+                    >
+                      {cur}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MOBILE MENU */}
+          <button
+            onClick={() => setIsOpen(true)}
+            className={`p-2 lg:hidden transition-colors ${iconColor}`}
+          >
+            <Menu strokeWidth={1} size={28} />
+          </button>
+
+          {/* LOGO - ALWAYS ORIGINAL COLOR */}
+          <Link
+            href="/"
+            className="absolute left-1/2 -translate-x-1/2 transition-all duration-500 hover:scale-105 active:scale-95"
+          >
+            <Image
+              src="/logo.png"
+              alt="Dahriola Logo"
+              width={160}
+              height={45}
+              className="h-9 w-auto object-contain md:h-11 transition-all duration-700"
+              priority
+            />
+          </Link>
+
+          {/* RIGHT ICONS */}
+          <div className="flex items-center gap-3 sm:gap-6">
+            <Link
+              href="/contact"
+              className={`hidden sm:block hover:opacity-70 transition-opacity ${iconColor}`}
+            >
+              <Phone strokeWidth={1} size={20} />
+            </Link>
+
+            <Link
+              href="/wishlist"
+              className={`relative p-2 transition-transform active:scale-90 ${iconColor}`}
+              aria-label="Wishlist"
+            >
+              <Heart strokeWidth={1} size={22} />
+
+              {hasHydrated && wishlistCount > 0 && (
+                <span
+                  className={`absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold ${
+                    shouldShowSolid
+                      ? "bg-brand-beryl text-white"
+                      : "bg-white text-black"
+                  }`}
+                >
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className={`relative p-2 transition-transform active:scale-90 ${iconColor}`}
+              aria-label="Cart"
+            >
+              <ShoppingBag strokeWidth={1} size={22} />
+
+              {hasHydrated && totalItems > 0 && (
+                <span
+                  className={`absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold ${
+                    shouldShowSolid
+                      ? "bg-brand-beryl text-white"
+                      : "bg-white text-black"
+                  }`}
+                >
+                  {totalItems}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      </nav>
+
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/5 backdrop-blur-sm z-[120] lg:hidden animate-in fade-in duration-500"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 z-[130] h-full w-full max-w-[320px] bg-white p-10 shadow-2xl transition-transform duration-700 ease-in-out lg:hidden ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between mb-16">
+            <Image
+              src="/logo.png"
+              alt="Dahriola"
+              width={110}
+              height={35}
+              className="h-7 w-auto"
+            />
+
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-neutral-300 hover:text-black"
+            >
+              <X size={28} strokeWidth={1} />
+            </button>
+          </div>
+
+          <nav className="flex flex-col gap-10">
+            <Link
+              href="/category/all"
+              onClick={() => setIsOpen(false)}
+              className="font-display text-2xl text-neutral-900 tracking-tight"
+            >
+              The Collection
+            </Link>
+
+            <div className="flex flex-col">
+              <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">
+                Ready-to-Wear
+              </p>
+
+              <div className="flex flex-col gap-5 mt-6 pl-4 border-l-2 border-brand-beryl/10">
+                {categories.length > 0 ? (
+                  categories
+                    .filter((cat) => cat.slug !== "bespoke")
+                    .map((cat) => (
+                      <Link
+                        key={cat.slug}
+                        href={`/category/${cat.slug}`}
+                        onClick={() => setIsOpen(false)}
+                        className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl"
+                      >
+                        {cat.title}
+                      </Link>
+                    ))
+                ) : (
+                  <p className="text-[10px] uppercase text-neutral-300">
+                    Loading categories...
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Link
+              href="/bespoke"
+              onClick={() => setIsOpen(false)}
+              className="font-display text-2xl text-neutral-900 tracking-tight"
+            >
+              Bespoke Gallery
+            </Link>
+
+            <Link
+              href="/wishlist"
+              onClick={() => setIsOpen(false)}
+              className="font-display text-2xl text-neutral-900 tracking-tight"
+            >
+              Wishlist
+            </Link>
+          </nav>
+
+          <div className="mt-auto pt-10 border-t border-neutral-50 flex items-center justify-between">
+            <div className="flex gap-4">
+              {(["NGN", "USD", "GBP", "EUR"] as const).map((cur) => (
+                <button
+                  key={cur}
+                  onClick={() => setCurrency(cur)}
+                  className={`text-[10px] font-bold ${
+                    currency === cur ? "text-brand-beryl" : "text-neutral-300"
+                  }`}
+                >
+                  {cur}
+                </button>
+              ))}
+            </div>
+
+            <a
+              href="https://instagram.com/dahriola_"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-neutral-900"
+            >
+              <Instagram size={20} strokeWidth={1.5} />
+            </a>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
