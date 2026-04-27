@@ -349,7 +349,7 @@ export async function getShippingRates(
           "Estimated at checkout",
         amount: Number(rate.amount),
         currency: rate.currency || "NGN",
-        source: "terminal-africa",
+        source: "terminal-africa" as const,
       }))
       .sort((a, b) => a.amount - b.amount);
 
