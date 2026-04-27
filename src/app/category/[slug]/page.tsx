@@ -1,16 +1,19 @@
 import { client } from "@/src/lib/sanity";
 import CategoryDropdown from "@/src/components/CategoryDropdown";
 import ProductSearch from "@/src/components/ProductSearch";
+import CategorySlider from "@/src/components/CategorySlider";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 async function getData(slug: string) {
-  let productFilter = '';
-  if (slug === 'all') {
+  let productFilter = "";
+
+  if (slug === "all") {
     productFilter = '_type == "product"';
-  } else if (slug === 'Ready to Wear' || slug === 'Bespoke') {
-    productFilter = `_type == "product" && productType == "${slug}"`;
+  } else if (slug === "rtw") {
+    productFilter = '_type == "product" && productType == "rtw"';
+  } else if (slug === "bespoke") {
+    productFilter = '_type == "product" && productType == "bespoke"';
   } else {
     productFilter = `_type == "product" && category->slug.current == "${slug}"`;
   }
@@ -26,77 +29,132 @@ async function getData(slug: string) {
       images,
       "categoryName": category->title
     },
-    "categories": *[_type == "category"] {
+    "categories": *[_type == "category"] | order(title asc) {
+      _id,
       title,
-      "slug": slug.current
+      "slug": slug.current,
+      image
+    },
+    "heroProduct": *[${productFilter} && defined(images[0])][0] {
+      images
     }
   }`;
 
-  return await client.fetch(query, { slug });
+  return await client.fetch(query);
 }
 
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CategoryPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
-  const { products, categories } = await getData(slug);
+  const { products, categories, heroProduct } = await getData(slug);
 
   if (!products) notFound();
 
   const formatTitle = (text: string) => {
-    const spaced = text.replace(/-/g, ' ');
-    return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+    if (text === "all") return "All";
+    if (text === "rtw") return "Ready to Wear";
+    return text
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
+
+  const heroTitle = formatTitle(slug);
+  const heroImage =
+    heroProduct?.images?.[0] || products?.find((p: any) => p.images?.[0])?.images?.[0];
 
   return (
     <div className="bg-[#fcfcfc] min-h-screen">
-      {/* HEADER SECTION */}
-      <header className="bg-neutral-50 border-b border-neutral-300 pt-24 md:pt-32 pb-2 mb-6 md:mb-10 ">
-        <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div className="space-y-3">
-              <h1 className="font-display text-5xl md:text-8xl text-neutral-950 tracking-tighter leading-none">
-                {formatTitle(slug)}
-              </h1>
-              <div className="flex items-center gap-4">
-                <p className="text-[9px] md:text-[10px] uppercase tracking-[0.4em] text-neutral-400 font-bold">
-                  {products.length} Products in Collection
-                </p>
-                <div className="md:hidden">
-                  <CategoryDropdown categories={categories} currentSlug={slug} />
-                </div>
-              </div>
-            </div>
-            {/* The right side is kept clear for the absolute-positioned utils */}
-            <div className="hidden md:block w-40" />
-          </div>
-        </div>
-      </header>
+      {/* HERO */}
+      <section className="pt-24 md:pt-32">
+        <div className="max-w-[1600px] mx-auto px-3 md:px-8 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-8 items-stretch">
+            <div className="relative h-[180px] sm:h-[280px] md:h-[420px] rounded-md overflow-hidden bg-neutral-200">
+              {heroImage ? (
+                <img
+                  src={heroImage.asset ? "" : ""}
+                  alt={heroTitle}
+                  className="hidden"
+                />
+              ) : null}
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-12 pb-20">
-        <div className="flex flex-col md:flex-row gap-16 relative">
-          
-          {/* SIDEBAR */}
-          <aside className="hidden md:block w-64 shrink-0 space-y-12">
-            <div>
-              <h3 className="text-[11px] uppercase tracking-[0.3em] font-black text-neutral-950 mb-8 pb-4 border-b border-neutral-100">
-                Categories
-              </h3>
-              <nav className="flex flex-col gap-6">
-                <Link href="/category/all" className={`text-[11px] uppercase tracking-widest flex items-center justify-between group ${slug === 'all' ? 'text-black font-black' : 'text-neutral-400 hover:text-black'}`}>
-                  All Collection <ChevronRight size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${slug === 'all' && 'opacity-100'}`} />
-                </Link>
+              <SanityHeroImage image={heroImage} title={heroTitle} />
+
+              <div className="absolute inset-0 bg-black/10" />
+
+              <h1 className="absolute left-6 top-8 text-white text-sm md:text-base font-medium uppercase tracking-wide">
+                {heroTitle}
+              </h1>
+            </div>
+
+            {/* DESKTOP CATEGORY LIST */}
+            <aside className="hidden lg:flex flex-col justify-center pl-2">
+              <nav className="flex flex-col gap-3 text-[24px] leading-tight text-black">
                 {categories.map((cat: any) => (
-                  <Link key={cat.slug} href={`/category/${cat.slug}`} className={`text-[11px] uppercase tracking-widest flex items-center justify-between group ${slug === cat.slug ? 'text-black font-black' : 'text-neutral-400 hover:text-black'}`}>
-                    {cat.title} <ChevronRight size={12} className={`opacity-0 group-hover:opacity-100 transition-opacity ${slug === cat.slug && 'opacity-100'}`} />
+                  <Link
+                    key={cat.slug}
+                    href={`/category/${cat.slug}`}
+                    className={`hover:text-brand-beryl transition ${
+                      slug === cat.slug ? "text-brand-beryl" : ""
+                    }`}
+                  >
+                    {cat.title}
                   </Link>
                 ))}
               </nav>
-            </div>
-          </aside>
+            </aside>
+          </div>
 
-          {/* INTERACTIVE GRID & UTILS */}
-          <ProductSearch products={products} />
+          {/* MOBILE CATEGORY SLIDER */}
+          {/* <div className="lg:hidden mt-3">
+            <CategorySlider categories={categories} currentSlug={slug} />
+          </div> */}
+
+          {/* FILTER ROW */}
+          <div className="mt-5 md:mt-6 flex items-center justify-between">
+            <div className="md:hidden">
+              <CategoryDropdown categories={categories} currentSlug={slug} />
+            </div>
+
+            {/* <button className="text-[12px] uppercase bg-neutral-100 px-3 py-2 rounded-sm hover:bg-neutral-200 transition">
+              Filter/Sort +
+            </button> */}
+
+            <p className="text-[11px] text-neutral-700">
+              {products.length} items
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* PRODUCTS */}
+      <section className="max-w-[1600px] mx-auto px-3 md:px-8 lg:px-12 pt-6 pb-20">
+        <ProductSearch products={products} />
+      </section>
     </div>
+  );
+}
+
+function SanityHeroImage({ image, title }: { image: any; title: string }) {
+  if (!image?.asset?._ref) {
+    return (
+      <div className="w-full h-full bg-neutral-200 flex items-center justify-center text-neutral-400">
+        {title}
+      </div>
+    );
+  }
+
+  const ref = image.asset._ref;
+  const [, id, dimensions, format] = ref.split("-");
+  const src = `https://cdn.sanity.io/images/${process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}/${process.env.NEXT_PUBLIC_SANITY_DATASET}/${id}-${dimensions}.${format}`;
+
+  return (
+    <img
+      src={src}
+      alt={title}
+      className="w-full h-full object-cover object-center"
+    />
   );
 }

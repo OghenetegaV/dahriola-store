@@ -98,55 +98,83 @@ export default function ProductSearch({ products }: { products: any[] }) {
       </div>
 
       {/* 2. MOBILE UTILS (Visible only on Mobile) */}
-      <div className="md:hidden mb-8 space-y-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="md:hidden mb-5">
+        <div className="flex items-center gap-3">
           <div className="flex-1 relative flex items-center border-b border-neutral-200">
-            <Search size={14} className="text-neutral-400" />
+            <Search size={13} className="text-neutral-400" />
+
             <input
               type="text"
               placeholder="Search designs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent outline-none text-[11px] uppercase tracking-widest w-full py-3 px-3"
+              className="bg-transparent outline-none text-[10px] uppercase tracking-widest w-full py-2.5 px-2"
             />
-            {searchQuery && <X size={14} onClick={() => setSearchQuery("")} />}
+
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery("")}>
+                <X size={13} className="text-neutral-400" />
+              </button>
+            )}
           </div>
-          <button 
+
+          <button
             onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-            className="flex items-center gap-2 border border-black px-4 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
+            className={`shrink-0 h-9 px-3 rounded-full border text-[9px] font-bold uppercase tracking-widest transition ${
+              isMobileFiltersOpen
+                ? "bg-black text-white border-black"
+                : "bg-white text-black border-neutral-300"
+            }`}
           >
-            <SlidersHorizontal size={14} /> {isMobileFiltersOpen ? "Close" : "Filters"}
+            {isMobileFiltersOpen ? "Close" : "Filter/Sort"}
           </button>
         </div>
 
         {isMobileFiltersOpen && (
-          <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="space-y-2">
-              <p className="text-[9px] uppercase font-black text-neutral-400">Sort By</p>
-              <select 
-                className="w-full bg-white border border-neutral-200 p-3 text-[10px] uppercase font-bold"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                {["Newest", "Price: Low to High", "Price: High to Low"].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <p className="text-[9px] uppercase font-black text-neutral-400">Price Range</p>
-              <select 
-                className="w-full bg-white border border-neutral-200 p-3 text-[10px] uppercase font-bold"
-                onChange={(e) => {
-                  const val = JSON.parse(e.target.value);
-                  setPriceRange(val);
-                }}
-              >
-                {rangesNGN.map((r, i) => (
-                  <option key={i} value={JSON.stringify(r.value === null ? null : {min: r.min, max: r.max})}>
-                    {r.label || `${formatPrice(r.min!)} - ${formatPrice(r.max!)}`}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="mt-3 rounded-full border border-neutral-200 bg-white px-3 py-2 flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <select
+              className="flex-1 bg-transparent text-[9px] uppercase font-bold tracking-widest outline-none"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              {["Newest", "Price: Low to High", "Price: High to Low"].map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+
+            <div className="h-5 w-px bg-neutral-200" />
+
+            <select
+              className="flex-1 bg-transparent text-[9px] uppercase font-bold tracking-widest outline-none"
+              value={JSON.stringify(
+                priceRange === null
+                  ? null
+                  : { min: priceRange.min, max: priceRange.max }
+              )}
+              onChange={(e) => {
+                const val = JSON.parse(e.target.value);
+                setPriceRange(val);
+              }}
+            >
+              {rangesNGN.map((r, i) => (
+                <option
+                  key={i}
+                  value={JSON.stringify(
+                    r.value === null ? null : { min: r.min, max: r.max }
+                  )}
+                >
+                  {r.label === "All Prices"
+                    ? "All Prices"
+                    : r.label === "Under"
+                    ? `Under ${formatPrice(r.max!)}`
+                    : r.label === "Above"
+                    ? `Above ${formatPrice(r.min!)}`
+                    : `${formatPrice(r.min!)} - ${formatPrice(r.max!)}`}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
