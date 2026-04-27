@@ -54,7 +54,7 @@ export default function Footer() {
       >
         <p className="text-2xl">💚</p>
         <p className="text-[11px] tracking-[0.6em] text-neutral-400 font-bold text-center uppercase">
-          Thanks for shopping with us!
+          Thank you for shopping with us!
         </p>
         <div className="h-[1px] w-12 bg-brand-beryl/40" />
       </div>

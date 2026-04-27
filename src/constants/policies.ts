@@ -29,11 +29,11 @@ export const POLICIES = {
   shipping: {
     title: "Shipping Policy",
     content: [
-      "Kindly note the production timeline for each design. It’s usually between 2-7 working days, depending on the design.",
+      "Kindly note the production timeline for each design. It is usually between 2-7 working days, depending on the design.",
       "Lagos Shipping: 1-2 working days",
       "Interstate Shipping: 3-5 working days via DHL",
       "International Shipping: 7-9 working days via DHL",
-      "Shipping costs depend on location and will be generated at checkout.",
+      "Shipping costs depends on location and will be generated at checkout.",
       "Dahriola is not responsible for custom duties, import taxes, or additional fees imposed by the destination country.",
       "Once tracking details are provided, we are not liable for delays, lost, or stolen packages but can assist in contacting the courier service.",
       "Kindly note that deliveries to the United States may be subject to additional customs duties, import taxes, or fees as determined by the destination country. These charges are not covered by Dahriola and are the responsibility of the customer."

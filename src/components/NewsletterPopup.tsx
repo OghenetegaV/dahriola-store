@@ -10,29 +10,27 @@ export default function NewsletterPopup() {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    // Check if user has already seen/closed the popup recently
     const hasSeenPopup = localStorage.getItem("dahriola-newsletter-seen");
-    
+
     if (!hasSeenPopup) {
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 5000); // 5 second delay for a premium feel
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, []);
 
   const closePopup = () => {
     setIsOpen(false);
-    // Store timestamp to hide for 7 days
     localStorage.setItem("dahriola-newsletter-seen", Date.now().toString());
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-12 md:p-6">
           {/* Backdrop */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -41,7 +39,7 @@ export default function NewsletterPopup() {
           />
 
           {/* Popup Content */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -49,21 +47,35 @@ export default function NewsletterPopup() {
             className="relative w-full max-w-[900px] bg-white overflow-hidden flex flex-col md:flex-row shadow-2xl"
           >
             {/* Close Button */}
-            <button 
+            <button
               onClick={closePopup}
               className="absolute top-6 right-6 z-20 p-2 hover:bg-neutral-50 rounded-full transition-colors text-neutral-700 hover:text-neutral-900"
             >
               <X size={20} strokeWidth={1.5} />
             </button>
 
-            {/* Left Side: Visual (Editorial Image) */}
-            <div className="relative w-full md:w-1/2 h-[300px] md:h-auto bg-neutral-100">
-              <Image 
-                src="/newsletter_2.jpg" 
-                alt="Dahriola Couture"
-                fill
-                className="object-cover"
-              />
+            {/* Left Side: Visual */}
+            <div className="relative w-full md:w-1/2 bg-neutral-100">
+              
+              {/* MOBILE (no crop) */}
+              <div className="block md:hidden">
+                <img
+                  src="/newsletter_2.jpg"
+                  alt="Dahriola Couture"
+                  className="w-full h-auto object-contain"
+                />
+              </div>
+
+              {/* DESKTOP (unchanged) */}
+              <div className="hidden md:block absolute inset-0">
+                <Image
+                  src="/newsletter_2.jpg"
+                  alt="Dahriola Couture"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+
               <div className="absolute inset-0 bg-black/5" />
             </div>
 
@@ -86,20 +98,24 @@ export default function NewsletterPopup() {
 
                 <form className="space-y-6 pt-4">
                   <div className="relative">
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="ENTER EMAIL ADDRESS"
                       className="w-full bg-transparent border-b border-neutral-200 pb-4 text-[11px] tracking-[0.3em] focus:outline-none focus:border-brand-beryl transition-all duration-700 placeholder:text-neutral-300"
                     />
                   </div>
-                  
-                  <button 
+
+                  <button
                     type="submit"
                     className="w-full py-5 bg-neutral-900 text-white text-[10px] uppercase tracking-[0.4em] font-bold hover:bg-brand-beryl transition-all duration-500 flex items-center justify-center gap-3 group"
                   >
-                    Subscribe <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform duration-500" />
+                    Subscribe{" "}
+                    <ArrowRight
+                      size={14}
+                      className="group-hover:translate-x-2 transition-transform duration-500"
+                    />
                   </button>
                 </form>
 
