@@ -12,6 +12,7 @@ import ProductPageClient from "@/src/components/ProductPageClient";
 import { Metadata } from "next";
 import imageUrlBuilder from "@sanity/image-url";
 import Link from "next/link";
+import ProductReviews from "@/src/components/ProductReviews";
 
 const builder = imageUrlBuilder(client);
 
@@ -164,6 +165,9 @@ export default async function ProductPage({
             categoryName={product.categoryName}
           />
         </section>
+
+        {/* REVIEWS */}
+        <ProductReviews productName={product.name} />
 
       </main>
     </div>
