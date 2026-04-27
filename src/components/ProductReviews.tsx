@@ -28,14 +28,14 @@ const PLACEHOLDER_REVIEWS: Review[] = [
     comment:
       "I wore it once and got compliments immediately. It feels comfortable but still very polished.",
   },
-  {
-    id: "3",
-    name: "Mariam B.",
-    rating: 4,
-    title: "Elegant and easy to wear",
-    comment:
-      "The design feels intentional and flattering. I love how effortless it looks when styled.",
-  },
+  // {
+  //   id: "3",
+  //   name: "Mariam B.",
+  //   rating: 4,
+  //   title: "Elegant and easy to wear",
+  //   comment:
+  //     "The design feels intentional and flattering. I love how effortless it looks when styled.",
+  // },
 ];
 
 export default function ProductReviews({
