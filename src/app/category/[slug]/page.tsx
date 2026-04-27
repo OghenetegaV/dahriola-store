@@ -92,6 +92,18 @@ export default async function CategoryPage({
             {/* DESKTOP CATEGORY LIST */}
             <aside className="hidden lg:flex flex-col justify-center pl-2">
               <nav className="flex flex-col gap-3 text-[24px] leading-tight text-black">
+                
+                {/* ALL FIRST */}
+                <Link
+                  href="/category/all"
+                  className={`hover:text-brand-beryl transition ${
+                    slug === "all" ? "text-brand-beryl" : ""
+                  }`}
+                >
+                  All
+                </Link>
+
+                {/* OTHER CATEGORIES */}
                 {categories.map((cat: any) => (
                   <Link
                     key={cat.slug}
@@ -103,6 +115,7 @@ export default async function CategoryPage({
                     {cat.title}
                   </Link>
                 ))}
+                
               </nav>
             </aside>
           </div>
