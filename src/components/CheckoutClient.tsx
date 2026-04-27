@@ -3,18 +3,35 @@
 import { useState, useEffect } from "react";
 import { useStore } from "@/src/store/useStore";
 import Image from "next/image";
-import { usePaystackPayment } from "react-paystack"; 
-import { Loader2, Truck, CreditCard, AlertCircle, RefreshCw, Tag, CheckCircle2, ShieldCheck } from "lucide-react";
+import { usePaystackPayment } from "react-paystack";
+import {
+  Loader2,
+  CreditCard,
+  CheckCircle2,
+  ShieldCheck,
+  ChevronDown,
+  Plus,
+  X
+} from "lucide-react";
 import { getShippingRates } from "@/src/app/actions/shipping";
-import { verifyPayment } from "@/src/app/actions/payment"; 
+import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { client, urlFor } from "@/src/lib/sanity";
 
 export default function CheckoutClient() {
   const router = useRouter();
-  const { cart, currency, exchangeRates, clearCart } = useStore();
+  const {
+    cart,
+    currency,
+    exchangeRates,
+    clearCart,
+    addItem,
+    updateItemOptions,
+  } = useStore();
+
   const [hasHydrated, setHasHydrated] = useState(false);
   const [loadingRates, setLoadingRates] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -27,35 +44,103 @@ export default function CheckoutClient() {
   const [isApplying, setIsApplying] = useState(false);
   const [discountError, setDiscountError] = useState<string | null>(null);
 
+  const [upsellProducts, setUpsellProducts] = useState<any[]>([]);
+  const [selectedUpsell, setSelectedUpsell] = useState<any | null>(null);
+  const [upsellSize, setUpsellSize] = useState("M");
+  const [upsellQuantity, setUpsellQuantity] = useState(1);
+
+  const sizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [editSize, setEditSize] = useState("M");
+  const [editQuantity, setEditQuantity] = useState(1);
+  const [editNotes, setEditNotes] = useState("");
+
+  const openEditModal = (item: any) => {
+    setEditingItem(item);
+    setEditSize(item.size || "M");
+    setEditQuantity(item.quantity || 1);
+    setEditNotes(item.notes || "");
+  };
+
+  const saveEditedItem = () => {
+    if (!editingItem) return;
+
+    updateItemOptions(editingItem._id, editingItem.size, {
+      size: editSize,
+      quantity: editQuantity,
+      notes: editNotes,
+    });
+
+    setEditingItem(null);
+  };
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     address: "",
+    apartment: "",
     city: "",
     state: "",
+    postalCode: "",
     country: "Nigeria",
   });
 
   useEffect(() => {
     setHasHydrated(true);
-  }, []);
 
-  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    async function fetchUpsells() {
+      try {
+        const cartIds = cart.map((item) => item._id);
+
+        const products = await client.fetch(
+          `*[_type == "product" && !(_id in $cartIds)][0...4]{
+            _id,
+            name,
+            priceNGN,
+            images,
+            "slug": slug.current
+          }`,
+          { cartIds }
+        );
+
+        setUpsellProducts(products || []);
+      } catch (error) {
+        console.error("Upsell fetch error:", error);
+      }
+    }
+
+    fetchUpsells();
+  }, [cart]);
+
+  const formatMoney = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(amount);
+
+  const subtotal = cart.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
+
   const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
-  
+
   const fetchRates = async () => {
     if (!formData.address || !formData.city || !formData.state) return;
+
     setLoadingRates(true);
     setShippingError(null);
+
     try {
-      const deliveryData = {
+      const rates = await getShippingRates({
         line1: formData.address,
         city: formData.city,
         state: formData.state,
         country: "NG",
-      };
-      const rates = await getShippingRates(deliveryData);
+      });
+
       if (rates && rates.length > 0) {
         setShippingRates(rates);
         setSelectedRate(rates[0]);
@@ -63,7 +148,7 @@ export default function CheckoutClient() {
         setShippingRates([]);
         setShippingError("No shipping rates found for this location.");
       }
-    } catch (error) {
+    } catch {
       setShippingError("Unable to fetch rates. Please check your connection.");
     } finally {
       setLoadingRates(false);
@@ -72,23 +157,25 @@ export default function CheckoutClient() {
 
   const handleApplyDiscount = async () => {
     if (!discountCode) return;
+
     setIsApplying(true);
     setDiscountError(null);
+
     try {
       const result = await validateCoupon(discountCode);
+
       if (result.success) {
-        let savings = 0;
-        if (result.discountType === 'percentage') {
-          savings = convertedSubtotal * (result.discountValue / 100);
-        } else {
-          savings = result.discountValue * (exchangeRates[currency] || 1);
-        }
+        const savings =
+          result.discountType === "percentage"
+            ? convertedSubtotal * (result.discountValue / 100)
+            : result.discountValue * (exchangeRates[currency] || 1);
+
         setDiscountAmount(savings);
       } else {
         setDiscountError(result.message);
         setDiscountAmount(0);
       }
-    } catch (error) {
+    } catch {
       setDiscountError("Error validating code.");
     } finally {
       setIsApplying(false);
@@ -96,24 +183,34 @@ export default function CheckoutClient() {
   };
 
   const shippingAmountNGN = selectedRate ? selectedRate.amount : 0;
-  const convertedShipping = currency === "NGN" 
-    ? shippingAmountNGN 
-    : shippingAmountNGN * (exchangeRates[currency] || 1);
-    
+
+  const convertedShipping =
+    currency === "NGN"
+      ? shippingAmountNGN
+      : shippingAmountNGN * (exchangeRates[currency] || 1);
+
   const finalTotal = convertedSubtotal + convertedShipping - discountAmount;
 
   const paystackConfig = {
-    reference: `dahriola-${(new Date()).getTime().toString()}`,
+    reference: `dahriola-${Date.now()}`,
     email: formData.email,
-    amount: Math.round(finalTotal * 100), 
+    amount: Math.round(finalTotal * 100),
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-    currency: currency,
+    currency,
     metadata: {
       custom_fields: [
-        { display_name: "Customer Name", variable_name: "customer_name", value: formData.name },
-        { display_name: "Phone Number", variable_name: "phone_number", value: formData.phone }
-      ]
-    }
+        {
+          display_name: "Customer Name",
+          variable_name: "customer_name",
+          value: formData.name,
+        },
+        {
+          display_name: "Phone Number",
+          variable_name: "phone_number",
+          value: formData.phone,
+        },
+      ],
+    },
   };
 
   // @ts-ignore
@@ -121,9 +218,11 @@ export default function CheckoutClient() {
 
   const handlePaymentSuccess = async (response: any) => {
     setIsProcessing(true);
+
     try {
       const transactionReference = response.reference || response.trxref;
       const verification = await verifyPayment(transactionReference);
+
       if (verification.success) {
         await sendOrderNotification({
           orderNumber: transactionReference,
@@ -131,191 +230,740 @@ export default function CheckoutClient() {
           customerEmail: formData.email,
           items: cart,
           totalAmount: finalTotal,
-          currency: currency,
+          currency,
           shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}`,
         });
+
         clearCart();
         router.push(`/success?reference=${transactionReference}`);
       } else {
         setShippingError("Payment verification failed.");
         setIsProcessing(false);
       }
-    } catch (error) {
+    } catch {
       setIsProcessing(false);
     }
   };
 
+  const handleAddUpsell = (product: any) => {
+    setSelectedUpsell(product);
+    setUpsellSize("M");
+    setUpsellQuantity(1);
+  };
+
   if (!hasHydrated) return null;
 
+  const confirmAddUpsell = () => {
+    if (!selectedUpsell) return;
+
+    addItem({
+      _id: selectedUpsell._id,
+      name: selectedUpsell.name,
+      price: selectedUpsell.priceNGN,
+      image: selectedUpsell.images?.[0] ? urlFor(selectedUpsell.images[0]).url() : "",
+      quantity: upsellQuantity,
+      size: upsellSize,
+      notes: "",
+    });
+
+    setSelectedUpsell(null);
+  };
+
   return (
-    <div className="bg-[#F9F9F9] min-h-screen pt-24 pb-16 px-4 md:px-8">
-        {/* BACK LINK */}
+    <div className="min-h-screen bg-[#f6f6f4] pt-24 pb-12 px-4 md:px-8">
+      <div className="max-w-[1180px] mx-auto">
         <div className="mb-6">
           <Link
             href="/category/all"
-            className="text-sm font-medium hover:text-brand-beryl"
+            className="text-[13px] text-neutral-500 hover:text-brand-beryl"
           >
             ← Back to Shop
           </Link>
         </div>
 
-      <div className="max-w-6xl mx-auto lg:grid lg:grid-cols-12 gap-10">
-        
-        {/* LEFT: FORM SECTION */}
-        <div className="lg:col-span-7 bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-neutral-100">
-          <header className="mb-10">
-            <h1 className="font-display text-4xl text-neutral-900 mb-2">Checkout</h1>
-            <p className="text-sm text-neutral-500">Complete your details to finish your order.</p>
-          </header>
+        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.85fr] gap-12 items-start">
+          {/* LEFT */}
+          <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-8 shadow-sm">
+            <div className="mb-8">
+              <h1 className="font-display text-3xl md:text-4xl text-black mb-2">
+                Checkout
+              </h1>
+              <p className="text-sm text-neutral-500">
+                Complete your delivery details. Payment is handled securely by
+                Paystack.
+              </p>
+            </div>
 
-          <section className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { label: "Full Name", key: "name", type: "text", placeholder: "Jane Doe" },
-                { label: "Email Address", key: "email", type: "email", placeholder: "jane@example.com" },
-                { label: "Phone Number", key: "phone", type: "tel", placeholder: "+234..." },
-                { label: "Street Address", key: "address", type: "text", placeholder: "123 Street Name", blur: true },
-                { label: "City", key: "city", type: "text", placeholder: "Lagos", blur: true },
-                { label: "State", key: "state", type: "text", placeholder: "Lagos State", blur: true },
-              ].map((field) => (
-                <div key={field.key} className="flex flex-col gap-2">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-900">{field.label}</label>
-                  <input 
-                    type={field.type}
-                    placeholder={field.placeholder}
-                    className="w-full border border-neutral-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none transition-all"
-                    value={(formData as any)[field.key]}
-                    onBlur={field.blur ? fetchRates : undefined}
-                    onChange={(e) => setFormData({...formData, [field.key]: e.target.value})}
+            {/* TRUST PAYMENT BLOCK */}
+            <div className="mb-8 rounded-xl border border-neutral-200 bg-[#fbfbfa] p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-[13px] font-semibold text-black">
+                    Secure checkout with Paystack
+                  </p>
+                  <p className="text-[11px] text-neutral-500 mt-1">
+                    Pay securely with card, bank transfer, USSD, OPay, and other
+                    supported payment options.
+                  </p>
+                </div>
+
+                <div className="flex items-center flex-wrap gap-3">
+                  <img src="/payment-logos/paystack.svg" alt="Paystack" className="h-6 w-auto" />
+                  <img src="/payment-logos/visa.svg" alt="Visa" className="h-5 w-auto" />
+                  <img src="/payment-logos/mastercard.svg" alt="Mastercard" className="h-5 w-auto" />
+                  <img src="/payment-logos/verve.svg" alt="Verve" className="h-5 w-auto" />
+                  <img src="/payment-logos/opay.svg" alt="OPay" className="h-5 w-auto" />
+                </div>
+              </div>
+            </div>
+
+            <section className="space-y-8">
+              {/* CONTACT */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-[17px] font-semibold text-black">
+                    Contact
+                  </h2>
+                  <button className="text-[12px] underline text-neutral-500">
+                    Sign in
+                  </button>
+                </div>
+
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className="checkout-field"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+
+                <label className="mt-3 flex items-center gap-2 text-[12px] text-neutral-600">
+                  <input type="checkbox" className="accent-black" />
+                  Email me with news and offers
+                </label>
+              </div>
+
+              {/* DELIVERY */}
+              <div>
+                <h2 className="text-[17px] font-semibold text-black mb-3">
+                  Delivery
+                </h2>
+
+                <div className="relative mb-3">
+                  <select
+                    value={formData.country}
+                    onChange={(e) =>
+                      setFormData({ ...formData, country: e.target.value })
+                    }
+                    className="checkout-field appearance-none"
+                  >
+                    <option>Nigeria</option>
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
                   />
                 </div>
-              ))}
-            </div>
 
-            <div className="pt-6 border-t border-neutral-100">
-              <div className="flex items-center gap-2 mb-6">
-                <Truck size={18} className="text-neutral-900" />
-                <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-900">Delivery Method</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    placeholder="First name"
+                    className="checkout-field"
+                    value={formData.name.split(" ")[0] || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                  />
+                  <input
+                    placeholder="Last name"
+                    className="checkout-field"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        name: `${formData.name} ${e.target.value}`,
+                      })
+                    }
+                  />
+                </div>
+
+                <input
+                  placeholder="Address"
+                  className="checkout-field mt-3"
+                  value={formData.address}
+                  onBlur={fetchRates}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                />
+
+                <input
+                  placeholder="Apartment, suite, etc. (optional)"
+                  className="checkout-field mt-3"
+                  value={formData.apartment}
+                  onChange={(e) =>
+                    setFormData({ ...formData, apartment: e.target.value })
+                  }
+                />
+
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                  <input
+                    placeholder="City"
+                    className="checkout-field"
+                    value={formData.city}
+                    onBlur={fetchRates}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
+                  />
+
+                  <input
+                    placeholder="State"
+                    className="checkout-field"
+                    value={formData.state}
+                    onBlur={fetchRates}
+                    onChange={(e) =>
+                      setFormData({ ...formData, state: e.target.value })
+                    }
+                  />
+
+                  <input
+                    placeholder="Postal code optional"
+                    className="checkout-field"
+                    value={formData.postalCode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, postalCode: e.target.value })
+                    }
+                  />
+                </div>
+
+                <input
+                  placeholder="Phone"
+                  className="checkout-field mt-3"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                />
+
+                <label className="mt-3 flex items-center gap-2 text-[12px] text-neutral-600">
+                  <input type="checkbox" className="accent-black" />
+                  Text me with news and offers
+                </label>
               </div>
-              
-              {loadingRates ? (
-                <div className="flex items-center gap-3 p-6 bg-neutral-50 rounded-xl border border-neutral-200 animate-pulse">
-                  <Loader2 className="animate-spin text-neutral-400" size={18} /> 
-                  <span className="text-xs font-medium text-neutral-500 uppercase tracking-widest">Calculating rates...</span>
-                </div>
-              ) : shippingRates.length > 0 ? (
-                <div className="grid gap-3">
-                  {shippingRates.map((rate) => (
-                    <label key={rate.id} className={`flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedRate?.id === rate.id ? 'border-neutral-950 bg-neutral-50' : 'border-neutral-100 hover:border-neutral-300'}`}>
-                      <div className="flex items-center gap-4">
-                        <input type="radio" checked={selectedRate?.id === rate.id} onChange={() => setSelectedRate(rate)} className="accent-black w-4 h-4" />
-                        <div>
-                          <p className="text-[11px] font-black uppercase text-neutral-900 tracking-tight">{rate.carrier_name}</p>
-                          <p className="text-[10px] text-neutral-500 uppercase">{rate.service_name} • {rate.delivery_time}</p>
+
+              {/* SHIPPING */}
+              <div>
+                <h2 className="text-[17px] font-semibold text-black mb-3">
+                  Shipping method
+                </h2>
+
+                {loadingRates ? (
+                  <div className="checkout-muted">
+                    <Loader2 size={14} className="animate-spin" />
+                    Calculating rates...
+                  </div>
+                ) : shippingRates.length > 0 ? (
+                  <div className="space-y-2">
+                    {shippingRates.map((rate) => (
+                      <label
+                        key={rate.id}
+                        className={`flex items-center justify-between rounded-lg border p-4 text-[13px] cursor-pointer ${
+                          selectedRate?.id === rate.id
+                            ? "border-brand-beryl bg-brand-beryl/5"
+                            : "border-neutral-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            checked={selectedRate?.id === rate.id}
+                            onChange={() => setSelectedRate(rate)}
+                            className="accent-black"
+                          />
+                          <span>{rate.service_name || rate.carrier_name}</span>
                         </div>
-                      </div>
-                      <span className="text-sm font-bold text-neutral-900">₦{rate.amount.toLocaleString()}</span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 border-2 border-dashed border-neutral-200 rounded-2xl text-center bg-neutral-50/50">
-                  <p className="text-xs text-neutral-400 font-medium">Please enter your address to see shipping options.</p>
-                </div>
-              )}
-            </div>
+                        <span>₦{rate.amount.toLocaleString()}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="checkout-muted">
+                    Enter your shipping address to view available shipping
+                    methods.
+                  </div>
+                )}
 
-            <button
-              onClick={() => {
-                setIsProcessing(true);
-                initializePayment({ onSuccess: handlePaymentSuccess, onClose: () => setIsProcessing(false) });
-              }}
-              disabled={!selectedRate || !formData.email || isProcessing}
-              className="w-full bg-neutral-900 text-white py-6 rounded-xl text-xs font-bold uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale mt-4"
-            >
-              {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <CreditCard size={18} />}
-              {isProcessing ? "Processing..." : `Pay ${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(finalTotal)}`}
-            </button>
-            <div className="flex items-center justify-center gap-2 text-neutral-400 text-[10px] uppercase font-bold tracking-widest">
-              <ShieldCheck size={14} /> Secure Checkout by Paystack
-            </div>
-          </section>
-        </div>
+                {shippingError && (
+                  <p className="text-[12px] text-red-500 mt-2">
+                    {shippingError}
+                  </p>
+                )}
+              </div>
 
-        {/* RIGHT: SUMMARY SECTION */}
-        <div className="lg:col-span-5 mt-10 lg:mt-0">
-          <div className="lg:sticky lg:top-24 space-y-6">
-            <div className="bg-white border border-neutral-100 p-8 rounded-3xl shadow-sm">
-              <h2 className="text-xl font-bold text-neutral-900 mb-8 border-b border-neutral-50 pb-4">Order Summary</h2>
-              
-              <div className="space-y-6 mb-8 overflow-y-auto max-h-[300px] pr-2">
+              <button
+                onClick={() => {
+                  setIsProcessing(true);
+                  initializePayment({
+                    onSuccess: handlePaymentSuccess,
+                    onClose: () => setIsProcessing(false),
+                  });
+                }}
+                disabled={!selectedRate || !formData.email || isProcessing}
+                className="w-full h-14 rounded-lg bg-brand-beryl text-white text-[14px] font-semibold hover:opacity-95 transition disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={16} />
+                    Continue to Paystack
+                  </>
+                )}
+              </button>
+
+              <div className="flex justify-center gap-2 text-[11px] text-neutral-400">
+                <ShieldCheck size={13} /> Secure Checkout by Paystack
+              </div>
+            </section>
+          </div>
+
+          {/* RIGHT */}
+          <aside className="lg:sticky lg:top-24">
+            <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-6 shadow-sm">
+              <h2 className="text-[17px] font-semibold text-black mb-5">
+                Order Summary
+              </h2>
+
+              <div className="space-y-5">
                 {cart.map((item) => (
-                  <div key={`${item._id}-${item.size}`} className="flex gap-4 items-center">
-                    <div className="relative w-16 h-20 bg-neutral-100 rounded-xl overflow-hidden shrink-0 border border-neutral-100">
-                      <Image src={item.image} alt={item.name} fill className="object-cover" />
+                  <div
+                    key={`${item._id}-${item.size}`}
+                    className="flex gap-4 items-start"
+                  >
+                    <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-neutral-100 border shrink-0">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                      />
+                      <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
+                        {item.quantity}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[11px] font-black uppercase text-neutral-900 truncate tracking-tight">{item.name}</h4>
-                      <p className="text-[10px] text-neutral-400 font-bold uppercase">Size: {item.size} • Qty: {item.quantity}</p>
-                      <p className="text-xs font-bold text-neutral-900 mt-1">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(item.price * item.quantity * (exchangeRates[currency] || 1))}
+
+                    <div className="flex-1">
+                      <p className="text-[13px] font-medium leading-snug">
+                        {item.name}
                       </p>
+
+                      <p className="text-[11px] text-neutral-500 mt-1">
+                        Size: {item.size} • Qty: {item.quantity}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(item)}
+                        className="text-[11px] underline text-neutral-500 mt-1 hover:text-black transition"
+                      >
+                        Edit
+                      </button>
                     </div>
+
+                    <p className="text-[13px] font-semibold">
+                      {formatMoney(
+                        item.price *
+                          item.quantity *
+                          (exchangeRates[currency] || 1)
+                      )}
+                    </p>
                   </div>
                 ))}
               </div>
 
-              {/* DISCOUNT */}
-              <div className="py-6 border-y border-neutral-50 space-y-4">
-                <div className="flex gap-2">
-                  <input 
-                    type="text" placeholder="DISCOUNT CODE" 
-                    className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest focus:border-black outline-none transition-all"
-                    value={discountCode}
-                    onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                  />
-                  <button onClick={handleApplyDiscount} disabled={isApplying} className="bg-neutral-900 text-white px-5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all">
-                    {isApplying ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
-                  </button>
-                </div>
-                {discountAmount > 0 && (
-                  <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-xl">
-                    <CheckCircle2 size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Discount Applied Successfully</span>
-                  </div>
-                )}
-                {discountError && <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest">{discountError}</p>}
+              <div className="flex gap-2 pt-6">
+                <input
+                  type="text"
+                  placeholder="Discount code or gift card"
+                  className="checkout-field flex-1"
+                  value={discountCode}
+                  onChange={(e) =>
+                    setDiscountCode(e.target.value.toUpperCase())
+                  }
+                />
+                <button
+                  onClick={handleApplyDiscount}
+                  disabled={isApplying}
+                  className="px-5 rounded-lg bg-neutral-100 text-[12px] font-medium"
+                >
+                  {isApplying ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    "Apply"
+                  )}
+                </button>
               </div>
 
-              {/* TOTALS */}
-              <div className="pt-6 space-y-4">
-                <div className="flex justify-between text-xs font-bold uppercase text-neutral-500 tracking-widest">
-                  <span>Subtotal</span>
-                  <span className="text-neutral-900 font-black">{new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(convertedSubtotal)}</span>
+              {discountAmount > 0 && (
+                <div className="flex items-center gap-2 text-green-600 text-[12px] mt-3">
+                  <CheckCircle2 size={13} />
+                  Discount Applied
                 </div>
-                <div className="flex justify-between text-xs font-bold uppercase text-neutral-500 tracking-widest">
-                  <span>Shipping</span>
-                  <span className="text-neutral-900 font-black">
-                    {selectedRate ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(convertedShipping)}` : "—"}
+              )}
+
+              {discountError && (
+                <p className="text-[12px] text-red-500 mt-3">
+                  {discountError}
+                </p>
+              )}
+
+              {/* UPSELL */}
+              {upsellProducts.length > 0 && (
+                <div className="mt-8 rounded-xl border border-neutral-200 p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[14px] font-semibold text-black">
+                      You may also like
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {upsellProducts.slice(0, 2).map((product) => (
+                      <div key={product._id} className="text-center">
+                        <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-neutral-100 mb-3">
+                          {product.images?.[0] && (
+                            <Image
+                              src={urlFor(product.images[0]).url()}
+                              alt={product.name}
+                              fill
+                              className="object-cover"
+                            />
+                          )}
+                        </div>
+
+                        <p className="text-[12px] font-semibold leading-snug line-clamp-2">
+                          {product.name}
+                        </p>
+
+                        <p className="text-[11px] text-neutral-500 mt-1">
+                          {formatMoney(
+                            product.priceNGN * (exchangeRates[currency] || 1)
+                          )}
+                        </p>
+
+                        <button
+                          onClick={() => handleAddUpsell(product)}
+                          className="mt-3 w-full h-10 rounded-lg border border-neutral-200 text-brand-beryl text-[12px] font-semibold hover:border-brand-beryl transition flex items-center justify-center gap-1"
+                        >
+                          <Plus size={13} />
+                          Add
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3 pt-6 text-[13px]">
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Subtotal</span>
+                  <span>{formatMoney(convertedSubtotal)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Shipping</span>
+                  <span>
+                    {selectedRate ? formatMoney(convertedShipping) : "—"}
                   </span>
                 </div>
+
                 {discountAmount > 0 && (
-                  <div className="flex justify-between text-xs font-bold uppercase text-green-600 tracking-widest">
+                  <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span className="font-black">-{new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(discountAmount)}</span>
+                    <span>-{formatMoney(discountAmount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-6 border-t border-neutral-100 mt-2">
-                  <span className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-900">Grand Total</span>
-                  <span className="text-2xl font-black text-neutral-900 tracking-tight">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(finalTotal)}
-                  </span>
+
+                <div className="flex justify-between pt-4 border-t text-[17px] font-semibold">
+                  <span>Total</span>
+                  <span>{formatMoney(finalTotal)}</span>
                 </div>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
+
+      <style jsx>{`
+        .checkout-field {
+          width: 100%;
+          height: 46px;
+          border: 1px solid #d8d8d8;
+          border-radius: 8px;
+          background: white;
+          padding: 0 13px;
+          font-size: 13px;
+          outline: none;
+        }
+
+        .checkout-field:focus {
+          border-color: #778472;
+          box-shadow: 0 0 0 1px #778472;
+        }
+
+        .checkout-muted {
+          min-height: 48px;
+          border-radius: 8px;
+          background: #f2f2f2;
+          color: #777;
+          font-size: 12px;
+          padding: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      `}</style>
+
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-[250] bg-black/50 flex items-center justify-center px-4"
+          onClick={() => setEditingItem(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-black">Edit Item</h3>
+                <p className="text-sm text-neutral-500 mt-1">
+                  {editingItem.name}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <div className="relative w-24 h-32 rounded-xl overflow-hidden bg-neutral-100 shrink-0">
+                <Image
+                  src={editingItem.image}
+                  alt={editingItem.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-black">
+                  {editingItem.name}
+                </p>
+
+                <p className="text-sm text-neutral-500 mt-2">
+                  {formatMoney(
+                    editingItem.price *
+                      editQuantity *
+                      (exchangeRates[currency] || 1)
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-[12px] font-semibold uppercase tracking-widest mb-3">
+                Size
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {sizes.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setEditSize(size)}
+                    className={`min-w-11 h-10 px-3 rounded-md border text-[13px] ${
+                      editSize === size
+                        ? "bg-brand-beryl text-white border-brand-beryl"
+                        : "bg-white text-black border-neutral-200"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-[12px] font-semibold uppercase tracking-widest mb-3">
+                Quantity
+              </p>
+
+              <div className="flex items-center w-32 h-10 border border-neutral-200 rounded-md overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setEditQuantity((q) => Math.max(1, q - 1))}
+                  className="flex-1 h-full"
+                >
+                  -
+                </button>
+
+                <span className="w-10 text-center text-sm">
+                  {editQuantity}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setEditQuantity((q) => q + 1)}
+                  className="flex-1 h-full"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-[12px] font-semibold uppercase tracking-widest mb-3">
+                Notes
+              </p>
+
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Custom adjustment notes..."
+                className="w-full min-h-[90px] border border-neutral-200 rounded-lg p-3 text-sm outline-none focus:border-brand-beryl resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="flex-1 h-12 rounded-lg border border-neutral-200 text-sm font-medium"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={saveEditedItem}
+                className="flex-1 h-12 rounded-lg bg-brand-beryl text-white text-sm font-semibold"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedUpsell && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center px-4"
+          onClick={() => setSelectedUpsell(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex gap-4">
+              <div className="relative w-24 h-32 rounded-xl overflow-hidden bg-neutral-100 shrink-0">
+                {selectedUpsell.images?.[0] && (
+                  <Image
+                    src={urlFor(selectedUpsell.images[0]).url()}
+                    alt={selectedUpsell.name}
+                    fill
+                    className="object-cover"
+                  />
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-base font-semibold text-black leading-snug">
+                  {selectedUpsell.name}
+                </h3>
+                <p className="text-sm text-neutral-500 mt-2">
+                  {formatMoney(selectedUpsell.priceNGN * (exchangeRates[currency] || 1))}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-[12px] font-semibold uppercase tracking-widest mb-3">
+                Select Size
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {sizes.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setUpsellSize(size)}
+                    className={`min-w-11 h-10 px-3 rounded-md border text-[13px] ${
+                      upsellSize === size
+                        ? "bg-brand-beryl text-white border-brand-beryl"
+                        : "bg-white text-black border-neutral-200"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-[12px] font-semibold uppercase tracking-widest mb-3">
+                Quantity
+              </p>
+
+              <div className="flex items-center w-32 h-10 border border-neutral-200 rounded-md overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setUpsellQuantity((q) => Math.max(1, q - 1))}
+                  className="flex-1 h-full"
+                >
+                  -
+                </button>
+
+                <span className="w-10 text-center text-sm">{upsellQuantity}</span>
+
+                <button
+                  type="button"
+                  onClick={() => setUpsellQuantity((q) => q + 1)}
+                  className="flex-1 h-full"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedUpsell(null)}
+                className="flex-1 h-12 rounded-lg border border-neutral-200 text-sm font-medium"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmAddUpsell}
+                className="flex-1 h-12 rounded-lg bg-brand-beryl text-white text-sm font-semibold"
+              >
+                Add to Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
