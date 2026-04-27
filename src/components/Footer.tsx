@@ -54,7 +54,7 @@ export default function Footer() {
       >
         <p className="text-2xl">💚</p>
         <p className="text-[11px] tracking-[0.6em] text-neutral-400 font-bold text-center uppercase">
-          Thank you for shopping with us!
+          Thank you for shopping with us
         </p>
         <div className="h-[1px] w-12 bg-brand-beryl/40" />
       </div>
@@ -91,7 +91,7 @@ export default function Footer() {
 
           <div className="w-full lg:w-[400px] pt-4">
             <p className="text-[10px] uppercase tracking-[0.5em] font-bold text-neutral-500 mb-8">
-              Join the Dahriola Family
+              Join the Inner Circle
             </p>
             <form className="relative group/form" onSubmit={(e) => e.preventDefault()}>
               <input 

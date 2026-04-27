@@ -16,10 +16,69 @@ function urlFor(source: any) {
 
 const sizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 
+const accordionTextClass =
+  "text-[13px] md:text-[14px] leading-6 text-neutral-600";
+
 const portableTextComponents = {
   block: {
     normal: ({ children }: any) => (
-      <p className="text-[#444] text-[14px] leading-6 mb-3">{children}</p>
+      <p className={`${accordionTextClass} mb-3`}>{children}</p>
+    ),
+
+    h1: ({ children }: any) => (
+      <h1 className="text-[20px] md:text-[24px] font-semibold text-black mb-3">
+        {children}
+      </h1>
+    ),
+
+    h2: ({ children }: any) => (
+      <h2 className="text-[18px] md:text-[20px] font-semibold text-black mb-3">
+        {children}
+      </h2>
+    ),
+
+    h3: ({ children }: any) => (
+      <h3 className="text-[16px] md:text-[18px] font-semibold text-black mb-2">
+        {children}
+      </h3>
+    ),
+
+    h4: ({ children }: any) => (
+      <h4 className="text-[15px] font-medium text-black mb-2">
+        {children}
+      </h4>
+    ),
+
+    h5: ({ children }: any) => (
+      <h5 className="text-[14px] font-medium text-black mb-1">
+        {children}
+      </h5>
+    ),
+
+    h6: ({ children }: any) => (
+      <h6 className="text-[13px] font-medium text-black mb-1">
+        {children}
+      </h6>
+    ),
+  },
+
+  marks: {
+    strong: ({ children }: any) => (
+      <strong className="font-semibold text-black">{children}</strong>
+    ),
+  },
+
+  list: {
+    bullet: ({ children }: any) => (
+      <ul className={`${accordionTextClass} list-disc pl-5 space-y-1 mb-3`}>
+        {children}
+      </ul>
+    ),
+  },
+
+  listItem: {
+    bullet: ({ children }: any) => (
+      <li className="leading-6">{children}</li>
     ),
   },
 };
