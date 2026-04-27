@@ -134,7 +134,7 @@ export default function Navbar() {
 
               <div className="absolute left-0 top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[300px] group-hover:opacity-100 transition-all duration-500 z-[110]">
                 <div className="bg-white border shadow-xl py-3 min-w-[120px]">
-                  {(["NGN", "USD", "GBP", "EUR"] as const).map((cur) => (
+                  {(["NGN", "USD", "GBP", "EUR", "CAD"] as const).map((cur) => (
                     <button
                       key={cur}
                       onClick={() => setCurrency(cur)}
@@ -252,7 +252,7 @@ export default function Navbar() {
 
           <div className="mt-auto pt-10 border-t border-neutral-50 flex items-center justify-between">
             <div className="flex gap-4">
-              {(['NGN', 'USD', 'GBP', 'EUR'] as const).map((cur) => (
+              {(['NGN', 'USD', 'GBP', 'EUR', 'CAD'] as const).map((cur) => (
                 <button key={cur} onClick={() => setCurrency(cur)} className={`text-[10px] font-bold ${currency === cur ? 'text-brand-beryl' : 'text-neutral-300'}`}>{cur}</button>
               ))}
             </div>

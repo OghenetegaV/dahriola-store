@@ -51,12 +51,12 @@ export default function BespokeEnquiry() {
               </div>
               <h3 className="font-display text-3xl text-neutral-900 lowercase tracking-tighter mb-4">request received</h3>
               <p className="text-sm text-neutral-500 mb-8">
-                Thank you for reaching out. A member of our atelier will contact you within <span className="font-bold">24 hours</span> to discuss your vision in further detail.
+                Thank you for reaching out. A member of our staff will contact you within <span className="font-bold">24 hours</span> to discuss your vision in further detail.
               </p>
               <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-100">
                 <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold mb-3">Urgent Orders?</p>
                 <a href="tel:+2347065364401" className="flex items-center justify-center gap-3 text-neutral-900 font-bold transition-transform hover:scale-105">
-                  <PhoneCall size={18} /> Call the Atelier
+                  <PhoneCall size={18} /> Call the Designer
                 </a>
               </div>
             </motion.div>
@@ -70,7 +70,7 @@ export default function BespokeEnquiry() {
       >
         <div className="bg-neutral-900 p-8 text-center space-y-2">
           <h2 className="font-display text-3xl text-white lowercase tracking-tighter">bespoke enquiry</h2>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-neutral-400 font-bold">dahriola atelier</p>
+          <p className="text-[10px] uppercase tracking-[0.4em] text-neutral-400 font-bold">dahriola</p>
         </div>
 
         <div className="p-8 md:p-12 space-y-8">

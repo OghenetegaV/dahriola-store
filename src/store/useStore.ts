@@ -13,7 +13,9 @@ interface CartItem {
 
 interface StoreState {
   cart: CartItem[];
-  currency: "NGN" | "USD" | "GBP" | "EUR";
+
+  currency: "NGN" | "USD" | "GBP" | "EUR" | "CAD";
+
   exchangeRates: Record<string, number>;
 
   addItem: (item: CartItem) => void;
@@ -30,7 +32,8 @@ interface StoreState {
     }
   ) => void;
 
-  setCurrency: (cur: "NGN" | "USD" | "GBP" | "EUR") => void;
+  setCurrency: (cur: "NGN" | "USD" | "GBP" | "EUR" | "CAD") => void;
+
   clearCart: () => void;
 }
 
@@ -46,6 +49,7 @@ export const useStore = create<StoreState>()(
         USD: 0.00065,
         GBP: 0.00052,
         EUR: 0.0006,
+        CAD: 0.00088, // adjust if needed
       },
 
       addItem: (newItem) =>
