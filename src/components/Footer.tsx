@@ -185,7 +185,7 @@ export default function Footer() {
 
         {/* Credits & Interactive Policy Links */}
         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] uppercase tracking-[0.4em] text-neutral-600 font-bold">
-          <p>© {new Date().getFullYear()} Dahriola. Precision Craftsmanship.</p>
+          <p>© {new Date().getFullYear()} Dahriola.</p>
           <div className="flex gap-10">
             <button 
               onClick={() => setActivePolicy('shipping')} 

@@ -171,7 +171,7 @@ export default function Navbar() {
 
           {/* RIGHT */}
           <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/contact" className={`hidden sm:block ${iconColor}`}>
+            <Link href="https://wa.me/2347069996877" target="_blank" className={`hidden sm:block ${iconColor}`}>
               <Phone size={20} />
             </Link>
 
