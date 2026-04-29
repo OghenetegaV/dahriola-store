@@ -71,7 +71,7 @@ export default function ServicesGridPacked() {
               </Link>
 
               <a
-                href="https://instagram.com/dahriola_"
+                href="https://www.instagram.com/dahriola_/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="h-12 w-12 rounded-full bg-white text-neutral-950 border border-neutral-200 flex items-center justify-center hover:bg-brand-beryl hover:text-white hover:border-brand-beryl transition-all duration-500"
@@ -108,7 +108,7 @@ export default function ServicesGridPacked() {
               </Link>
 
               <a
-                href="https://instagram.com/dahriola.bespoke"
+                href="https://www.instagram.com/dahriola.bespoke/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="h-12 w-12 rounded-full bg-white text-neutral-950 border border-neutral-200 flex items-center justify-center hover:bg-neutral-950 hover:text-white hover:border-neutral-950 transition-all duration-500"
