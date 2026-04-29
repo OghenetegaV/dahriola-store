@@ -9,11 +9,13 @@ import { motion, AnimatePresence } from "framer-motion";
 type AddToCartButtonProps = {
   product: any;
   selectedSize: string;
+  selectedPrint?: any;
 };
 
 export default function AddToCartButton({
   product,
   selectedSize,
+  selectedPrint,
 }: AddToCartButtonProps) {
   const addItem = useStore((state) => state.addItem);
   const [quantity, setQuantity] = useState(1);
@@ -23,6 +25,14 @@ export default function AddToCartButton({
   const handleAdd = () => {
     if (!selectedSize) return;
 
+    const printNote = selectedPrint?.name
+      ? `Print: ${selectedPrint.name}`
+      : "";
+
+    const finalNotes = [printNote, notes.trim()]
+      .filter(Boolean)
+      .join(" | ");
+
     addItem({
       _id: product._id,
       name: product.name,
@@ -30,7 +40,7 @@ export default function AddToCartButton({
       image: product.images?.[0] ? urlFor(product.images[0]).url() : "",
       quantity,
       size: selectedSize,
-      notes,
+      notes: finalNotes,
     });
 
     setIsAdded(true);
@@ -38,6 +48,7 @@ export default function AddToCartButton({
     setTimeout(() => {
       setIsAdded(false);
       setQuantity(1);
+      setNotes("");
     }, 3000);
   };
 
@@ -72,6 +83,18 @@ export default function AddToCartButton({
         </div>
       </div>
 
+      {/* Selected Print */}
+      {selectedPrint?.name && (
+        <div className="rounded-md border border-brand-beryl/20 bg-brand-beryl/5 p-3">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-brand-beryl font-bold">
+            Selected Print
+          </p>
+          <p className="mt-1 text-sm text-neutral-700">
+            {selectedPrint.name}
+          </p>
+        </div>
+      )}
+
       {/* Notes */}
       <div>
         <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 font-bold mb-4 block">
@@ -92,9 +115,7 @@ export default function AddToCartButton({
         onClick={handleAdd}
         disabled={isAdded}
         className={`group relative w-full overflow-hidden h-[56px] px-8 rounded-full transition-all duration-500 cursor-pointer ${
-          isAdded
-            ? "bg-neutral-900"
-            : "bg-brand-beryl hover:opacity-95"
+          isAdded ? "bg-neutral-900" : "bg-brand-beryl hover:opacity-95"
         }`}
       >
         <AnimatePresence mode="wait">
