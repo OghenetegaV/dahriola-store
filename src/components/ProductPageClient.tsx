@@ -185,9 +185,14 @@ export default function ProductPageClient({ product }: { product: any }) {
 
         <BoxAccordion title="Composition & Care">
           <div className="text-[14px] leading-6 text-[#444] space-y-1">
-            <p>100% Cotton / Hand-dyed finish</p>
-            <p>Dry clean recommended</p>
-            <p>Store in a cool dry place</p>
+            <p>100% cotton </p>
+            <p>Hand wash separately in cold water, or machine wash on a gentle cycle</p>
+            <p>
+              Use mild detergent only
+              Do not bleach
+            </p>
+            <p>Dry away from direct harsh sunlight</p>
+            <p>Steam or iron on low heat (preferably inside out)</p>
           </div>
         </BoxAccordion>
 
@@ -195,7 +200,6 @@ export default function ProductPageClient({ product }: { product: any }) {
           <div className="text-[14px] leading-6 text-[#444] space-y-1">
             <p>Fits true to size</p>
             <p>Relaxed silhouette</p>
-            <p>Model is wearing size XS</p>
           </div>
         </BoxAccordion>
 

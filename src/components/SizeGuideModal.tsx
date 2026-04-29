@@ -19,7 +19,7 @@ export default function SizeGuideModal() {
         onClick={() => setIsOpen(true)}
         className="text-[9px] uppercase tracking-widest font-bold text-brand-beryl border-b border-brand-beryl/20 hover:text-black transition-colors"
       >
-        Guide
+        Size Guide
       </button>
 
       {/* MODAL */}

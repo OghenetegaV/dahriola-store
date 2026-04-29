@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export type Currency = "NGN" | "USD" | "GBP" | "EUR" | "CAD";
+
 interface CartItem {
   _id: string;
   name: string;
@@ -13,10 +15,8 @@ interface CartItem {
 
 interface StoreState {
   cart: CartItem[];
-
-  currency: "NGN" | "USD" | "GBP" | "EUR" | "CAD";
-
-  exchangeRates: Record<string, number>;
+  currency: Currency;
+  exchangeRates: Record<Currency, number>;
 
   addItem: (item: CartItem) => void;
   removeItem: (id: string, size: string) => void;
@@ -32,25 +32,24 @@ interface StoreState {
     }
   ) => void;
 
-  setCurrency: (cur: "NGN" | "USD" | "GBP" | "EUR" | "CAD") => void;
-
+  setCurrency: (cur: Currency) => void;
   clearCart: () => void;
 }
+
+const DEFAULT_EXCHANGE_RATES: Record<Currency, number> = {
+  NGN: 1,
+  USD: 0.0007665,
+  GBP: 0.000567,
+  EUR: 0.0006615,
+  CAD: 0.00105,
+};
 
 export const useStore = create<StoreState>()(
   persist(
     (set) => ({
       cart: [],
-
       currency: "NGN",
-
-      exchangeRates: {
-        NGN: 1,
-        USD: 0.00065,
-        GBP: 0.00052,
-        EUR: 0.0006,
-        CAD: 0.00088, // adjust if needed
-      },
+      exchangeRates: DEFAULT_EXCHANGE_RATES,
 
       addItem: (newItem) =>
         set((state) => {
@@ -73,9 +72,7 @@ export const useStore = create<StoreState>()(
             return { cart: updatedCart };
           }
 
-          return {
-            cart: [...state.cart, newItem],
-          };
+          return { cart: [...state.cart, newItem] };
         }),
 
       removeItem: (id, size) =>
@@ -136,9 +133,7 @@ export const useStore = create<StoreState>()(
             return { cart: mergedCart };
           }
 
-          return {
-            cart: [...cartWithoutTarget, updatedItem],
-          };
+          return { cart: [...cartWithoutTarget, updatedItem] };
         }),
 
       setCurrency: (cur) => set({ currency: cur }),
@@ -147,6 +142,12 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: "dahriola-storage",
+
+      merge: (persistedState: any, currentState) => ({
+        ...currentState,
+        ...persistedState,
+        exchangeRates: DEFAULT_EXCHANGE_RATES,
+      }),
     }
   )
 );

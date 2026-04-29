@@ -59,12 +59,6 @@ export default {
       hidden: ({ document }: any) => document?.productType === 'bespoke',
     },
     {
-      name: 'priceUSD',
-      title: 'Price (USD)',
-      type: 'number',
-      hidden: ({ document }: any) => document?.productType === 'bespoke',
-    },
-    {
       name: 'allowCustomization',
       title: 'Allow RTW Customization?',
       type: 'boolean',
