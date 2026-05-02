@@ -38,7 +38,7 @@ export default function Hero() {
           <div className="max-w-[800px]">
             
             <h1 className="font-display max-w-[10ch] text-[3.5rem] leading-[0.85] tracking-[-0.04em] text-white sm:text-[4rem] lg:text-[6.5rem]">
-              Premium Contemporary Fashion
+              African Contemporary Fashion
             </h1>
 
             <div className="mt-8 flex flex-wrap items-center gap-4 sm:mt-10">

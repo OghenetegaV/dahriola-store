@@ -38,10 +38,10 @@ interface StoreState {
 
 const DEFAULT_EXCHANGE_RATES: Record<Currency, number> = {
   NGN: 1,
-  USD: 0.0007665,
-  GBP: 0.000567,
-  EUR: 0.0006615,
-  CAD: 0.00105,
+  USD: 0.0007519,
+  GBP: 0.0005562,
+  EUR: 0.0006386,
+  CAD: 0.0010197,
 };
 
 export const useStore = create<StoreState>()(

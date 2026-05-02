@@ -22,12 +22,12 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://dahriola.com"),
 
   title: {
-    default: "Dahriola | Artisanal African Luxury",
+    default: "Dahriola | African Contemporary Fashion",
     template: "%s | Dahriola",
   },
 
   description:
-    "Experience Dahriola: A premium Nigerian fashion house specializing in artisanal apparel, bespoke tailoring, and handcrafted luxury goods.",
+    "Experience Dahriola: A premium Nigerian fashion house specializing in African print apparel, bespoke tailoring, and handcrafted luxury goods.",
 
   keywords: [
     "Dahriola",
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     locale: "en_NG",
     url: "https://dahriola.com",
     siteName: "Dahriola",
-    title: "Dahriola | Artisanal African Luxury",
+    title: "Dahriola | African Contemporary Fashion",
     description:
       "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
     images: [
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Dahriola | Premium Contemporary Fashion",
+    title: "Dahriola | African Contemporary Fashion",
     description:
       "Premium editorial collections and bespoke tailoring handcrafted in Nigeria.",
     images: ["/og-image.jpg"],
