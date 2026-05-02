@@ -1,23 +1,45 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, X, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { useStore } from "@/src/store/useStore";
 
-export default function ProductSearch({ products }: { products: any[] }) {
+function portableTextToPlainText(value: any) {
+  if (!Array.isArray(value)) return "";
+
+  return value
+    .map((block) => {
+      if (!block?.children) return "";
+      return block.children.map((child: any) => child.text || "").join(" ");
+    })
+    .join(" ");
+}
+
+export default function ProductSearch({
+  products,
+  isOverlay = false,
+}: {
+  products: any[];
+  isOverlay?: boolean;
+}) {
   const { currency, exchangeRates } = useStore();
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(isOverlay);
   const [sortBy, setSortBy] = useState("Newest");
-  const [priceRange, setPriceRange] = useState<{min?: number, max?: number} | null>(null);
+  const [priceRange, setPriceRange] = useState<{
+    min?: number;
+    max?: number;
+  } | null>(null);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const formatPrice = (val: number) => {
     const converted = val * (exchangeRates[currency] || 1);
-    return new Intl.NumberFormat("en-US", {
+
+    return new Intl.NumberFormat(currency === "CAD" ? "en-CA" : "en-US", {
       style: "currency",
-      currency: currency,
+      currency,
       maximumSignificantDigits: 3,
     }).format(converted);
   };
@@ -33,71 +55,153 @@ export default function ProductSearch({ products }: { products: any[] }) {
   const processedProducts = useMemo(() => {
     let result = [...products];
 
-    if (searchQuery) {
-      result = result.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+
+      result = result.filter((product) => {
+        const name = product.name || "";
+        const briefDescription = product.briefDescription || "";
+        const categoryName = product.categoryName || "";
+        const productType = product.productType || "";
+        const descriptionText = portableTextToPlainText(product.description);
+
+        const searchableText = [
+          name,
+          briefDescription,
+          categoryName,
+          productType,
+          descriptionText,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(query);
+      });
     }
 
     if (priceRange) {
-      if (priceRange.min !== undefined) result = result.filter(p => p.priceNGN >= priceRange.min!);
-      if (priceRange.max !== undefined) result = result.filter(p => p.priceNGN <= priceRange.max!);
+      if (priceRange.min !== undefined) {
+        result = result.filter((p) => Number(p.priceNGN) >= priceRange.min!);
+      }
+
+      if (priceRange.max !== undefined) {
+        result = result.filter((p) => Number(p.priceNGN) <= priceRange.max!);
+      }
     }
 
-    if (sortBy === "Price: Low to High") result.sort((a, b) => a.priceNGN - b.priceNGN);
-    if (sortBy === "Price: High to Low") result.sort((a, b) => b.priceNGN - a.priceNGN);
-    if (sortBy === "Newest") result.sort((a, b) => new Date(b._createdAt).getTime() - new Date(a._createdAt).getTime());
+    if (sortBy === "Price: Low to High") {
+      result.sort((a, b) => Number(a.priceNGN || 0) - Number(b.priceNGN || 0));
+    }
+
+    if (sortBy === "Price: High to Low") {
+      result.sort((a, b) => Number(b.priceNGN || 0) - Number(a.priceNGN || 0));
+    }
+
+    if (sortBy === "Newest") {
+      result.sort(
+        (a, b) =>
+          new Date(b._createdAt).getTime() -
+          new Date(a._createdAt).getTime()
+      );
+    }
 
     return result;
   }, [searchQuery, products, priceRange, sortBy]);
 
   return (
     <div className="flex-1">
-      {/* 1. DESKTOP UTILS (Hidden on Mobile) */}
-      <div className="hidden md:flex absolute top-[-95px] right-0 items-center justify-end gap-6 z-20">
+      {/* DESKTOP UTILS */}
+      <div
+        className={`hidden md:flex items-center justify-end gap-6 z-20 ${
+          isOverlay ? "relative mb-10" : "absolute top-[-95px] right-0"
+        }`}
+      >
         <div className="flex items-center">
-          <div className={`flex items-center transition-all duration-500 overflow-hidden ${isSearchOpen ? 'w-[220px] border-b border-black/20' : 'w-0'}`}>
+          <div
+            className={`flex items-center transition-all duration-500 overflow-hidden ${
+              isSearchOpen
+                ? "w-[300px] border-b border-black/20"
+                : "w-0"
+            }`}
+          >
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search designs, details, categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent outline-none text-[10px] uppercase tracking-widest w-full px-2 py-1"
+              className="bg-transparent outline-none text-[10px] uppercase tracking-widest w-full px-2 py-2"
             />
           </div>
-          <button onClick={() => { setIsSearchOpen(!isSearchOpen); setSearchQuery(""); }} className="p-2">
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchOpen(!isSearchOpen);
+
+              if (isSearchOpen && !isOverlay) {
+                setSearchQuery("");
+              }
+            }}
+            className="p-2"
+          >
             {isSearchOpen ? <X size={18} /> : <Search size={18} />}
           </button>
         </div>
 
-        {/* Price Dropdown (Desktop) */}
+        {/* Price Dropdown */}
         <div className="relative group cursor-pointer">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest border border-neutral-200 px-5 py-2.5 rounded-full hover:bg-neutral-50 transition-all">
             {priceRange ? "Filtered" : "Price"} <ChevronDown size={12} />
           </div>
-          <div className="absolute right-0 mt-2 w-64 bg-white border border-neutral-100 shadow-2xl rounded-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+
+          <div className="absolute right-0 mt-2 w-64 bg-white border border-neutral-100 shadow-2xl rounded-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30">
             {rangesNGN.map((range, i) => (
-              <div key={i} onClick={() => setPriceRange(range.value === null ? null : {min: range.min, max: range.max})} className="py-2 text-[10px] uppercase tracking-wider text-neutral-600 hover:text-black cursor-pointer border-b border-neutral-50 last:border-0">
-                {range.label === "All Prices" ? "Show All" : range.label === "Under" ? `Under ${formatPrice(range.max!)}` : range.label === "Above" ? `Above ${formatPrice(range.min!)}` : `${formatPrice(range.min!)} — ${formatPrice(range.max!)}`}
+              <div
+                key={i}
+                onClick={() =>
+                  setPriceRange(
+                    range.value === null
+                      ? null
+                      : { min: range.min, max: range.max }
+                  )
+                }
+                className="py-2 text-[10px] uppercase tracking-wider text-neutral-600 hover:text-black cursor-pointer border-b border-neutral-50 last:border-0"
+              >
+                {range.label === "All Prices"
+                  ? "Show All"
+                  : range.label === "Under"
+                  ? `Under ${formatPrice(range.max!)}`
+                  : range.label === "Above"
+                  ? `Above ${formatPrice(range.min!)}`
+                  : `${formatPrice(range.min!)} — ${formatPrice(range.max!)}`}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Sort Dropdown (Desktop) */}
+        {/* Sort Dropdown */}
         <div className="relative group cursor-pointer">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest border border-neutral-200 px-5 py-2.5 rounded-full hover:bg-neutral-50 transition-all">
             {sortBy} <ChevronDown size={12} />
           </div>
-          <div className="absolute right-0 mt-2 w-56 bg-white border border-neutral-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-            {["Newest", "Price: Low to High", "Price: High to Low"].map((option) => (
-              <div key={option} onClick={() => setSortBy(option)} className="px-6 py-2.5 text-[10px] uppercase tracking-wider text-neutral-500 hover:text-black hover:bg-neutral-50">
-                {option}
-              </div>
-            ))}
+
+          <div className="absolute right-0 mt-2 w-56 bg-white border border-neutral-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30">
+            {["Newest", "Price: Low to High", "Price: High to Low"].map(
+              (option) => (
+                <div
+                  key={option}
+                  onClick={() => setSortBy(option)}
+                  className="px-6 py-2.5 text-[10px] uppercase tracking-wider text-neutral-500 hover:text-black hover:bg-neutral-50 cursor-pointer"
+                >
+                  {option}
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>
 
-      {/* 2. MOBILE UTILS (Visible only on Mobile) */}
+      {/* MOBILE UTILS */}
       <div className="md:hidden mb-5">
         <div className="flex items-center gap-3">
           <div className="flex-1 relative flex items-center border-b border-neutral-200">
@@ -119,6 +223,7 @@ export default function ProductSearch({ products }: { products: any[] }) {
           </div>
 
           <button
+            type="button"
             onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
             className={`shrink-0 h-9 px-3 rounded-full border text-[9px] font-bold uppercase tracking-widest transition ${
               isMobileFiltersOpen
@@ -137,11 +242,13 @@ export default function ProductSearch({ products }: { products: any[] }) {
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              {["Newest", "Price: Low to High", "Price: High to Low"].map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
+              {["Newest", "Price: Low to High", "Price: High to Low"].map(
+                (opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                )
+              )}
             </select>
 
             <div className="h-5 w-px bg-neutral-200" />
@@ -179,7 +286,7 @@ export default function ProductSearch({ products }: { products: any[] }) {
         )}
       </div>
 
-      {/* 3. THE GRID */}
+      {/* GRID */}
       {processedProducts.length > 0 ? (
         <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-x-4 md:gap-x-8 gap-y-12 md:gap-y-20">
           {processedProducts.map((product: any) => (
@@ -188,7 +295,9 @@ export default function ProductSearch({ products }: { products: any[] }) {
         </div>
       ) : (
         <div className="h-[40vh] flex items-center justify-center border-t border-neutral-100">
-          <p className="font-display text-2xl text-neutral-300 lowercase tracking-tighter">no results found.</p>
+          <p className="font-display text-2xl text-neutral-300 lowercase tracking-tighter">
+            no results found.
+          </p>
         </div>
       )}
     </div>

@@ -28,13 +28,13 @@ interface Category {
 
 type CurrencyCode = "NGN" | "USD" | "GBP" | "EUR" | "CAD";
 
-const currencies = [
+const currencies: { code: CurrencyCode; country: string }[] = [
   { code: "NGN", country: "ng" },
   { code: "USD", country: "us" },
   { code: "GBP", country: "gb" },
   { code: "EUR", country: "eu" },
   { code: "CAD", country: "ca" },
-] as const;
+];
 
 const currencyToCountry: Record<string, string> = {
   NGN: "ng",
@@ -76,10 +76,27 @@ export default function Navbar() {
 
     const fetchData = async () => {
       const [cats, prods] = await Promise.all([
-        client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`),
-        client.fetch(
-          `*[_type == "product"]{ _id, name, priceNGN, images, _createdAt }`
-        ),
+        client.fetch(`
+          *[_type == "category"]{
+            title,
+            "slug": slug.current
+          }
+        `),
+
+        client.fetch(`
+          *[_type == "product"]{
+            _id,
+            name,
+            briefDescription,
+            description,
+            priceNGN,
+            images,
+            _createdAt,
+            productType,
+            "slug": slug.current,
+            "categoryName": category->title
+          }
+        `),
       ]);
 
       setCategories(cats);
@@ -185,6 +202,7 @@ export default function Navbar() {
                   {currencies.map((cur) => (
                     <button
                       key={cur.code}
+                      type="button"
                       onClick={() => setCurrency(cur.code)}
                       className={`flex items-center gap-3 w-full px-6 py-2 text-[9px] ${
                         currency === cur.code
@@ -278,7 +296,7 @@ export default function Navbar() {
             </button>
           </div>
           <div className="p-6">
-            <ProductSearch products={products} />
+            <ProductSearch products={products} isOverlay />
           </div>
         </div>
       )}
@@ -362,6 +380,7 @@ export default function Navbar() {
               {currencies.map((cur) => (
                 <button
                   key={cur.code}
+                  type="button"
                   onClick={() => setCurrency(cur.code)}
                   className={`flex items-center gap-2 text-[10px] font-bold ${
                     currency === cur.code
