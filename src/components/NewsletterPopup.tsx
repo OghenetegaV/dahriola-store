@@ -10,19 +10,15 @@ export default function NewsletterPopup() {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    const hasSeenPopup = localStorage.getItem("dahriola-newsletter-seen");
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+    }, 5000);
 
-    if (!hasSeenPopup) {
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   const closePopup = () => {
     setIsOpen(false);
-    localStorage.setItem("dahriola-newsletter-seen", Date.now().toString());
   };
 
   return (
@@ -56,7 +52,6 @@ export default function NewsletterPopup() {
 
             {/* Left Side: Visual */}
             <div className="relative w-full md:w-1/2 bg-neutral-100">
-              
               {/* MOBILE (no crop) */}
               <div className="block md:hidden">
                 <img

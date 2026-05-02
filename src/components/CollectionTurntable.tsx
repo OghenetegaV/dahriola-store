@@ -9,7 +9,7 @@ const collectionItems = [
   { id: 2, name: "Signature Set", image: "/new-collection/set.png" },
   { id: 3, name: "A-Line Dress", image: "/new-collection/dress-1.png" },
   { id: 4, name: "Two Piece Set", image: "/new-collection/dress-2.png" },
-  { id: 5, name: "Ayẹyẹ Skirt", image: "/new-collection/ayeye.png" },
+  { id: 5, name: "Tube Dress", image: "/new-collection/ayeye.png" },
 ];
 
 export default function CollectionTurntable() {

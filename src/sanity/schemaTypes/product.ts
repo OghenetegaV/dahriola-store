@@ -10,6 +10,13 @@ export default {
       validation: (Rule: any) => Rule.required(),
     },
     {
+      name: 'briefDescription',
+      title: 'Brief Description',
+      type: 'text',
+      rows: 3,
+      description: 'Short product summary shown near the product title or on product cards.',
+    },
+    {
       name: 'slug',
       title: 'Slug',
       type: 'slug',

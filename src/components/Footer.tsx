@@ -60,8 +60,8 @@ export default function Footer() {
       </div>
 
       {/* Background Watermark */}
-      <div className={`absolute -bottom-10 -right-20 pointer-events-none select-none transition-opacity duration-1000 delay-[1200ms] ${isVisible ? 'opacity-[0.02]' : 'opacity-0'}`}>
-        <h2 className="font-display text-[25vw] leading-none text-white lowercase">
+      <div className={`absolute -bottom-10 -right-10 pointer-events-none select-none transition-opacity duration-1000 delay-[1200ms] ${isVisible ? 'opacity-[0.02]' : 'opacity-0'}`}>
+        <h2 className="font-display text-[18vw] leading-none text-white uppercase">
           dahriola
         </h2>
       </div>

@@ -220,6 +220,15 @@ export default function ProductPageClient({ product }: { product: any }) {
             <p>Relaxed silhouette</p>
           </div>
         </BoxAccordion>
+
+        <BoxAccordion title="Production Time">
+          <div className="text-[14px] leading-6 text-[#444] space-y-1">
+            <p>
+              This outfit requires 2–4 working days for production before
+              dispatch.
+            </p>
+          </div>
+        </BoxAccordion>
       </section>
 
       {previewPrint && (
