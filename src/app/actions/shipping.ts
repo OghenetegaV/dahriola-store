@@ -155,7 +155,7 @@ function getLocalRiderRates(deliveryData: DeliveryData): NormalizedRate[] {
         carrier_name: "Dahriola Local Rider",
         service_name: "Ibadan Local Delivery",
         delivery_time: "Same day / Next day",
-        amount: 10,
+        amount: 2000,
         currency: "NGN",
         source: "local-rider",
       },
