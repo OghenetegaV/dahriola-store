@@ -32,7 +32,10 @@ async function getProduct(slug: string) {
     "prints": prints[]->{
       _id,
       name,
-      image
+      image,
+      stockQuantity,
+      lowStockThreshold,
+      isActive
     }
   }`;
 

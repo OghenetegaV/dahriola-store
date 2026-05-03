@@ -41,6 +41,8 @@ export default function AddToCartButton({
       quantity,
       size: selectedSize,
       notes: finalNotes,
+      selectedPrintId: selectedPrint?._id || selectedPrint?.id,
+      selectedPrintName: selectedPrint?.name || "",
     });
 
     setIsAdded(true);

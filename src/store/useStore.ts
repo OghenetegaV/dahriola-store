@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 export type Currency = "NGN" | "USD" | "GBP" | "EUR" | "CAD";
 
-interface CartItem {
+export interface CartItem {
   _id: string;
   name: string;
   price: number;
@@ -11,6 +11,9 @@ interface CartItem {
   quantity: number;
   size: string;
   notes?: string;
+
+  selectedPrintId?: string;
+  selectedPrintName?: string;
 }
 
 interface StoreState {
@@ -19,8 +22,13 @@ interface StoreState {
   exchangeRates: Record<Currency, number>;
 
   addItem: (item: CartItem) => void;
-  removeItem: (id: string, size: string) => void;
-  updateQuantity: (id: string, size: string, quantity: number) => void;
+  removeItem: (id: string, size: string, selectedPrintId?: string) => void;
+  updateQuantity: (
+    id: string,
+    size: string,
+    quantity: number,
+    selectedPrintId?: string
+  ) => void;
 
   updateItemOptions: (
     id: string,
@@ -29,7 +37,10 @@ interface StoreState {
       size?: string;
       quantity?: number;
       notes?: string;
-    }
+      selectedPrintId?: string;
+      selectedPrintName?: string;
+    },
+    currentSelectedPrintId?: string
   ) => void;
 
   setCurrency: (cur: Currency) => void;
@@ -44,6 +55,15 @@ const DEFAULT_EXCHANGE_RATES: Record<Currency, number> = {
   CAD: 0.0010197,
 };
 
+function sameCartItem(a: CartItem, b: CartItem) {
+  return (
+    a._id === b._id &&
+    a.size === b.size &&
+    (a.notes || "") === (b.notes || "") &&
+    (a.selectedPrintId || "") === (b.selectedPrintId || "")
+  );
+}
+
 export const useStore = create<StoreState>()(
   persist(
     (set) => ({
@@ -53,11 +73,8 @@ export const useStore = create<StoreState>()(
 
       addItem: (newItem) =>
         set((state) => {
-          const existingItemIndex = state.cart.findIndex(
-            (item) =>
-              item._id === newItem._id &&
-              item.size === newItem.size &&
-              (item.notes || "") === (newItem.notes || "")
+          const existingItemIndex = state.cart.findIndex((item) =>
+            sameCartItem(item, newItem)
           );
 
           if (existingItemIndex !== -1) {
@@ -75,26 +92,40 @@ export const useStore = create<StoreState>()(
           return { cart: [...state.cart, newItem] };
         }),
 
-      removeItem: (id, size) =>
+      removeItem: (id, size, selectedPrintId) =>
         set((state) => ({
           cart: state.cart.filter(
-            (item) => !(item._id === id && item.size === size)
+            (item) =>
+              !(
+                item._id === id &&
+                item.size === size &&
+                (selectedPrintId === undefined ||
+                  (item.selectedPrintId || "") === (selectedPrintId || ""))
+              )
           ),
         })),
 
-      updateQuantity: (id, size, quantity) =>
+      updateQuantity: (id, size, quantity, selectedPrintId) =>
         set((state) => ({
           cart: state.cart.map((item) =>
-            item._id === id && item.size === size
+            item._id === id &&
+            item.size === size &&
+            (selectedPrintId === undefined ||
+              (item.selectedPrintId || "") === (selectedPrintId || ""))
               ? { ...item, quantity: Math.max(1, quantity) }
               : item
           ),
         })),
 
-      updateItemOptions: (id, currentSize, updates) =>
+      updateItemOptions: (id, currentSize, updates, currentSelectedPrintId) =>
         set((state) => {
           const targetItem = state.cart.find(
-            (item) => item._id === id && item.size === currentSize
+            (item) =>
+              item._id === id &&
+              item.size === currentSize &&
+              (currentSelectedPrintId === undefined ||
+                (item.selectedPrintId || "") ===
+                  (currentSelectedPrintId || ""))
           );
 
           if (!targetItem) return { cart: state.cart };
@@ -108,17 +139,29 @@ export const useStore = create<StoreState>()(
                 : targetItem.quantity,
             notes:
               updates.notes !== undefined ? updates.notes : targetItem.notes,
+            selectedPrintId:
+              updates.selectedPrintId !== undefined
+                ? updates.selectedPrintId
+                : targetItem.selectedPrintId,
+            selectedPrintName:
+              updates.selectedPrintName !== undefined
+                ? updates.selectedPrintName
+                : targetItem.selectedPrintName,
           };
 
           const cartWithoutTarget = state.cart.filter(
-            (item) => !(item._id === id && item.size === currentSize)
+            (item) =>
+              !(
+                item._id === id &&
+                item.size === currentSize &&
+                (currentSelectedPrintId === undefined ||
+                  (item.selectedPrintId || "") ===
+                    (currentSelectedPrintId || ""))
+              )
           );
 
-          const duplicateIndex = cartWithoutTarget.findIndex(
-            (item) =>
-              item._id === updatedItem._id &&
-              item.size === updatedItem.size &&
-              (item.notes || "") === (updatedItem.notes || "")
+          const duplicateIndex = cartWithoutTarget.findIndex((item) =>
+            sameCartItem(item, updatedItem)
           );
 
           if (duplicateIndex !== -1) {

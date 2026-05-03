@@ -76,17 +76,38 @@ export default function ProductPageClient({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState("XS");
   const [selectedPrint, setSelectedPrint] = useState<any | null>(null);
   const [previewPrint, setPreviewPrint] = useState<any | null>(null);
+  const [showAllPrints, setShowAllPrints] = useState(false);
 
   const printOptions =
     product.prints && product.prints.length > 0
-      ? product.prints.map((print: any, idx: number) => ({
-          id: print._id || `print-${idx}`,
-          name: print.name || `Print ${idx + 1}`,
-          image: print.image,
-        }))
+      ? product.prints
+          .filter((print: any) => print.isActive !== false)
+          .map((print: any, idx: number) => {
+            const stockQuantity = Number(print.stockQuantity || 0);
+            const lowStockThreshold = Number(print.lowStockThreshold || 2);
+
+            return {
+              id: print._id || `print-${idx}`,
+              _id: print._id,
+              name: print.name || `Print ${idx + 1}`,
+              image: print.image,
+              stockQuantity,
+              lowStockThreshold,
+              isOutOfStock: stockQuantity <= 0,
+              isLowStock:
+                stockQuantity > 0 && stockQuantity <= lowStockThreshold,
+            };
+          })
       : [];
 
-  const activePrint = selectedPrint || printOptions[0] || null;
+  const visiblePrints = showAllPrints
+    ? printOptions
+    : printOptions.slice(0, 6);
+
+  const activePrint =
+    selectedPrint && !selectedPrint.isOutOfStock
+      ? selectedPrint
+      : printOptions.find((print: any) => !print.isOutOfStock) || null;
 
   return (
     <>
@@ -122,31 +143,49 @@ export default function ProductPageClient({ product }: { product: any }) {
 
       {printOptions.length > 0 && (
         <section className="mt-8">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black">
-              Available Prints
-            </h2>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black">
+                Available Prints
+              </h2>
 
-            {activePrint && (
-              <p className="text-[11px] text-brand-beryl font-semibold">
-                Selected: {activePrint.name}
-              </p>
+              {activePrint && (
+                <p className="text-[11px] text-brand-beryl font-semibold mt-1">
+                  Selected: {activePrint.name}
+                </p>
+              )}
+            </div>
+
+            {printOptions.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setShowAllPrints((prev) => !prev)}
+                className="text-[9px] uppercase tracking-widest font-bold text-brand-beryl border-b border-brand-beryl/20 hover:text-black transition-colors"
+              >
+                {showAllPrints ? "View Less" : "View More"}
+              </button>
             )}
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            {printOptions.map((print: any) => {
+            {visiblePrints.map((print: any) => {
               const isSelected = activePrint?.id === print.id;
 
               return (
                 <button
                   key={print.id}
                   type="button"
+                  disabled={print.isOutOfStock}
                   onClick={() => {
+                    if (print.isOutOfStock) return;
                     setSelectedPrint(print);
                     setPreviewPrint(print);
                   }}
-                  className={`relative w-[64px] h-[80px] rounded-md overflow-hidden bg-[#f7f7f7] transition cursor-pointer ${
+                  className={`relative w-[64px] h-[80px] rounded-md overflow-hidden bg-[#f7f7f7] transition ${
+                    print.isOutOfStock
+                      ? "cursor-not-allowed opacity-40 grayscale"
+                      : "cursor-pointer"
+                  } ${
                     isSelected
                       ? "border-2 border-brand-beryl ring-2 ring-brand-beryl/20"
                       : "border border-[#e9e9e9] hover:border-black"
@@ -165,9 +204,21 @@ export default function ProductPageClient({ product }: { product: any }) {
                     </div>
                   )}
 
-                  {isSelected && (
+                  {isSelected && !print.isOutOfStock && (
                     <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-brand-beryl text-white flex items-center justify-center">
                       <Check size={12} />
+                    </span>
+                  )}
+
+                  {print.isOutOfStock && (
+                    <span className="absolute inset-x-1 bottom-1 bg-black/80 text-white text-[7px] uppercase tracking-widest py-1 rounded">
+                      Out
+                    </span>
+                  )}
+
+                  {print.isLowStock && !print.isOutOfStock && (
+                    <span className="absolute inset-x-1 bottom-1 bg-brand-beryl/90 text-white text-[7px] uppercase tracking-widest py-1 rounded">
+                      Low
                     </span>
                   )}
                 </button>
@@ -252,6 +303,14 @@ export default function ProductPageClient({ product }: { product: any }) {
               <p className="text-sm font-semibold text-black">
                 {previewPrint.name}
               </p>
+
+              {previewPrint.stockQuantity > 0 && (
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  {previewPrint.stockQuantity} outfit
+                  {previewPrint.stockQuantity === 1 ? "" : "s"} available from
+                  this print
+                </p>
+              )}
             </div>
 
             <div className="max-h-[78vh] overflow-auto bg-neutral-50">
