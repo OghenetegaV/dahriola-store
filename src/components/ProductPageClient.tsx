@@ -149,14 +149,14 @@ export default function ProductPageClient({ product }: { product: any }) {
                 Available Prints
               </h2>
 
-              {activePrint && (
+              {/* {activePrint && (
                 <p className="text-[11px] text-brand-beryl font-semibold mt-1">
                   Selected: {activePrint.name}
                 </p>
-              )}
+              )} */}
             </div>
 
-            {printOptions.length > 6 && (
+            {printOptions.length > 4 && (
               <button
                 type="button"
                 onClick={() => setShowAllPrints((prev) => !prev)}

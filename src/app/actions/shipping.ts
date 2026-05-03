@@ -8,6 +8,8 @@ type DeliveryData = {
   postalCode?: string;
 };
 
+type RateSource = "terminal-africa" | "local-rider" | "backup";
+
 type NormalizedRate = {
   id: string;
   rate_id: string;
@@ -16,7 +18,8 @@ type NormalizedRate = {
   delivery_time: string;
   amount: number;
   currency: string;
-  source: "terminal-africa" | "backup";
+  source: RateSource;
+  carrier_logo?: string;
 };
 
 type TerminalRate = {
@@ -29,10 +32,15 @@ type TerminalRate = {
   delivery_date?: string;
   amount?: number;
   currency?: string;
+  carrier_logo?: string;
 };
 
 function cleanText(value?: string) {
   return (value || "").trim();
+}
+
+function normalizeText(value?: string) {
+  return cleanText(value).toLowerCase();
 }
 
 function normalizeCountry(country?: string) {
@@ -41,106 +49,173 @@ function normalizeCountry(country?: string) {
   const countryMap: Record<string, string> = {
     nigeria: "NG",
     ng: "NG",
+
     "united states": "US",
+    "united states of america": "US",
     usa: "US",
     us: "US",
+
     "united kingdom": "GB",
     uk: "GB",
     gb: "GB",
+    england: "GB",
+
     canada: "CA",
     ca: "CA",
+
     ghana: "GH",
     gh: "GH",
+
     kenya: "KE",
     ke: "KE",
+
     "south africa": "ZA",
     za: "ZA",
+
     france: "FR",
+    fr: "FR",
+
     germany: "DE",
+    de: "DE",
+
     italy: "IT",
+    it: "IT",
+
     spain: "ES",
+    es: "ES",
+
     netherlands: "NL",
+    nl: "NL",
+
     australia: "AU",
+    au: "AU",
+
     singapore: "SG",
+    sg: "SG",
+
     uae: "AE",
     "united arab emirates": "AE",
+    ae: "AE",
   };
 
   return countryMap[value] || value.toUpperCase() || "NG";
 }
 
-function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
-  const state = cleanText(deliveryData.state).toLowerCase();
-  const city = cleanText(deliveryData.city).toLowerCase();
-  const country = normalizeCountry(deliveryData.country);
+function isIbadanOrOyo(deliveryData: DeliveryData) {
+  const city = normalizeText(deliveryData.city);
+  const state = normalizeText(deliveryData.state);
 
-  if (country === "NG") {
-    const isLagos = state === "lagos";
-    const isLagosMainland = [
+  return city.includes("ibadan") || state.includes("oyo");
+}
+
+function isLagos(deliveryData: DeliveryData) {
+  const state = normalizeText(deliveryData.state);
+  const city = normalizeText(deliveryData.city);
+
+  return (
+    state.includes("lagos") ||
+    [
       "ikeja",
       "yaba",
       "surulere",
+      "lekki",
+      "ajah",
+      "ikoyi",
+      "victoria island",
+      "vi",
       "maryland",
       "gbagada",
+      "ikorodu",
+      "epe",
+      "badagry",
       "oshodi",
       "mushin",
       "ogba",
       "agege",
-    ].includes(city);
+    ].includes(city)
+  );
+}
 
-    const isLagosIsland = [
-      "lekki",
-      "victoria island",
-      "vi",
-      "ikoyi",
-      "ajah",
-      "banana island",
-    ].includes(city);
+function getLocalRiderRates(deliveryData: DeliveryData): NormalizedRate[] {
+  const country = normalizeCountry(deliveryData.country);
 
-    const isFarLagos = ["ikorodu", "epe", "badagry"].includes(city);
+  if (country !== "NG") return [];
 
-    let standard = 5000;
-    let express = 8000;
-    let standardTime = "4-7 Business Days";
-    let expressTime = "2-4 Business Days";
+  if (isIbadanOrOyo(deliveryData)) {
+    return [
+      {
+        id: "dahriola-rider-ibadan-standard",
+        rate_id: "dahriola-rider-ibadan-standard",
+        carrier_name: "Dahriola Local Rider",
+        service_name: "Ibadan Local Delivery",
+        delivery_time: "Same day / Next day",
+        amount: 2000,
+        currency: "NGN",
+        source: "local-rider",
+      },
+      {
+        id: "dahriola-rider-ibadan-express",
+        rate_id: "dahriola-rider-ibadan-express",
+        carrier_name: "Dahriola Local Rider",
+        service_name: "Ibadan Express Delivery",
+        delivery_time: "Same day where available",
+        amount: 3500,
+        currency: "NGN",
+        source: "local-rider",
+      },
+    ];
+  }
 
-    if (isLagos) {
-      if (isLagosIsland) {
-        standard = 3000;
-        express = 5000;
-      } else if (isLagosMainland) {
-        standard = 3500;
-        express = 5500;
-      } else if (isFarLagos) {
-        standard = 4500;
-        express = 7000;
-      } else {
-        standard = 4000;
-        express = 6500;
-      }
+  if (isLagos(deliveryData)) {
+    return [
+      {
+        id: "dahriola-rider-lagos-standard",
+        rate_id: "dahriola-rider-lagos-standard",
+        carrier_name: "Dahriola Local Rider",
+        service_name: "Lagos Local Delivery",
+        delivery_time: "1-2 Business Days",
+        amount: 4000,
+        currency: "NGN",
+        source: "local-rider",
+      },
+      {
+        id: "dahriola-rider-lagos-express",
+        rate_id: "dahriola-rider-lagos-express",
+        carrier_name: "Dahriola Local Rider",
+        service_name: "Lagos Express Delivery",
+        delivery_time: "Same day / Next day",
+        amount: 6500,
+        currency: "NGN",
+        source: "local-rider",
+      },
+    ];
+  }
 
-      standardTime = "2-4 Business Days";
-      expressTime = "1-2 Business Days";
-    }
+  return [];
+}
 
+function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
+  const country = normalizeCountry(deliveryData.country);
+
+  if (country === "NG") {
     return [
       {
         id: "backup-ng-standard",
         rate_id: "backup-ng-standard",
-        carrier_name: "Dahriola Local Delivery",
+        carrier_name: "Nationwide Delivery",
         service_name: "Standard Delivery",
-        delivery_time: standardTime,
-        amount: standard,
+        delivery_time: "3-7 Business Days",
+        amount: 6000,
         currency: "NGN",
         source: "backup",
       },
       {
         id: "backup-ng-express",
         rate_id: "backup-ng-express",
-        carrier_name: "Dahriola Local Delivery",
+        carrier_name: "Nationwide Delivery",
         service_name: "Express Delivery",
-        delivery_time: expressTime,
-        amount: express,
+        delivery_time: "2-4 Business Days",
+        amount: 9000,
         currency: "NGN",
         source: "backup",
       },
@@ -205,15 +280,62 @@ function logTerminalError(label: string, payload: unknown) {
   console.error(label, JSON.stringify(payload, null, 2));
 }
 
+function normalizeTerminalRates(terminalRates: TerminalRate[]): NormalizedRate[] {
+  return terminalRates
+    .filter((rate) => Number.isFinite(Number(rate.amount)))
+    .map((rate, index) => ({
+      id: rate.id || rate.rate_id || `terminal-rate-${index}`,
+      rate_id: rate.rate_id || rate.id || `terminal-rate-${index}`,
+      carrier_name: rate.carrier_name || "Terminal Africa",
+      service_name:
+        rate.service_name ||
+        rate.carrier_rate_description ||
+        "Courier Delivery",
+      delivery_time:
+        rate.delivery_time ||
+        rate.delivery_date ||
+        "Estimated at checkout",
+      amount: Number(rate.amount),
+      currency: rate.currency || "NGN",
+      source: "terminal-africa" as const,
+      carrier_logo: rate.carrier_logo,
+    }))
+    .sort((a, b) => a.amount - b.amount);
+}
+
+function mergeRates(
+  localRates: NormalizedRate[],
+  terminalRates: NormalizedRate[],
+  backupRates: NormalizedRate[]
+): NormalizedRate[] {
+  const combined =
+    terminalRates.length > 0
+      ? [...localRates, ...terminalRates]
+      : [...localRates, ...backupRates];
+
+  const seen = new Set<string>();
+
+  return combined.filter((rate) => {
+    const key = `${rate.carrier_name}-${rate.service_name}-${rate.amount}`;
+
+    if (seen.has(key)) return false;
+
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function getShippingRates(
   deliveryData: DeliveryData
 ): Promise<NormalizedRate[]> {
+  const localRiderRates = getLocalRiderRates(deliveryData);
   const backupRates = getBackupRates(deliveryData);
 
   const city = cleanText(deliveryData.city);
   const state = cleanText(deliveryData.state);
   const line1 = cleanText(deliveryData.line1);
   const country = normalizeCountry(deliveryData.country);
+  const postalCode = cleanText(deliveryData.postalCode);
 
   if (!city || !line1) {
     console.error("Missing shipping input:", {
@@ -221,9 +343,10 @@ export async function getShippingRates(
       state,
       line1,
       country,
+      postalCode,
     });
 
-    return backupRates;
+    return mergeRates(localRiderRates, [], backupRates);
   }
 
   const apiKey = process.env.TERMINAL_AFRICA_SECRET_KEY?.trim();
@@ -233,16 +356,16 @@ export async function getShippingRates(
     "https://api.terminal.africa/v1";
 
   if (!apiKey) {
-    console.error("Terminal Africa API key missing. Using backup rates.");
-    return backupRates;
+    console.error("Terminal Africa API key missing. Using local/backup rates.");
+    return mergeRates(localRiderRates, [], backupRates);
   }
 
   const payload = {
     pickup_address: {
-      city: process.env.TERMINAL_PICKUP_CITY || "Lekki",
-      state: process.env.TERMINAL_PICKUP_STATE || "Lagos",
+      city: process.env.TERMINAL_PICKUP_CITY || "Ibadan",
+      state: process.env.TERMINAL_PICKUP_STATE || "Oyo",
       country: "NG",
-      line1: process.env.TERMINAL_PICKUP_LINE1 || "15 Admiralty Way",
+      line1: process.env.TERMINAL_PICKUP_LINE1 || "Ibadan, Oyo State",
       zip: process.env.TERMINAL_PICKUP_ZIP || "",
     },
 
@@ -251,7 +374,7 @@ export async function getShippingRates(
       state,
       country,
       line1,
-      zip: cleanText(deliveryData.postalCode),
+      zip: postalCode,
     },
 
     parcel: {
@@ -279,7 +402,7 @@ export async function getShippingRates(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     const response = await fetch(`${baseUrl}/rates/shipment/quotes`, {
       method: "POST",
@@ -303,7 +426,7 @@ export async function getShippingRates(
       data = rawText ? JSON.parse(rawText) : null;
     } catch {
       logTerminalError("Terminal Africa returned non-JSON response:", rawText);
-      return backupRates;
+      return mergeRates(localRiderRates, [], backupRates);
     }
 
     if (!response.ok) {
@@ -313,7 +436,7 @@ export async function getShippingRates(
         response: data,
       });
 
-      return backupRates;
+      return mergeRates(localRiderRates, [], backupRates);
     }
 
     const terminalRates: TerminalRate[] = Array.isArray(data?.data)
@@ -330,34 +453,16 @@ export async function getShippingRates(
         response: data,
       });
 
-      return backupRates;
+      return mergeRates(localRiderRates, [], backupRates);
     }
 
-    const normalizedRates: NormalizedRate[] = terminalRates
-      .filter((rate) => Number.isFinite(Number(rate.amount)))
-      .map((rate, index) => ({
-        id: rate.id || rate.rate_id || `terminal-rate-${index}`,
-        rate_id: rate.rate_id || rate.id || `terminal-rate-${index}`,
-        carrier_name: rate.carrier_name || "Terminal Africa",
-        service_name:
-          rate.service_name ||
-          rate.carrier_rate_description ||
-          "Delivery",
-        delivery_time:
-          rate.delivery_time ||
-          rate.delivery_date ||
-          "Estimated at checkout",
-        amount: Number(rate.amount),
-        currency: rate.currency || "NGN",
-        source: "terminal-africa" as const,
-      }))
-      .sort((a, b) => a.amount - b.amount);
+    const normalizedTerminalRates = normalizeTerminalRates(terminalRates);
 
-    return normalizedRates.length ? normalizedRates : backupRates;
+    return mergeRates(localRiderRates, normalizedTerminalRates, backupRates);
   } catch (error: any) {
     if (error?.name === "AbortError") {
       console.error(
-        "Terminal Africa timed out after 8 seconds. Using backup rates."
+        "Terminal Africa timed out after 20 seconds. Using local/backup rates."
       );
     } else {
       logTerminalError("Terminal Africa shipping action failed:", {
@@ -367,6 +472,6 @@ export async function getShippingRates(
       });
     }
 
-    return backupRates;
+    return mergeRates(localRiderRates, [], backupRates);
   }
 }

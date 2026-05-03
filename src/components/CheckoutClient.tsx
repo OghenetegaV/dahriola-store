@@ -146,7 +146,8 @@ export default function CheckoutClient() {
         line1: formData.address,
         city: formData.city,
         state: formData.state,
-        country: "NG",
+        country: formData.country,
+        postalCode: formData.postalCode,
       });
 
       if (rates && rates.length > 0) {
@@ -199,12 +200,17 @@ export default function CheckoutClient() {
 
   const finalTotal = convertedSubtotal + convertedShipping - discountAmount;
 
+  const exchangeRate = exchangeRates[currency] || 1;
+
+  const finalTotalNGN =
+    currency === "NGN" ? finalTotal : finalTotal / exchangeRate;
+
   const paystackConfig = {
     reference: `dahriola-${Date.now()}`,
     email: formData.email,
-    amount: Math.round(finalTotal * 100),
+    amount: Math.round(finalTotalNGN * 100),
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-    currency,
+    currency: "NGN",
     metadata: {
       custom_fields: [
         {
@@ -216,6 +222,16 @@ export default function CheckoutClient() {
           display_name: "Phone Number",
           variable_name: "phone_number",
           value: formData.phone,
+        },
+        {
+          display_name: "Display Currency",
+          variable_name: "display_currency",
+          value: currency,
+        },
+        {
+          display_name: "Display Total",
+          variable_name: "display_total",
+          value: finalTotal,
         },
       ],
     },
