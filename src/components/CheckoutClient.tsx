@@ -11,12 +11,14 @@ import {
   ShieldCheck,
   ChevronDown,
   Plus,
-  X
+  X,
+  Trash2,
 } from "lucide-react";
 import { getShippingRates } from "@/src/app/actions/shipping";
 import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
+import { reducePrintStockAfterOrder } from "@/src/app/actions/inventory";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { client, urlFor } from "@/src/lib/sanity";
@@ -30,6 +32,7 @@ export default function CheckoutClient() {
     clearCart,
     addItem,
     updateItemOptions,
+    removeItem,
   } = useStore();
 
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -66,11 +69,16 @@ export default function CheckoutClient() {
   const saveEditedItem = () => {
     if (!editingItem) return;
 
-    updateItemOptions(editingItem._id, editingItem.size, {
-      size: editSize,
-      quantity: editQuantity,
-      notes: editNotes,
-    });
+    updateItemOptions(
+      editingItem._id,
+      editingItem.size,
+      {
+        size: editSize,
+        quantity: editQuantity,
+        notes: editNotes,
+      },
+      editingItem.selectedPrintId
+    );
 
     setEditingItem(null);
   };
@@ -224,6 +232,8 @@ export default function CheckoutClient() {
       const verification = await verifyPayment(transactionReference);
 
       if (verification.success) {
+        await reducePrintStockAfterOrder(cart);
+
         await sendOrderNotification({
           orderNumber: transactionReference,
           customerName: formData.name,
@@ -260,7 +270,9 @@ export default function CheckoutClient() {
       _id: selectedUpsell._id,
       name: selectedUpsell.name,
       price: selectedUpsell.priceNGN,
-      image: selectedUpsell.images?.[0] ? urlFor(selectedUpsell.images[0]).url() : "",
+      image: selectedUpsell.images?.[0]
+        ? urlFor(selectedUpsell.images[0]).url()
+        : "",
       quantity: upsellQuantity,
       size: upsellSize,
       notes: "",
@@ -308,11 +320,31 @@ export default function CheckoutClient() {
                 </div>
 
                 <div className="flex items-center flex-wrap gap-3">
-                  <img src="/payment-logos/paystack.svg" alt="Paystack" className="h-6 w-auto" />
-                  <img src="/payment-logos/visa.svg" alt="Visa" className="h-5 w-auto" />
-                  <img src="/payment-logos/mastercard.svg" alt="Mastercard" className="h-5 w-auto" />
-                  <img src="/payment-logos/verve.svg" alt="Verve" className="h-5 w-auto" />
-                  <img src="/payment-logos/opay.svg" alt="OPay" className="h-5 w-auto" />
+                  <img
+                    src="/payment-logos/paystack.svg"
+                    alt="Paystack"
+                    className="h-6 w-auto"
+                  />
+                  <img
+                    src="/payment-logos/visa.svg"
+                    alt="Visa"
+                    className="h-5 w-auto"
+                  />
+                  <img
+                    src="/payment-logos/mastercard.svg"
+                    alt="Mastercard"
+                    className="h-5 w-auto"
+                  />
+                  <img
+                    src="/payment-logos/verve.svg"
+                    alt="Verve"
+                    className="h-5 w-auto"
+                  />
+                  <img
+                    src="/payment-logos/opay.svg"
+                    alt="OPay"
+                    className="h-5 w-auto"
+                  />
                 </div>
               </div>
             </div>
@@ -542,7 +574,7 @@ export default function CheckoutClient() {
               <div className="space-y-5">
                 {cart.map((item) => (
                   <div
-                    key={`${item._id}-${item.size}`}
+                    key={`${item._id}-${item.size}-${item.selectedPrintId || ""}`}
                     className="flex gap-4 items-start"
                   >
                     <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-neutral-100 border shrink-0">
@@ -566,13 +598,30 @@ export default function CheckoutClient() {
                         Size: {item.size} • Qty: {item.quantity}
                       </p>
 
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(item)}
-                        className="text-[11px] underline text-neutral-500 mt-1 hover:text-black transition"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex items-center gap-3 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(item)}
+                          className="text-[11px] underline text-neutral-500 hover:text-black transition"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeItem(
+                              item._id,
+                              item.size,
+                              item.selectedPrintId
+                            )
+                          }
+                          className="text-[11px] underline text-red-500 hover:text-red-700 transition inline-flex items-center gap-1"
+                        >
+                          <Trash2 size={11} />
+                          Remove
+                        </button>
+                      </div>
                     </div>
 
                     <p className="text-[13px] font-semibold">
@@ -890,7 +939,10 @@ export default function CheckoutClient() {
                   {selectedUpsell.name}
                 </h3>
                 <p className="text-sm text-neutral-500 mt-2">
-                  {formatMoney(selectedUpsell.priceNGN * (exchangeRates[currency] || 1))}
+                  {formatMoney(
+                    selectedUpsell.priceNGN *
+                      (exchangeRates[currency] || 1)
+                  )}
                 </p>
               </div>
             </div>
@@ -932,7 +984,9 @@ export default function CheckoutClient() {
                   -
                 </button>
 
-                <span className="w-10 text-center text-sm">{upsellQuantity}</span>
+                <span className="w-10 text-center text-sm">
+                  {upsellQuantity}
+                </span>
 
                 <button
                   type="button"
