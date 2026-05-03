@@ -44,7 +44,13 @@ function normalizeText(value?: string) {
 }
 
 function normalizeCountry(country?: string) {
-  const value = cleanText(country).toLowerCase();
+  const rawValue = cleanText(country);
+
+  if (/^[A-Za-z]{2}$/.test(rawValue)) {
+    return rawValue.toUpperCase();
+  }
+
+  const value = rawValue.toLowerCase();
 
   const countryMap: Record<string, string> = {
     nigeria: "NG",
@@ -149,7 +155,7 @@ function getLocalRiderRates(deliveryData: DeliveryData): NormalizedRate[] {
         carrier_name: "Dahriola Local Rider",
         service_name: "Ibadan Local Delivery",
         delivery_time: "Same day / Next day",
-        amount: 2000,
+        amount: 10,
         currency: "NGN",
         source: "local-rider",
       },
@@ -202,8 +208,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
       {
         id: "backup-ng-standard",
         rate_id: "backup-ng-standard",
-        carrier_name: "Nationwide Delivery",
-        service_name: "Standard Delivery",
+        carrier_name: "Nationwide Delivery Estimate",
+        service_name: "Standard Delivery Estimate",
         delivery_time: "3-7 Business Days",
         amount: 6000,
         currency: "NGN",
@@ -212,8 +218,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
       {
         id: "backup-ng-express",
         rate_id: "backup-ng-express",
-        carrier_name: "Nationwide Delivery",
-        service_name: "Express Delivery",
+        carrier_name: "Nationwide Delivery Estimate",
+        service_name: "Express Delivery Estimate",
         delivery_time: "2-4 Business Days",
         amount: 9000,
         currency: "NGN",
@@ -256,8 +262,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
     {
       id: "backup-intl-standard",
       rate_id: "backup-intl-standard",
-      carrier_name: "International Shipping",
-      service_name: "Standard International Delivery",
+      carrier_name: "International Courier Estimate",
+      service_name: "Standard International Delivery Estimate",
       delivery_time: deliveryTime,
       amount,
       currency: "NGN",
@@ -266,8 +272,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
     {
       id: "backup-intl-priority",
       rate_id: "backup-intl-priority",
-      carrier_name: "International Shipping",
-      service_name: "Priority International Delivery",
+      carrier_name: "International Courier Estimate",
+      service_name: "Priority International Delivery Estimate",
       delivery_time: "5-10 Business Days",
       amount: Math.round(amount * 1.45),
       currency: "NGN",
@@ -278,6 +284,16 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
 
 function logTerminalError(label: string, payload: unknown) {
   console.error(label, JSON.stringify(payload, null, 2));
+}
+
+function extractTerminalRates(data: any): TerminalRate[] {
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.data?.rates)) return data.data.rates;
+  if (Array.isArray(data?.rates)) return data.rates;
+  if (Array.isArray(data?.data?.quotes)) return data.data.quotes;
+  if (Array.isArray(data?.quotes)) return data.quotes;
+
+  return [];
 }
 
 function normalizeTerminalRates(terminalRates: TerminalRate[]): NormalizedRate[] {
@@ -337,7 +353,7 @@ export async function getShippingRates(
   const country = normalizeCountry(deliveryData.country);
   const postalCode = cleanText(deliveryData.postalCode);
 
-  if (!city || !line1) {
+  if (!city || !state || !line1 || !country) {
     console.error("Missing shipping input:", {
       city,
       state,
@@ -429,7 +445,7 @@ export async function getShippingRates(
       return mergeRates(localRiderRates, [], backupRates);
     }
 
-    if (!response.ok) {
+    if (!response.ok || data?.status === false) {
       logTerminalError("Terminal Africa API error:", {
         status: response.status,
         request: payload,
@@ -439,13 +455,7 @@ export async function getShippingRates(
       return mergeRates(localRiderRates, [], backupRates);
     }
 
-    const terminalRates: TerminalRate[] = Array.isArray(data?.data)
-      ? data.data
-      : Array.isArray(data?.data?.rates)
-      ? data.data.rates
-      : Array.isArray(data?.rates)
-      ? data.rates
-      : [];
+    const terminalRates = extractTerminalRates(data);
 
     if (!terminalRates.length) {
       logTerminalError("Terminal Africa returned no usable rates:", {

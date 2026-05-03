@@ -14,6 +14,11 @@ import {
   X,
   Trash2,
 } from "lucide-react";
+import {
+  getTerminalCountries,
+  getTerminalStates,
+  getTerminalCities,
+} from "@/src/app/actions/terminalLocations";
 import { getShippingRates } from "@/src/app/actions/shipping";
 import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
@@ -25,6 +30,7 @@ import { client, urlFor } from "@/src/lib/sanity";
 
 export default function CheckoutClient() {
   const router = useRouter();
+
   const {
     cart,
     currency,
@@ -42,6 +48,17 @@ export default function CheckoutClient() {
   const [selectedRate, setSelectedRate] = useState<any>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
 
+  const [countries, setCountries] = useState<any[]>([]);
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+
+  const [selectedCountryCode, setSelectedCountryCode] = useState("NG");
+  const [selectedStateCode, setSelectedStateCode] = useState("");
+
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+
   const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isApplying, setIsApplying] = useState(false);
@@ -58,6 +75,18 @@ export default function CheckoutClient() {
   const [editSize, setEditSize] = useState("M");
   const [editQuantity, setEditQuantity] = useState(1);
   const [editNotes, setEditNotes] = useState("");
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    apartment: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "NG",
+  });
 
   const openEditModal = (item: any) => {
     setEditingItem(item);
@@ -82,18 +111,6 @@ export default function CheckoutClient() {
 
     setEditingItem(null);
   };
-
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    apartment: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "Nigeria",
-  });
 
   useEffect(() => {
     setHasHydrated(true);
@@ -122,6 +139,99 @@ export default function CheckoutClient() {
     fetchUpsells();
   }, [cart]);
 
+  useEffect(() => {
+    async function loadCountries() {
+      setLoadingCountries(true);
+
+      try {
+        const terminalCountries = await getTerminalCountries();
+
+        if (terminalCountries.length > 0) {
+          setCountries(terminalCountries);
+
+          const nigeria =
+            terminalCountries.find((country) => country.code === "NG") ||
+            terminalCountries[0];
+
+          setSelectedCountryCode(nigeria.code);
+
+          setFormData((prev) => ({
+            ...prev,
+            country: nigeria.code,
+          }));
+        }
+      } catch (error) {
+        console.error("Country loading error:", error);
+      } finally {
+        setLoadingCountries(false);
+      }
+    }
+
+    loadCountries();
+  }, []);
+
+  useEffect(() => {
+    async function loadStates() {
+      if (!selectedCountryCode) return;
+
+      setLoadingStates(true);
+      setStates([]);
+      setCities([]);
+      setSelectedStateCode("");
+      setSelectedRate(null);
+      setShippingRates([]);
+
+      setFormData((prev) => ({
+        ...prev,
+        country: selectedCountryCode,
+        state: "",
+        city: "",
+      }));
+
+      try {
+        const terminalStates = await getTerminalStates(selectedCountryCode);
+        setStates(terminalStates || []);
+      } catch (error) {
+        console.error("State loading error:", error);
+      } finally {
+        setLoadingStates(false);
+      }
+    }
+
+    loadStates();
+  }, [selectedCountryCode]);
+
+  useEffect(() => {
+    async function loadCities() {
+      if (!selectedCountryCode) return;
+
+      setLoadingCities(true);
+      setCities([]);
+      setSelectedRate(null);
+      setShippingRates([]);
+
+      setFormData((prev) => ({
+        ...prev,
+        city: "",
+      }));
+
+      try {
+        const terminalCities = await getTerminalCities(
+          selectedCountryCode,
+          selectedStateCode
+        );
+
+        setCities(terminalCities || []);
+      } catch (error) {
+        console.error("City loading error:", error);
+      } finally {
+        setLoadingCities(false);
+      }
+    }
+
+    loadCities();
+  }, [selectedCountryCode, selectedStateCode]);
+
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -136,7 +246,14 @@ export default function CheckoutClient() {
   const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
 
   const fetchRates = async () => {
-    if (!formData.address || !formData.city || !formData.state) return;
+    if (
+      !formData.address ||
+      !formData.city ||
+      !formData.state ||
+      !formData.country
+    ) {
+      return;
+    }
 
     setLoadingRates(true);
     setShippingError(null);
@@ -257,7 +374,7 @@ export default function CheckoutClient() {
           items: cart,
           totalAmount: finalTotal,
           currency,
-          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}`,
+          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
         });
 
         clearCart();
@@ -310,7 +427,6 @@ export default function CheckoutClient() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.85fr] gap-12 items-start">
-          {/* LEFT */}
           <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-8 shadow-sm">
             <div className="mb-8">
               <h1 className="font-display text-3xl md:text-4xl text-black mb-2">
@@ -322,7 +438,6 @@ export default function CheckoutClient() {
               </p>
             </div>
 
-            {/* TRUST PAYMENT BLOCK */}
             <div className="mb-8 rounded-xl border border-neutral-200 bg-[#fbfbfa] p-4">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -366,7 +481,6 @@ export default function CheckoutClient() {
             </div>
 
             <section className="space-y-8">
-              {/* CONTACT */}
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-[17px] font-semibold text-black">
@@ -393,7 +507,6 @@ export default function CheckoutClient() {
                 </label>
               </div>
 
-              {/* DELIVERY */}
               <div>
                 <h2 className="text-[17px] font-semibold text-black mb-3">
                   Delivery
@@ -401,14 +514,26 @@ export default function CheckoutClient() {
 
                 <div className="relative mb-3">
                   <select
-                    value={formData.country}
-                    onChange={(e) =>
-                      setFormData({ ...formData, country: e.target.value })
-                    }
+                    value={selectedCountryCode}
+                    onChange={(e) => {
+                      setSelectedCountryCode(e.target.value);
+                      setSelectedRate(null);
+                      setShippingRates([]);
+                    }}
                     className="checkout-field appearance-none"
+                    disabled={loadingCountries}
                   >
-                    <option>Nigeria</option>
+                    {loadingCountries ? (
+                      <option>Loading countries...</option>
+                    ) : (
+                      countries.map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.name}
+                        </option>
+                      ))
+                    )}
                   </select>
+
                   <ChevronDown
                     size={14}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
@@ -440,7 +565,6 @@ export default function CheckoutClient() {
                   placeholder="Address"
                   className="checkout-field mt-3"
                   value={formData.address}
-                  onBlur={fetchRates}
                   onChange={(e) =>
                     setFormData({ ...formData, address: e.target.value })
                   }
@@ -456,25 +580,79 @@ export default function CheckoutClient() {
                 />
 
                 <div className="grid grid-cols-3 gap-3 mt-3">
-                  <input
-                    placeholder="City"
-                    className="checkout-field"
-                    value={formData.city}
-                    onBlur={fetchRates}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
-                  />
+                  <div className="relative">
+                    <select
+                      className="checkout-field appearance-none"
+                      value={selectedStateCode}
+                      disabled={loadingStates || states.length === 0}
+                      onChange={(e) => {
+                        const stateCode = e.target.value;
+                        const selectedState = states.find(
+                          (state) => state.code === stateCode
+                        );
 
-                  <input
-                    placeholder="State"
-                    className="checkout-field"
-                    value={formData.state}
-                    onBlur={fetchRates}
-                    onChange={(e) =>
-                      setFormData({ ...formData, state: e.target.value })
-                    }
-                  />
+                        setSelectedStateCode(stateCode);
+                        setSelectedRate(null);
+                        setShippingRates([]);
+
+                        setFormData((prev) => ({
+                          ...prev,
+                          state: selectedState?.name || "",
+                          city: "",
+                        }));
+                      }}
+                    >
+                      <option value="">
+                        {loadingStates ? "Loading states..." : "State"}
+                      </option>
+
+                      {states.map((state) => (
+                        <option key={state.code} value={state.code}>
+                          {state.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <select
+                      className="checkout-field appearance-none"
+                      value={formData.city}
+                      disabled={loadingCities || cities.length === 0}
+                      onChange={(e) => {
+                        setSelectedRate(null);
+                        setShippingRates([]);
+
+                        setFormData((prev) => ({
+                          ...prev,
+                          city: e.target.value,
+                        }));
+                      }}
+                    >
+                      <option value="">
+                        {loadingCities ? "Loading cities..." : "City"}
+                      </option>
+
+                      {cities.map((city) => (
+                        <option
+                          key={`${city.name}-${city.stateCode || ""}`}
+                          value={city.name}
+                        >
+                          {city.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                    />
+                  </div>
 
                   <input
                     placeholder="Postal code optional"
@@ -495,13 +673,29 @@ export default function CheckoutClient() {
                   }
                 />
 
+                <button
+                  type="button"
+                  onClick={fetchRates}
+                  disabled={
+                    loadingRates ||
+                    !formData.address ||
+                    !formData.city ||
+                    !formData.state ||
+                    !formData.country
+                  }
+                  className="mt-4 w-full h-11 rounded-lg border border-brand-beryl text-brand-beryl text-[12px] font-semibold hover:bg-brand-beryl hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {loadingRates
+                    ? "Fetching shipping options..."
+                    : "Get Shipping Options"}
+                </button>
+
                 <label className="mt-3 flex items-center gap-2 text-[12px] text-neutral-600">
                   <input type="checkbox" className="accent-black" />
                   Text me with news and offers
                 </label>
               </div>
 
-              {/* SHIPPING */}
               <div>
                 <h2 className="text-[17px] font-semibold text-black mb-3">
                   Shipping method
@@ -530,7 +724,14 @@ export default function CheckoutClient() {
                             onChange={() => setSelectedRate(rate)}
                             className="accent-black"
                           />
-                          <span>{rate.service_name || rate.carrier_name}</span>
+                          <div>
+                            <p className="text-[13px] font-medium">
+                              {rate.service_name || rate.carrier_name}
+                            </p>
+                            <p className="text-[11px] text-neutral-500">
+                              {rate.carrier_name} • {rate.delivery_time}
+                            </p>
+                          </div>
                         </div>
                         <span>₦{rate.amount.toLocaleString()}</span>
                       </label>
@@ -580,7 +781,6 @@ export default function CheckoutClient() {
             </section>
           </div>
 
-          {/* RIGHT */}
           <aside className="lg:sticky lg:top-24">
             <div className="bg-white border border-neutral-200 rounded-2xl p-5 md:p-6 shadow-sm">
               <h2 className="text-[17px] font-semibold text-black mb-5">
@@ -590,7 +790,9 @@ export default function CheckoutClient() {
               <div className="space-y-5">
                 {cart.map((item) => (
                   <div
-                    key={`${item._id}-${item.size}-${item.selectedPrintId || ""}`}
+                    key={`${item._id}-${item.size}-${
+                      item.selectedPrintId || ""
+                    }`}
                     className="flex gap-4 items-start"
                   >
                     <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-neutral-100 border shrink-0">
@@ -687,7 +889,6 @@ export default function CheckoutClient() {
                 </p>
               )}
 
-              {/* UPSELL */}
               {upsellProducts.length > 0 && (
                 <div className="mt-8 rounded-xl border border-neutral-200 p-4">
                   <div className="flex items-center justify-between mb-4">
