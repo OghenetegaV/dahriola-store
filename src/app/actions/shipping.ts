@@ -150,16 +150,6 @@ function getLocalRiderRates(deliveryData: DeliveryData): NormalizedRate[] {
   if (isIbadanOrOyo(deliveryData)) {
     return [
       {
-        id: "dahriola-rider-ibadan-standard",
-        rate_id: "dahriola-rider-ibadan-standard",
-        carrier_name: "Dahriola Local Rider",
-        service_name: "Ibadan Local Delivery",
-        delivery_time: "Same day / Next day",
-        amount: 2000,
-        currency: "NGN",
-        source: "local-rider",
-      },
-      {
         id: "dahriola-rider-ibadan-express",
         rate_id: "dahriola-rider-ibadan-express",
         carrier_name: "Dahriola Local Rider",
@@ -174,16 +164,6 @@ function getLocalRiderRates(deliveryData: DeliveryData): NormalizedRate[] {
 
   if (isLagos(deliveryData)) {
     return [
-      {
-        id: "dahriola-rider-lagos-standard",
-        rate_id: "dahriola-rider-lagos-standard",
-        carrier_name: "Dahriola Local Rider",
-        service_name: "Lagos Local Delivery",
-        delivery_time: "1-2 Business Days",
-        amount: 4000,
-        currency: "NGN",
-        source: "local-rider",
-      },
       {
         id: "dahriola-rider-lagos-express",
         rate_id: "dahriola-rider-lagos-express",
@@ -208,8 +188,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
       {
         id: "backup-ng-standard",
         rate_id: "backup-ng-standard",
-        carrier_name: "Nationwide Delivery Estimate",
-        service_name: "Standard Delivery Estimate",
+        carrier_name: "Nationwide Delivery ",
+        service_name: "Standard Delivery ",
         delivery_time: "3-7 Business Days",
         amount: 6000,
         currency: "NGN",
@@ -218,8 +198,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
       {
         id: "backup-ng-express",
         rate_id: "backup-ng-express",
-        carrier_name: "Nationwide Delivery Estimate",
-        service_name: "Express Delivery Estimate",
+        carrier_name: "Nationwide Delivery ",
+        service_name: "Express Delivery ",
         delivery_time: "2-4 Business Days",
         amount: 9000,
         currency: "NGN",
@@ -262,8 +242,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
     {
       id: "backup-intl-standard",
       rate_id: "backup-intl-standard",
-      carrier_name: "International Courier Estimate",
-      service_name: "Standard International Delivery Estimate",
+      carrier_name: "International Courier ",
+      service_name: "Standard International Delivery ",
       delivery_time: deliveryTime,
       amount,
       currency: "NGN",
@@ -272,8 +252,8 @@ function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
     {
       id: "backup-intl-priority",
       rate_id: "backup-intl-priority",
-      carrier_name: "International Courier Estimate",
-      service_name: "Priority International Delivery Estimate",
+      carrier_name: "International Courier ",
+      service_name: "Priority International Delivery ",
       delivery_time: "5-10 Business Days",
       amount: Math.round(amount * 1.45),
       currency: "NGN",

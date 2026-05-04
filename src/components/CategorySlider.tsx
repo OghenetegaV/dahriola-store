@@ -8,9 +8,9 @@ import { ChevronDown } from "lucide-react";
 const categories = [
   { title: "Skirts", slug: "skirts", image: "/products/skirts/wura-skirt.webp" },
   { title: "Co-ords", slug: "co-ords", image: "/products/set/alafia-set/alafia-set-1.webp" },
-  { title: "Dresses", slug: "dresses", image: "/products/dresses/new-dress-1.webp" },
+  { title: "Dresses", slug: "dresses", image: "/products/dresses/tolu-shirt-dress.webp" },
   { title: "Jackets", slug: "jackets", image: "/products/jackets/jacket-1.webp" },
-  // { title: "Pants", slug: "pants", image: "/products/trousers/trouser-2.webp" },
+  { title: "Pants", slug: "pants", image: "/products/trousers/trousers-1.webp" },
 ];
 
 // Double the categories to create the infinite loop effect
