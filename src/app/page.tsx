@@ -4,7 +4,7 @@ import CategorySlider from "../components/CategorySlider";
 import AnnouncementBar from "../components/AnnouncementBar";
 import AboutDahriola from "../components/AboutDahriola";
 import ServicesGrid from "../components/ServicesGrid";
-import FeaturedProducts from "../components/FeaturedProducts"; // Import the new component
+import FeaturedProducts from "../components/FeaturedProducts"; 
 import ClientShowcase from "../components/ClientShowcase";
 import CollectionTurntable from "../components/CollectionTurntable";
 

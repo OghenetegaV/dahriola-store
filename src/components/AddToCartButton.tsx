@@ -106,7 +106,7 @@ export default function AddToCartButton({
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="e.g. Please shorten the sleeves by 1 inch..."
+          placeholder="e.g. Please shorten the sleeves by 1 inch or use my specific measurement as follows..."
           className="w-full bg-[#fafafa] border border-neutral-200 rounded-md p-4 text-sm font-light focus:border-brand-beryl outline-none transition-all min-h-[100px] resize-none placeholder:text-neutral-300"
         />
       </div>
