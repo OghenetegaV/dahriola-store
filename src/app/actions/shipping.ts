@@ -40,7 +40,11 @@ function cleanText(value?: string) {
 }
 
 function normalizeText(value?: string) {
-  return cleanText(value).toLowerCase();
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(" state", "")
+    .trim();
 }
 
 function normalizeCountry(country?: string) {
@@ -107,6 +111,119 @@ function normalizeCountry(country?: string) {
   return countryMap[value] || value.toUpperCase() || "NG";
 }
 
+function getNigeriaLocalRiderAmount(deliveryData: DeliveryData) {
+  const city = normalizeText(deliveryData.city);
+  const state = normalizeText(deliveryData.state);
+
+  if (city.includes("ibadan")) {
+    return {
+      id: "ibadan",
+      amount: 4000,
+      deliveryTime: "Same day where available",
+    };
+  }
+
+  if (
+    state.includes("lagos") ||
+    [
+      "ikeja",
+      "yaba",
+      "surulere",
+      "lekki",
+      "ajah",
+      "ikoyi",
+      "victoria island",
+      "vi",
+      "maryland",
+      "gbagada",
+      "ikorodu",
+      "epe",
+      "badagry",
+      "oshodi",
+      "mushin",
+      "ogba",
+      "agege",
+    ].includes(city)
+  ) {
+    return {
+      id: "lagos",
+      amount: 8000,
+      deliveryTime: "Same day / Next day",
+    };
+  }
+
+  const southWest = ["oyo", "ogun", "osun", "ondo", "ekiti"];
+
+  const southSouth = [
+    "akwa ibom",
+    "bayelsa",
+    "cross river",
+    "delta",
+    "edo",
+    "rivers",
+  ];
+
+  const southEast = ["abia", "anambra", "ebonyi", "enugu", "imo"];
+
+  const northCentral = [
+    "benue",
+    "kogi",
+    "kwara",
+    "nasarawa",
+    "niger",
+    "plateau",
+    "fct",
+    "abuja",
+    "federal capital territory",
+  ];
+
+  const northEast = ["adamawa", "bauchi", "borno", "gombe", "taraba", "yobe"];
+
+  const northWest = [
+    "kaduna",
+    "kano",
+    "katsina",
+    "kebbi",
+    "sokoto",
+    "jigawa",
+    "zamfara",
+  ];
+
+  if (southWest.includes(state)) {
+    return {
+      id: "south-west",
+      amount: 10000,
+      deliveryTime: "2-5 Business Days",
+    };
+  }
+
+  if (southSouth.includes(state) || southEast.includes(state)) {
+    return {
+      id: "south-south-south-east",
+      amount: 15000,
+      deliveryTime: "3-7 Business Days",
+    };
+  }
+
+  if (northCentral.includes(state)) {
+    return {
+      id: "north-central",
+      amount: 12000,
+      deliveryTime: "3-7 Business Days",
+    };
+  }
+
+  if (northEast.includes(state) || northWest.includes(state)) {
+    return {
+      id: "north-east-north-west",
+      amount: 25000,
+      deliveryTime: "3-7 Business Days",
+    };
+  }
+
+  return null;
+}
+
 function isIbadanOrOyo(deliveryData: DeliveryData) {
   const city = normalizeText(deliveryData.city);
   const state = normalizeText(deliveryData.state);
@@ -147,37 +264,22 @@ function getLocalRiderRates(deliveryData: DeliveryData): NormalizedRate[] {
 
   if (country !== "NG") return [];
 
-  if (isIbadanOrOyo(deliveryData)) {
-    return [
-      {
-        id: "dahriola-rider-ibadan-express",
-        rate_id: "dahriola-rider-ibadan-express",
-        carrier_name: "Dahriola Local Rider",
-        service_name: "Ibadan Express Delivery",
-        delivery_time: "Same day where available",
-        amount: 3500,
-        currency: "NGN",
-        source: "local-rider",
-      },
-    ];
-  }
+  const localRider = getNigeriaLocalRiderAmount(deliveryData);
 
-  if (isLagos(deliveryData)) {
-    return [
-      {
-        id: "dahriola-rider-lagos-express",
-        rate_id: "dahriola-rider-lagos-express",
-        carrier_name: "Dahriola Local Rider",
-        service_name: "Lagos Express Delivery",
-        delivery_time: "Same day / Next day",
-        amount: 6500,
-        currency: "NGN",
-        source: "local-rider",
-      },
-    ];
-  }
+  if (!localRider) return [];
 
-  return [];
+  return [
+    {
+      id: `dahriola-rider-${localRider.id}`,
+      rate_id: `dahriola-rider-${localRider.id}`,
+      carrier_name: "Dahriola Local Rider",
+      service_name: "Local Rider Delivery",
+      delivery_time: localRider.deliveryTime,
+      amount: localRider.amount,
+      currency: "NGN",
+      source: "local-rider",
+    },
+  ];
 }
 
 function getBackupRates(deliveryData: DeliveryData): NormalizedRate[] {
@@ -311,14 +413,16 @@ function mergeRates(
 
   const seen = new Set<string>();
 
-  return combined.filter((rate) => {
-    const key = `${rate.carrier_name}-${rate.service_name}-${rate.amount}`;
+  return combined
+    .filter((rate) => {
+      const key = `${rate.carrier_name}-${rate.service_name}-${rate.amount}`;
 
-    if (seen.has(key)) return false;
+      if (seen.has(key)) return false;
 
-    seen.add(key);
-    return true;
-  });
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.amount - b.amount);
 }
 
 export async function getShippingRates(
@@ -445,6 +549,15 @@ export async function getShippingRates(
 
       return mergeRates(localRiderRates, [], backupRates);
     }
+
+    console.log(
+      "TERMINAL RAW RATES:",
+      terminalRates.map((rate: any) => ({
+        carrier_name: rate.carrier_name,
+        service_name: rate.service_name || rate.carrier_rate_description,
+        amount: rate.amount,
+      }))
+    );
 
     const normalizedTerminalRates = normalizeTerminalRates(terminalRates);
 

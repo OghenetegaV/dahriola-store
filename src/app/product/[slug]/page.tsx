@@ -36,6 +36,17 @@ async function getProduct(slug: string) {
       stockQuantity,
       lowStockThreshold,
       isActive
+    },
+    "reviews": *[
+      _type == "review" &&
+      product._ref == ^._id &&
+      approved == true
+    ] | order(_createdAt desc) {
+      _id,
+      name,
+      rating,
+      title,
+      comment
     }
   }`;
 
@@ -147,7 +158,11 @@ export default async function ProductPage({
         </section>
 
         {/* REVIEWS */}
-        <ProductReviews productName={product.name} />
+        <ProductReviews
+          productId={product._id}
+          productName={product.name}
+          savedReviews={product.reviews || []}
+        />
       </main>
     </div>
   );
