@@ -78,7 +78,7 @@ export default function OurStoryPage() {
                 </div>
 
                 <p className="mt-5 text-[10px] uppercase tracking-[0.35em] text-neutral-400 font-bold">
-                  Founder / Creative Direction
+                  Founder / Creative Director
                 </p>
               </div>
             </div>

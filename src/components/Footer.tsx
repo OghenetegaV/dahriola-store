@@ -35,6 +35,20 @@ export default function Footer() {
     return () => observer.disconnect();
   }, []);
 
+  function TikTokIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M16.6 5.82c1.1.78 2.43 1.24 3.85 1.29v3.16c-1.32-.03-2.58-.32-3.72-.86v5.83c0 3.33-2.7 6.03-6.03 6.03s-6.03-2.7-6.03-6.03 2.7-6.03 6.03-6.03c.36 0 .71.03 1.05.09v3.29a2.8 2.8 0 0 0-1.05-.2 2.86 2.86 0 1 0 2.86 2.86V2.73h3.04v3.09Z" />
+    </svg>
+  );
+}
+
   return (
     <footer ref={footerRef} className="relative pt-64 pb-12 overflow-hidden bg-white">
       {/* 1. Animated Background Layer (The Dark Slide-up) */}
@@ -158,6 +172,14 @@ export default function Footer() {
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">Connect</h5>
             <div className="flex flex-col gap-5">
+              <a
+                href="https://www.tiktok.com/@dahriola?_r=1&_t=ZS-969YztKGEa5"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all"
+              >
+                <TikTokIcon size={14} /> TikTok
+              </a>
               <a href="https://instagram.com/dahriola_" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">
                 <Instagram size={14} /> Instagram
               </a>
