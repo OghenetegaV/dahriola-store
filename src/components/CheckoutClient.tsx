@@ -367,7 +367,7 @@ export default function CheckoutClient() {
       if (verification.success) {
         await reducePrintStockAfterOrder(cart);
 
-        await sendOrderNotification({
+        const emailResult = await sendOrderNotification({
           orderNumber: transactionReference,
           customerName: formData.name,
           customerEmail: formData.email,
@@ -377,13 +377,21 @@ export default function CheckoutClient() {
           shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
         });
 
+        if (!emailResult.success) {
+          console.error(
+            "Order was paid, but email notification failed:",
+            emailResult
+          );
+        }
+
         clearCart();
         router.push(`/success?reference=${transactionReference}`);
       } else {
         setShippingError("Payment verification failed.");
         setIsProcessing(false);
       }
-    } catch {
+    } catch (error) {
+      console.error("Payment success handler error:", error);
       setIsProcessing(false);
     }
   };
