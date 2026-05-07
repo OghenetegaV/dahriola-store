@@ -74,6 +74,13 @@ export default {
       initialValue: false,
     },
     {
+      name: "productionTime",
+      title: "Production Time",
+      type: "string",
+      description: "Enter only the number range, e.g. 2-3, 4-5, or 5-7. The website will display it as working days.",
+      placeholder: "2-4",
+    },
+    {
       name: 'description',
       title: 'Description',
       type: 'array',

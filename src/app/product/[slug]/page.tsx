@@ -22,6 +22,7 @@ async function getProduct(slug: string) {
     name,
     briefDescription,
     description,
+    productionTime,
     priceNGN,
     compareAtPrice,
     productType,

@@ -72,11 +72,19 @@ const portableTextComponents = {
   },
 };
 
+function getProductionTime(product: any) {
+  const productionTime = String(product.productionTime || "2-4").trim();
+
+  return `This outfit requires ${productionTime} working days for production before dispatch.`;
+}
+
 export default function ProductPageClient({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState("XS");
   const [selectedPrint, setSelectedPrint] = useState<any | null>(null);
   const [previewPrint, setPreviewPrint] = useState<any | null>(null);
   const [showAllPrints, setShowAllPrints] = useState(false);
+
+  const productionTimeText = getProductionTime(product);
 
   const printOptions =
     product.prints && product.prints.length > 0
@@ -148,12 +156,6 @@ export default function ProductPageClient({ product }: { product: any }) {
               <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black">
                 Available Prints
               </h2>
-
-              {/* {activePrint && (
-                <p className="text-[11px] text-brand-beryl font-semibold mt-1">
-                  Selected: {activePrint.name}
-                </p>
-              )} */}
             </div>
 
             {printOptions.length > 4 && (
@@ -274,10 +276,7 @@ export default function ProductPageClient({ product }: { product: any }) {
 
         <BoxAccordion title="Production Time">
           <div className="text-[14px] leading-6 text-[#444] space-y-1">
-            <p>
-              This outfit requires 2–4 working days for production before
-              dispatch.
-            </p>
+            <p>{productionTimeText}</p>
           </div>
         </BoxAccordion>
       </section>
