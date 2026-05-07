@@ -82,7 +82,7 @@ export default function ProductPageClient({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState("XS");
   const [selectedPrint, setSelectedPrint] = useState<any | null>(null);
   const [previewPrint, setPreviewPrint] = useState<any | null>(null);
-  const [showAllPrints, setShowAllPrints] = useState(false);
+  const [showPrintsModal, setShowPrintsModal] = useState(false);
 
   const productionTimeText = getProductionTime(product);
 
@@ -108,14 +108,17 @@ export default function ProductPageClient({ product }: { product: any }) {
           })
       : [];
 
-  const visiblePrints = showAllPrints
-    ? printOptions
-    : printOptions.slice(0, 6);
+  const visiblePrints = printOptions.slice(0, 6);
 
   const activePrint =
     selectedPrint && !selectedPrint.isOutOfStock
       ? selectedPrint
       : printOptions.find((print: any) => !print.isOutOfStock) || null;
+
+  const handleSelectPrint = (print: any) => {
+    if (print.isOutOfStock) return;
+    setSelectedPrint(print);
+  };
 
   return (
     <>
@@ -158,13 +161,13 @@ export default function ProductPageClient({ product }: { product: any }) {
               </h2>
             </div>
 
-            {printOptions.length > 4 && (
+            {printOptions.length > 6 && (
               <button
                 type="button"
-                onClick={() => setShowAllPrints((prev) => !prev)}
+                onClick={() => setShowPrintsModal(true)}
                 className="text-[9px] uppercase tracking-widest font-bold text-brand-beryl border-b border-brand-beryl/20 hover:text-black transition-colors"
               >
-                {showAllPrints ? "View Less" : "View More"}
+                View More
               </button>
             )}
           </div>
@@ -180,7 +183,7 @@ export default function ProductPageClient({ product }: { product: any }) {
                   disabled={print.isOutOfStock}
                   onClick={() => {
                     if (print.isOutOfStock) return;
-                    setSelectedPrint(print);
+                    handleSelectPrint(print);
                     setPreviewPrint(print);
                   }}
                   className={`relative w-[64px] h-[80px] rounded-md overflow-hidden bg-[#f7f7f7] transition ${
@@ -280,6 +283,121 @@ export default function ProductPageClient({ product }: { product: any }) {
           </div>
         </BoxAccordion>
       </section>
+
+      {showPrintsModal && (
+        <div
+          className="fixed inset-0 z-[240] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowPrintsModal(false)}
+        >
+          <div
+            className="bg-white w-full max-w-5xl max-h-[90vh] rounded-3xl overflow-hidden relative flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 md:p-6 border-b border-neutral-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <div>
+                <h3 className="font-display text-2xl tracking-tight text-black">
+                  Available Prints
+                </h3>
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  Select a print for this outfit.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPrintsModal(false)}
+                className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-black"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 md:p-6 overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {printOptions.map((print: any) => {
+                  const isSelected = activePrint?.id === print.id;
+
+                  return (
+                    <button
+                      key={print.id}
+                      type="button"
+                      disabled={print.isOutOfStock}
+                      onClick={() => {
+                        if (print.isOutOfStock) return;
+                        handleSelectPrint(print);
+                        setShowPrintsModal(false);
+                      }}
+                      className={`relative overflow-hidden rounded-2xl bg-neutral-50 border transition text-left ${
+                        print.isOutOfStock
+                          ? "cursor-not-allowed opacity-45 grayscale"
+                          : "cursor-pointer hover:border-black"
+                      } ${
+                        isSelected
+                          ? "border-2 border-brand-beryl ring-2 ring-brand-beryl/20"
+                          : "border-neutral-200"
+                      }`}
+                    >
+                      <div className="relative aspect-[4/5] w-full bg-neutral-100 overflow-hidden">
+                        {print.image ? (
+                          <img
+                            src={urlFor(print.image)
+                              .width(700)
+                              .height(900)
+                              .url()}
+                            alt={print.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[12px] text-neutral-500 px-3 text-center">
+                            {print.name}
+                          </div>
+                        )}
+
+                        {isSelected && !print.isOutOfStock && (
+                          <span className="absolute top-3 right-3 w-7 h-7 rounded-full bg-brand-beryl text-white flex items-center justify-center shadow">
+                            <Check size={15} />
+                          </span>
+                        )}
+
+                        {print.isOutOfStock && (
+                          <span className="absolute left-3 right-3 bottom-3 bg-black/80 text-white text-[9px] uppercase tracking-widest py-2 rounded-full text-center">
+                            Out of stock
+                          </span>
+                        )}
+
+                        {print.isLowStock && !print.isOutOfStock && (
+                          <span className="absolute left-3 right-3 bottom-3 bg-brand-beryl/90 text-white text-[9px] uppercase tracking-widest py-2 rounded-full text-center">
+                            Low stock
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="p-3">
+                        <p className="text-[12px] font-semibold text-black leading-snug">
+                          {print.name}
+                        </p>
+
+                        {print.stockQuantity > 0 && (
+                          <p className="text-[10px] text-neutral-500 mt-1">
+                            {print.stockQuantity} outfit
+                            {print.stockQuantity === 1 ? "" : "s"} available
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 bg-neutral-50 text-center">
+              <p className="text-[10px] text-neutral-500 uppercase tracking-widest">
+                Tap a print to select it.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {previewPrint && (
         <div
