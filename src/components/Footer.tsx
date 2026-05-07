@@ -144,7 +144,7 @@ export default function Footer() {
           <div className="space-y-8">
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">The Studio</h5>
             <div className="flex flex-col gap-5">
-              <Link href="/" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
+              <Link href="/our-story" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
               <Link href="/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Appointments</Link>
               <button 
                 onClick={() => setActivePolicy('shipping')} 
