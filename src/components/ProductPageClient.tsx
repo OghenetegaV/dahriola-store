@@ -258,22 +258,32 @@ export default function ProductPageClient({ product }: { product: any }) {
         </BoxAccordion>
 
         <BoxAccordion title="Composition & Care">
-          <div className="text-[14px] leading-6 text-[#444] space-y-1">
-            <p>100% cotton</p>
-            <p>
-              Hand wash separately in cold water, or machine wash on a gentle
-              cycle
-            </p>
-            <p>Use mild detergent only. Do not bleach.</p>
-            <p>Dry away from direct harsh sunlight</p>
-            <p>Steam or iron on low heat, preferably inside out</p>
+          <div className="pt-1">
+            {Array.isArray(product?.category?.compositionCare) ? (
+              <PortableText
+                value={product.category.compositionCare}
+                components={portableTextComponents}
+              />
+            ) : (
+              <p className="text-[14px] leading-6 text-[#444]">
+                No composition details available.
+              </p>
+            )}
           </div>
         </BoxAccordion>
 
         <BoxAccordion title="Size & Fit">
-          <div className="text-[14px] leading-6 text-[#444] space-y-1">
-            <p>Fits true to size</p>
-            <p>Relaxed silhouette</p>
+          <div className="pt-1">
+            {Array.isArray(product?.category?.sizeFit) ? (
+              <PortableText
+                value={product.category.sizeFit}
+                components={portableTextComponents}
+              />
+            ) : (
+              <p className="text-[14px] leading-6 text-[#444]">
+                No size information available.
+              </p>
+            )}
           </div>
         </BoxAccordion>
 

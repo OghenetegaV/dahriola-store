@@ -27,9 +27,19 @@ async function getProduct(slug: string) {
     compareAtPrice,
     productType,
     images,
+
+    category->{
+      _id,
+      title,
+      slug,
+      compositionCare,
+      sizeFit
+    },
+
     "categoryName": category->title,
     "categoryId": category->_id,
     "slug": slug.current,
+
     "prints": prints[]->{
       _id,
       name,
@@ -38,6 +48,7 @@ async function getProduct(slug: string) {
       lowStockThreshold,
       isActive
     },
+
     "reviews": *[
       _type == "review" &&
       product._ref == ^._id &&

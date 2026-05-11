@@ -18,16 +18,32 @@ export default {
       },
       validation: (Rule: any) => Rule.required(),
     },
+
     {
       name: 'slug',
       title: 'Slug',
       type: 'slug',
       options: { source: 'title' },
     },
+
     {
       name: 'description',
       title: 'Description',
       type: 'text',
+    },
+
+    {
+      name: 'compositionCare',
+      title: 'Composition & Care',
+      type: 'array',
+      of: [{ type: 'block' }],
+    },
+
+    {
+      name: 'sizeFit',
+      title: 'Size & Fit',
+      type: 'array',
+      of: [{ type: 'block' }],
     },
   ],
 }
