@@ -20,70 +20,70 @@ type ProductReviewsProps = {
 };
 
 const REVIEW_POOL: Review[] = [
-  {
-    id: "1",
-    name: "Amaka O.",
-    rating: 5,
-    title: "The quality is beautiful",
-    comment:
-      "The fabric, finishing, and fit all feel premium. It gave exactly the elegant look I wanted.",
-  },
-  {
-    id: "2",
-    name: "Tolu A.",
-    rating: 5,
-    title: "Instant compliments",
-    comment:
-      "I wore it once and got compliments immediately. It feels comfortable but still very polished.",
-  },
-  {
-    id: "3",
-    name: "Mariam B.",
-    rating: 4,
-    title: "Elegant and easy to wear",
-    comment:
-      "The design feels intentional and flattering. I love how effortless it looks when styled.",
-  },
-  {
-    id: "4",
-    name: "Kemi R.",
-    rating: 5,
-    title: "Very flattering fit",
-    comment:
-      "The shape sits so nicely on the body. It made me feel dressed up without trying too hard.",
-  },
-  {
-    id: "5",
-    name: "Ify N.",
-    rating: 5,
-    title: "Exactly as pictured",
-    comment:
-      "The outfit looked just like the photos. The color, fit, and finishing were all very neat.",
-  },
-  {
-    id: "6",
-    name: "Bisola T.",
-    rating: 4,
-    title: "Beautiful craftsmanship",
-    comment:
-      "You can tell attention was paid to the details. The stitching and finishing were really clean.",
-  },
-  {
-    id: "7",
-    name: "Rukayat S.",
-    rating: 5,
-    title: "Worth it",
-    comment:
-      "The piece feels special and well-made. I loved how polished it looked when I wore it out.",
-  },
-  {
-    id: "8",
-    name: "Zainab A.",
-    rating: 5,
-    title: "Comfortable and stylish",
-    comment:
-      "It was comfortable for hours and still looked elegant. I would definitely order again.",
-  },
+  // {
+  //   id: "1",
+  //   name: "Amaka O.",
+  //   rating: 5,
+  //   title: "The quality is beautiful",
+  //   comment:
+  //     "The fabric, finishing, and fit all feel premium. It gave exactly the elegant look I wanted.",
+  // },
+  // {
+  //   id: "2",
+  //   name: "Tolu A.",
+  //   rating: 5,
+  //   title: "Instant compliments",
+  //   comment:
+  //     "I wore it once and got compliments immediately. It feels comfortable but still very polished.",
+  // },
+  // {
+  //   id: "3",
+  //   name: "Mariam B.",
+  //   rating: 4,
+  //   title: "Elegant and easy to wear",
+  //   comment:
+  //     "The design feels intentional and flattering. I love how effortless it looks when styled.",
+  // },
+  // {
+  //   id: "4",
+  //   name: "Kemi R.",
+  //   rating: 5,
+  //   title: "Very flattering fit",
+  //   comment:
+  //     "The shape sits so nicely on the body. It made me feel dressed up without trying too hard.",
+  // },
+  // {
+  //   id: "5",
+  //   name: "Ify N.",
+  //   rating: 5,
+  //   title: "Exactly as pictured",
+  //   comment:
+  //     "The outfit looked just like the photos. The color, fit, and finishing were all very neat.",
+  // },
+  // {
+  //   id: "6",
+  //   name: "Bisola T.",
+  //   rating: 4,
+  //   title: "Beautiful craftsmanship",
+  //   comment:
+  //     "You can tell attention was paid to the details. The stitching and finishing were really clean.",
+  // },
+  // {
+  //   id: "7",
+  //   name: "Rukayat S.",
+  //   rating: 5,
+  //   title: "Worth it",
+  //   comment:
+  //     "The piece feels special and well-made. I loved how polished it looked when I wore it out.",
+  // },
+  // {
+  //   id: "8",
+  //   name: "Zainab A.",
+  //   rating: 5,
+  //   title: "Comfortable and stylish",
+  //   comment:
+  //     "It was comfortable for hours and still looked elegant. I would definitely order again.",
+  // },
 ];
 
 function hashString(value: string) {

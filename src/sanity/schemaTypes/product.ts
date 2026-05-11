@@ -65,14 +65,14 @@ export default {
       type: 'number',
       hidden: ({ document }: any) => document?.productType === 'bespoke',
     },
-    {
-      name: 'allowCustomization',
-      title: 'Allow RTW Customization?',
-      type: 'boolean',
-      description: 'Enable to let customers request adjustments on this RTW piece.',
-      hidden: ({ document }: any) => document?.productType === 'bespoke',
-      initialValue: false,
-    },
+    // {
+    //   name: 'allowCustomization',
+    //   title: 'Allow RTW Customization?',
+    //   type: 'boolean',
+    //   description: 'Enable to let customers request adjustments on this RTW piece.',
+    //   hidden: ({ document }: any) => document?.productType === 'bespoke',
+    //   initialValue: false,
+    // },
     {
       name: "productionTime",
       title: "Production Time",
