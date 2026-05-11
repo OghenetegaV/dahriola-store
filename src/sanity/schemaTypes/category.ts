@@ -27,12 +27,6 @@ export default {
     },
 
     {
-      name: 'description',
-      title: 'Description',
-      type: 'text',
-    },
-
-    {
       name: 'compositionCare',
       title: 'Composition & Care',
       type: 'array',
