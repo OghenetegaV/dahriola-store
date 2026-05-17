@@ -5,7 +5,9 @@ import { JWT } from "google-auth-library";
 const serviceAccountAuth = new JWT({
   email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
   key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  scopes: [
+    "https://www.googleapis.com/auth/spreadsheets",
+  ],
 });
 
 const doc = new GoogleSpreadsheet(
@@ -23,23 +25,36 @@ export async function POST(req: Request) {
 
     const sheet = doc.sheetsByIndex[0];
 
+    const rows = await sheet.getRows();
+
+    if (rows.length === 0) {
+      await sheet.setHeaderRow([
+        "Name",
+        "Email",
+        "Birthday",
+        "Source",
+        "Created At",
+      ]);
+    }
+
     await sheet.addRow({
       Name: name,
       Email: email,
       Birthday: birthday,
       Source: source,
-      Date: new Date().toISOString(),
+      "Created At": new Date().toISOString(),
     });
 
     return NextResponse.json({
       success: true,
     });
   } catch (error) {
-    console.error(error);
+    console.error("NEWSLETTER ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
+        error: "Failed to save subscriber",
       },
       {
         status: 500,
