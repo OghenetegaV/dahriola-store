@@ -19,15 +19,21 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { name, email, birthday, source } = body;
+    const {
+      name,
+      email,
+      birthday,
+      source,
+    } = body;
 
     await doc.loadInfo();
 
     const sheet = doc.sheetsByIndex[0];
 
-    const rows = await sheet.getRows();
-
-    if (rows.length === 0) {
+    // CREATE HEADER ROW IF IT DOESN'T EXIST
+    try {
+      await sheet.loadHeaderRow();
+    } catch {
       await sheet.setHeaderRow([
         "Name",
         "Email",
@@ -48,13 +54,14 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
     });
+
   } catch (error) {
     console.error("NEWSLETTER ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to save subscriber",
+        error: String(error),
       },
       {
         status: 500,
