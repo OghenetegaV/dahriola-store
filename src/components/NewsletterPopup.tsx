@@ -154,7 +154,7 @@ export default function NewsletterPopup() {
                     src="/newsletter_2.jpg"
                     alt="Dahriola"
                     fill
-                    className="object-cover rounded-l-2xl"
+                    className="object-fill rounded-l-2xl"
                   />
                 </div>
 
@@ -226,7 +226,7 @@ export default function NewsletterPopup() {
                                 e.target.value,
                             })
                           }
-                          placeholder="BIRTHDAY"
+                          placeholder="BIRTHDAY(DD/MM)"
                           className="w-full bg-transparent border-b border-neutral-200 pb-3 text-[10px] tracking-[0.18em] focus:outline-none focus:border-brand-beryl placeholder:text-neutral-300"
                         />
                       </div>
