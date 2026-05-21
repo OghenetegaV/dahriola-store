@@ -1,35 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight } from "lucide-react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  AnimatePresence,
+  motion,
+} from "framer-motion";
+
+import {
+  ArrowRight,
+  X,
+  Copy,
+} from "lucide-react";
+
 import Image from "next/image";
 
 export default function NewsletterPopup() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] =
+    useState(false);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    birthday: "",
-    source: "",
-  });
+  const [loading, setLoading] =
+    useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] =
+    useState(false);
+
+  const [
+    discountCode,
+    setDiscountCode,
+  ] = useState("");
+
+  const [
+    alreadySubscribed,
+    setAlreadySubscribed,
+  ] = useState(false);
+
+  const [formData, setFormData] =
+    useState({
+      name: "",
+      email: "",
+      birthday: "",
+      source: "",
+    });
 
   useEffect(() => {
-    const alreadyClosed = localStorage.getItem(
-      "dahriola-newsletter-closed"
-    );
+    const hidden =
+      localStorage.getItem(
+        "dahriola-newsletter-closed"
+      );
 
-    if (alreadyClosed) return;
+    if (hidden) return;
 
     const timer = setTimeout(() => {
       setIsOpen(true);
     }, 5000);
 
-    return () => clearTimeout(timer);
+    return () =>
+      clearTimeout(timer);
   }, []);
 
   const closePopup = () => {
@@ -41,285 +71,281 @@ export default function NewsletterPopup() {
     setIsOpen(false);
   };
 
-  const handleSubmit = async (
+  async function handleSubmit(
     e: React.FormEvent
-  ) => {
+  ) {
     e.preventDefault();
 
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "/api/newsletter",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const res =
+        await fetch(
+          "/api/newsletter",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify(
+              formData
+            ),
+          }
+        );
 
-      const data = await response.json();
+      const data =
+        await res.json();
 
       if (data.success) {
         setSubmitted(true);
+
+        setDiscountCode(
+          data.discountCode || ""
+        );
+
+        setAlreadySubscribed(
+          data.alreadySubscribed
+        );
 
         localStorage.setItem(
           "dahriola-newsletter-closed",
           "true"
         );
-
-        setFormData({
-          name: "",
-          email: "",
-          birthday: "",
-          source: "",
-        });
-
-        setTimeout(() => {
-          setIsOpen(false);
-        }, 2500);
       }
-    } catch (error) {
-      console.error(error);
     } finally {
       setLoading(false);
     }
+  }
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(
+      discountCode
+    );
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[200] overflow-y-auto">
-          {/* BACKDROP */}
+
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50"
             onClick={closePopup}
-            className="fixed inset-0 bg-black/50 backdrop-blur-md"
           />
 
-          {/* MODAL */}
-          <div className="relative min-h-screen flex items-center justify-center py-6 px-4 md:px-6">
+          <div className="min-h-screen flex items-center justify-center p-4">
+
             <motion.div
               initial={{
                 opacity: 0,
-                y: 40,
-                scale: 0.96,
+                scale: 0.95,
               }}
               animate={{
                 opacity: 1,
-                y: 0,
                 scale: 1,
               }}
-              exit={{
-                opacity: 0,
-                y: 30,
-                scale: 0.96,
-              }}
-              transition={{
-                duration: 0.7,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              className="relative w-[92%] md:w-full max-w-[950px] bg-white rounded-2xl shadow-2xl flex flex-col md:flex-row mx-auto"
+              className="relative w-full max-w-[950px] bg-white rounded-3xl overflow-hidden flex flex-col md:flex-row"
             >
-              {/* CLOSE */}
               <button
                 onClick={closePopup}
-                className="absolute top-3 right-3 md:top-6 md:right-6 z-30 p-2 rounded-full bg-white/90 backdrop-blur-sm hover:bg-neutral-100 transition-colors text-neutral-700"
+                className="absolute top-5 right-5 z-50"
               >
-                <X
-                  size={18}
-                  strokeWidth={1.7}
-                />
+                <X />
               </button>
 
-              {/* IMAGE SIDE */}
-              <div className="relative w-full md:w-1/2 h-[320px] md:h-auto bg-neutral-100 flex-shrink-0">
-                {/* MOBILE */}
-                <div className="block md:hidden h-full">
-                  <img
-                    src="/newsletter_2.jpg"
-                    alt="Dahriola"
-                    className="w-full h-full object-cover rounded-t-2xl"
-                  />
-                </div>
+              <div className="relative md:w-1/2 h-[320px]">
 
-                {/* DESKTOP */}
-                <div className="hidden md:block absolute inset-0">
-                  <Image
-                    src="/newsletter_2.jpg"
-                    alt="Dahriola"
-                    fill
-                    className="object-fill rounded-l-2xl"
-                  />
-                </div>
+                <Image
+                  src="/newsletter_2.jpg"
+                  fill
+                  alt=""
+                  className="object-cover"
+                />
 
-                <div className="absolute inset-0 bg-black/10 md:rounded-l-2xl rounded-t-2xl" />
               </div>
 
-              {/* CONTENT SIDE */}
-              <div className="w-full md:w-1/2 p-5 md:p-12 flex flex-col justify-center">
-                <div className="space-y-5">
-                  {/* TOP */}
-                  <div>
-                    <span className="text-[8px] md:text-[9px] uppercase tracking-[0.45em] text-neutral-400 font-bold block mb-4">
-                      The Dahriola Archive
-                    </span>
+              <div className="md:w-1/2 p-8 md:p-14">
 
-                    <h2 className="font-display text-3xl md:text-5xl lowercase text-neutral-900 leading-[0.95] tracking-tighter">
-                      join the inner <br />
-
-                      <span className="text-brand-beryl italic">
-                        circle.
-                      </span>
+                {!submitted ? (
+                  <>
+                    <h2 className="text-4xl mb-5">
+                      Join the Inner Circle
                     </h2>
-                  </div>
 
-                  {/* DESCRIPTION */}
-                  <p className="text-[9px] md:text-[11px] uppercase tracking-[0.18em] leading-relaxed text-neutral-500 max-w-[320px]">
-                    Receive exclusive collection previews,
-                    birthday surprises, private
-                    invitations, and early access to
-                    future releases.
-                  </p>
-
-                  {/* SUCCESS */}
-                  {submitted ? (
-                    <div className="py-8">
-                      <p className="text-[11px] uppercase tracking-[0.3em] text-brand-beryl font-semibold">
-                        Thank you for joining Dahriola.
-                      </p>
-                    </div>
-                  ) : (
                     <form
-                      onSubmit={handleSubmit}
-                      className="space-y-4 pt-2"
+                      onSubmit={
+                        handleSubmit
+                      }
+                      className="space-y-5"
                     >
-                      {/* NAME + BIRTHDAY */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          required
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData({
+                      <input
+                        required
+                        placeholder="Name"
+                        className="w-full border-b p-3"
+                        value={
+                          formData.name
+                        }
+                        onChange={(
+                          e
+                        ) =>
+                          setFormData(
+                            {
                               ...formData,
                               name:
-                                e.target.value,
-                            })
-                          }
-                          placeholder="FULL NAME"
-                          className="w-full bg-transparent border-b border-neutral-200 pb-3 text-[10px] tracking-[0.18em] focus:outline-none focus:border-brand-beryl placeholder:text-neutral-300"
-                        />
-
-                        <input
-                          type="text"
-                          value={formData.birthday}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              birthday:
-                                e.target.value,
-                            })
-                          }
-                          placeholder="BIRTHDAY(DD/MM)"
-                          className="w-full bg-transparent border-b border-neutral-200 pb-3 text-[10px] tracking-[0.18em] focus:outline-none focus:border-brand-beryl placeholder:text-neutral-300"
-                        />
-                      </div>
-
-                      {/* EMAIL */}
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            email:
-                              e.target.value,
-                          })
+                                e.target
+                                  .value,
+                            }
+                          )
                         }
-                        placeholder="EMAIL ADDRESS"
-                        className="w-full bg-transparent border-b border-neutral-200 pb-3 text-[10px] tracking-[0.18em] focus:outline-none focus:border-brand-beryl placeholder:text-neutral-300"
                       />
 
-                      {/* SOURCE */}
+                      <input
+                        required
+                        type="email"
+                        placeholder="Email"
+                        className="w-full border-b p-3"
+                        value={
+                          formData.email
+                        }
+                        onChange={(
+                          e
+                        ) =>
+                          setFormData(
+                            {
+                              ...formData,
+                              email:
+                                e.target
+                                  .value,
+                            }
+                          )
+                        }
+                      />
+
+                      <input
+                        placeholder="Birthday"
+                        className="w-full border-b p-3"
+                        value={
+                          formData.birthday
+                        }
+                        onChange={(
+                          e
+                        ) =>
+                          setFormData(
+                            {
+                              ...formData,
+                              birthday:
+                                e.target
+                                  .value,
+                            }
+                          )
+                        }
+                      />
+
                       <select
                         required
-                        value={formData.source}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            source:
-                              e.target.value,
-                          })
+                        className="w-full border-b p-3"
+                        value={
+                          formData.source
                         }
-                        className="w-full bg-transparent border-b border-neutral-200 pb-3 text-[10px] uppercase tracking-[0.18em] focus:outline-none focus:border-brand-beryl text-neutral-500"
+                        onChange={(
+                          e
+                        ) =>
+                          setFormData(
+                            {
+                              ...formData,
+                              source:
+                                e.target
+                                  .value,
+                            }
+                          )
+                        }
                       >
                         <option value="">
-                          HOW DID YOU FIND US?
+                          How did you find us?
                         </option>
 
-                        <option value="Instagram">
+                        <option>
                           Instagram
                         </option>
 
-                        <option value="TikTok">
+                        <option>
                           TikTok
                         </option>
 
-                        <option value="Google">
+                        <option>
                           Google
                         </option>
 
-                        <option value="Pinterest">
-                          Pinterest
-                        </option>
-
-                        <option value="Friend / Referral">
-                          Friend / Referral
-                        </option>
-
-                        <option value="Event">
-                          Event
-                        </option>
-
-                        <option value="Other">
-                          Other
+                        <option>
+                          Referral
                         </option>
                       </select>
 
-                      {/* BUTTON */}
                       <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-4 bg-neutral-900 text-white text-[10px] uppercase tracking-[0.35em] font-bold hover:bg-brand-beryl transition-all duration-500 flex items-center justify-center gap-3 group"
+                        disabled={
+                          loading
+                        }
+                        className="w-full bg-black text-white py-4"
                       >
                         {loading
                           ? "Submitting..."
-                          : "Subscribe"}
+                          : "Unlock Offer"}
 
-                        <ArrowRight
-                          size={14}
-                          className="group-hover:translate-x-2 transition-transform duration-500"
-                        />
+                        <ArrowRight className="inline ml-3" />
                       </button>
                     </form>
-                  )}
+                  </>
+                ) : (
+                  <div className="text-center">
 
-                  {/* FOOTER */}
-                  <p className="text-[7px] uppercase tracking-[0.12em] text-neutral-300 text-center italic pt-1">
-                    No spam. Just precision and
-                    vision.
-                  </p>
-                </div>
+                    {alreadySubscribed ? (
+                      <>
+                        <h2 className="text-3xl">
+                          You're already in
+                        </h2>
+
+                        <p className="mt-3">
+                          One welcome code
+                          per email.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-3xl">
+                          Welcome
+                        </h2>
+
+                        <p className="mt-4">
+                          Your discount code
+                        </p>
+
+                        <div className="border py-6 mt-5">
+
+                          <div className="text-3xl font-bold tracking-[0.3em]">
+                            {discountCode}
+                          </div>
+
+                        </div>
+
+                        <button
+                          onClick={
+                            copyCode
+                          }
+                          className="mt-5"
+                        >
+                          <Copy />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
               </div>
             </motion.div>
+
           </div>
+
         </div>
       )}
     </AnimatePresence>
