@@ -3,24 +3,28 @@ import { GoogleSpreadsheet } from "google-spreadsheet";
 import { JWT } from "google-auth-library";
 
 const auth = new JWT({
-  email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(
-    /\\n/g,
-    "\n"
-  ),
+  email:
+    process.env
+      .GOOGLE_SERVICE_ACCOUNT_EMAIL,
+
+  key:
+    process.env
+      .GOOGLE_PRIVATE_KEY?.replace(
+        /\\n/g,
+        "\n"
+      ),
+
   scopes: [
     "https://www.googleapis.com/auth/spreadsheets",
   ],
 });
 
-const doc = new GoogleSpreadsheet(
-  process.env.GOOGLE_SHEET_ID!,
-  auth
-);
-
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-    const body = await req.json();
+    const body =
+      await req.json();
 
     const {
       name,
@@ -29,37 +33,60 @@ export async function POST(req: Request) {
       source,
     } = body;
 
+    const doc =
+      new GoogleSpreadsheet(
+        process.env
+          .GOOGLE_SHEET_ID!,
+        auth
+      );
+
     await doc.loadInfo();
 
-    const sheet = doc.sheetsByIndex[0];
+    const sheet =
+      doc.sheetsByIndex[0];
 
-    try {
-      await sheet.loadHeaderRow();
-    } catch {
+    // REQUIRED
+    await sheet.loadHeaderRow();
+
+    if (
+      !sheet.headerValues ||
+      sheet.headerValues
+        .length === 0
+    ) {
       await sheet.setHeaderRow([
         "Name",
         "Email",
         "Birthday",
         "Source",
+        "Discount Code",
         "Created At",
       ]);
+
+      await sheet.loadHeaderRow();
     }
 
-    const existing = await sheet.getRows();
+    const existing =
+      await sheet.getRows();
 
-    const emailExists = existing.some(
-      (row) =>
-        String(row.get("Email"))
-          .trim()
-          .toLowerCase() ===
-        email.trim().toLowerCase()
-    );
+    const alreadyExists =
+      existing.some(
+        (
+          row: any
+        ) =>
+          row
+            .get(
+              "Email"
+            )
+            ?.toLowerCase() ===
+          email.toLowerCase()
+      );
 
-    if (emailExists) {
+    if (
+      alreadyExists
+    ) {
       return NextResponse.json({
         success: true,
-        alreadySubscribed: true,
-        discountCode: null,
+        code: "WELCOME10",
       });
     }
 
@@ -68,21 +95,21 @@ export async function POST(req: Request) {
       Email: email,
       Birthday: birthday,
       Source: source,
+      "Discount Code":
+        "THESOUND",
       "Created At":
         new Date().toISOString(),
     });
 
     return NextResponse.json({
       success: true,
-
-      // EXISTING SANITY CODE
-      discountCode: "WELCOME10",
-
-      alreadySubscribed: false,
+      code: "THESOUND",
     });
-  } catch (error) {
-    console.error(
-      "NEWSLETTER ERROR:",
+  } catch (
+    error
+  ) {
+    console.log(
+      "NEWSLETTER ERROR",
       error
     );
 
