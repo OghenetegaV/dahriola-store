@@ -56,7 +56,7 @@ export default function CollectionTurntable() {
         }`}>
           <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-4">
             {/* Shop our <span className="italic font-light">latest</span> pieces */}
-           <span className="italic font-light">Coming soon</span>
+           <span className="italic font-light">New Collection</span>
 
           </h2>
           
