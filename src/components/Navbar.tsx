@@ -11,7 +11,6 @@ import {
   X,
   ChevronDown,
   Instagram,
-  Globe,
   Heart,
   Search,
 } from "lucide-react";
@@ -22,6 +21,11 @@ import ProductSearch from "./ProductSearch";
 import { getWishlist } from "@/src/lib/wishlist";
 
 interface Category {
+  title: string;
+  slug: string;
+}
+
+interface Collection {
   title: string;
   slug: string;
 }
@@ -44,15 +48,18 @@ const currencyToCountry: Record<string, string> = {
   CAD: "ca",
 };
 
+// These are product names (folders) in Sanity, not categories
+const COLLECTION_NAMES = ["Soweto", "Nia", "Thabang", "ayeye", "Djembe"];
+
 export default function Navbar() {
   const pathname = usePathname();
 
   const [isOpen, setIsOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
   const [wishlistCount, setWishlistCount] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
@@ -65,10 +72,7 @@ export default function Navbar() {
     setHasHydrated(true);
 
     const handleScroll = () => setScrolled(window.scrollY > 50);
-
-    const syncWishlist = () => {
-      setWishlistCount(getWishlist().length);
-    };
+    const syncWishlist = () => setWishlistCount(getWishlist().length);
 
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("wishlistUpdated", syncWishlist);
@@ -82,7 +86,6 @@ export default function Navbar() {
             "slug": slug.current
           }
         `),
-
         client.fetch(`
           *[_type == "product"]{
             _id,
@@ -101,6 +104,30 @@ export default function Navbar() {
 
       setCategories(cats);
       setProducts(prods);
+
+      // Build the collection list from products whose names match COLLECTION_NAMES
+      // De-duplicate by name so each collection appears once
+      const seen = new Set<string>();
+      const collectionItems: Collection[] = [];
+
+      for (const name of COLLECTION_NAMES) {
+        const match = prods.find(
+          (p: any) => p.name?.toLowerCase() === name.toLowerCase()
+        );
+        if (match && !seen.has(match.name)) {
+          seen.add(match.name);
+          collectionItems.push({ title: match.name, slug: match.slug });
+        } else if (!match) {
+          // Fallback: show the name with a slug derived from it
+          const fallbackSlug = name.toLowerCase();
+          if (!seen.has(name)) {
+            seen.add(name);
+            collectionItems.push({ title: name, slug: fallbackSlug });
+          }
+        }
+      }
+
+      setCollections(collectionItems);
     };
 
     fetchData();
@@ -132,10 +159,61 @@ export default function Navbar() {
         } z-[100] w-full transition-all duration-700 ${navBg}`}
       >
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 relative">
-          {/* LEFT */}
+
+          {/* LEFT — The Collection | Ready to Wear | Bespoke */}
           <div
             className={`hidden lg:flex items-center gap-10 text-[10px] uppercase tracking-[0.3em] font-bold ${textColor}`}
           >
+            {/* The Collection dropdown */}
+            <div className="relative group h-20 flex items-center cursor-pointer">
+              <span className="flex items-center gap-2 hover:text-brand-beryl transition-colors cursor-pointer">
+                New Collection{" "}
+                <ChevronDown
+                  size={10}
+                  className="group-hover:rotate-180 transition-transform duration-500"
+                />
+              </span>
+
+              <div className="absolute left-[-20px] top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[400px] group-hover:opacity-100 transition-all duration-500 ease-in-out z-[110]">
+                <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-sm mt-1">
+                  <div className="flex flex-col">
+                    {/* <Link
+                      href="/category/all"
+                      className="px-6 py-3 group/item flex justify-between items-center bg-neutral-50/30 border-b border-neutral-50"
+                    >
+                      <span className="text-brand-beryl font-black text-[9px] tracking-[0.2em]">
+                        All Products
+                      </span>
+                      <span className="text-[10px] opacity-40 group-hover/item:opacity-100 transition-all">
+                        →
+                      </span>
+                    </Link> */}
+                    <div className="flex flex-col gap-0.5 p-3 min-w-[180px]">
+                      {collections.length > 0 ? (
+                        collections.map((col) => (
+                          <Link
+                            key={col.slug}
+                            href={`/product/${col.slug}`}
+                            className="px-4 py-2 text-neutral-500 hover:text-neutral-900 transition-all flex items-center gap-2.5 whitespace-nowrap group/link"
+                          >
+                            <span className="w-1 h-1 rounded-full bg-neutral-200 group-hover/link:bg-brand-beryl transition-colors" />
+                            <span className="text-[9.5px] tracking-widest">
+                              {col.title}
+                            </span>
+                          </Link>
+                        ))
+                      ) : (
+                        <p className="px-4 py-2 text-[9px] text-neutral-300 tracking-widest">
+                          Loading...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ready to Wear dropdown */}
             <div className="relative group h-20 flex items-center cursor-pointer">
               <Link
                 href="/category/all"
@@ -156,13 +234,12 @@ export default function Navbar() {
                       className="px-6 py-3 group/item flex justify-between items-center bg-neutral-50/30 border-b border-neutral-50"
                     >
                       <span className="text-brand-beryl font-black text-[9px] tracking-[0.2em]">
-                        All Collections
+                        All Product
                       </span>
                       <span className="text-[10px] opacity-40 group-hover/item:opacity-100 transition-all">
                         →
                       </span>
                     </Link>
-
                     <div className="grid grid-rows-3 grid-flow-col gap-x-6 gap-y-0.5 p-3 min-w-max">
                       {categories
                         .filter((cat) => cat.slug !== "bespoke")
@@ -185,9 +262,33 @@ export default function Navbar() {
             </div>
 
             <Link href="/bespoke">Bespoke</Link>
+          </div>
 
-            {/* CURRENCY */}
-            <div className="relative group h-20 flex items-center cursor-pointer">
+          <button
+            onClick={() => setIsOpen(true)}
+            className={`p-2 lg:hidden ${iconColor}`}
+          >
+            <Menu size={28} />
+          </button>
+
+          {/* LOGO */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2">
+            <Image
+              src="/logo.png"
+              alt="Dahriola Logo"
+              width={160}
+              height={45}
+              className="h-9 w-auto md:h-11"
+              style={{ filter: "none" }}
+              priority
+            />
+          </Link>
+
+          {/* RIGHT — Currency | Phone | Search | Wishlist | Cart */}
+          <div className="flex items-center gap-3 sm:gap-6">
+
+            {/* CURRENCY — moved here from the left */}
+            <div className={`relative group h-20 hidden lg:flex items-center cursor-pointer text-[10px] uppercase tracking-[0.3em] font-bold ${textColor}`}>
               <div className="flex items-center gap-2 hover:text-brand-beryl">
                 <img
                   src={`https://flagcdn.com/w20/${currencyToCountry[currency]}.png`}
@@ -197,7 +298,7 @@ export default function Navbar() {
                 <span>{currency}</span>
               </div>
 
-              <div className="absolute left-0 top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[300px] group-hover:opacity-100 transition-all duration-500 z-[110]">
+              <div className="absolute right-0 top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[300px] group-hover:opacity-100 transition-all duration-500 z-[110]">
                 <div className="bg-white border shadow-xl py-3 min-w-[130px]">
                   {currencies.map((cur) => (
                     <button
@@ -221,30 +322,7 @@ export default function Navbar() {
                 </div>
               </div>
             </div>
-          </div>
 
-          <button
-            onClick={() => setIsOpen(true)}
-            className={`p-2 lg:hidden ${iconColor}`}
-          >
-            <Menu size={28} />
-          </button>
-
-          {/* LOGO FIX */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2">
-            <Image
-              src="/logo.png"
-              alt="Dahriola Logo"
-              width={160}
-              height={45}
-              className="h-9 w-auto md:h-11"
-              style={{ filter: "none" }}
-              priority
-            />
-          </Link>
-
-          {/* RIGHT */}
-          <div className="flex items-center gap-3 sm:gap-6">
             <Link
               href="https://wa.me/2347069996877"
               target="_blank"
@@ -286,7 +364,7 @@ export default function Navbar() {
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* SEARCH */}
+      {/* SEARCH OVERLAY */}
       {isSearchOpen && (
         <div className="fixed inset-0 z-[150] bg-white">
           <div className="flex justify-between px-6 py-5 border-b">
@@ -308,7 +386,7 @@ export default function Navbar() {
         />
       )}
 
-      {/* MOBILE SIDEBAR — EXACTLY YOUR VERSION */}
+      {/* MOBILE SIDEBAR */}
       <aside
         className={`fixed top-0 left-0 z-[130] h-full w-full max-w-[320px] bg-white p-10 shadow-2xl transition-transform duration-700 ease-in-out lg:hidden ${
           isOpen ? "translate-x-0" : "-translate-x-full"
@@ -325,21 +403,39 @@ export default function Navbar() {
             />
             <button
               onClick={() => setIsOpen(false)}
-              className="text-neutral-300 hover:text-black "
+              className="text-neutral-300 hover:text-black"
             >
               <X size={28} strokeWidth={1} />
             </button>
           </div>
 
           <nav className="flex flex-col gap-10">
-            <Link
-              href="/category/all"
-              onClick={() => setIsOpen(false)}
-              className="font-display text-2xl text-neutral-900 tracking-tight"
-            >
-              The Collection
-            </Link>
+            {/* The Collection */}
+            <div className="flex flex-col">
+              <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">
+                New Collection
+              </p>
+              <div className="flex flex-col gap-5 mt-6 pl-4 border-l-2 border-brand-beryl/10">
+                {collections.length > 0 ? (
+                  collections.map((col) => (
+                    <Link
+                      key={col.slug}
+                      href={`/product/${col.slug}`}
+                      onClick={() => setIsOpen(false)}
+                      className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl"
+                    >
+                      {col.title}
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-[10px] uppercase text-neutral-300">
+                    Loading...
+                  </p>
+                )}
+              </div>
+            </div>
 
+            {/* Ready-to-Wear */}
             <div className="flex flex-col">
               <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">
                 Ready-to-Wear

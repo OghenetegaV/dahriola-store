@@ -10,121 +10,55 @@ import {
 import Image from "next/image";
 
 export default function NewsletterPopup() {
-  const [isOpen, setIsOpen] =
-    useState(false);
-
-  const [formData, setFormData] =
-    useState({
-      name: "",
-      email: "",
-      birthday: "",
-      source: "",
-    });
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [submitted, setSubmitted] =
-    useState(false);
-
-  const [
-    discountCode,
-    setDiscountCode,
-  ] = useState("");
-
-  const [copied, setCopied] =
-    useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    birthday: "",
+    source: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const claimed =
-      localStorage.getItem(
-        "dahriola_discount_claimed"
-      );
-
+    const claimed = localStorage.getItem("dahriola_discount_claimed");
     if (claimed) return;
-
-    const timer =
-      setTimeout(() => {
-        setIsOpen(true);
-      }, 5000);
-
-    return () =>
-      clearTimeout(timer);
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+    }, 5000);
+    return () => clearTimeout(timer);
   }, []);
 
   const closePopup = () => {
-    localStorage.setItem(
-      "dahriola-newsletter-closed",
-      "true"
-    );
-
+    localStorage.setItem("dahriola-newsletter-closed", "true");
     setIsOpen(false);
   };
 
-  const copyCode =
-    async () => {
-      try {
-        await navigator.clipboard.writeText(
-          discountCode ||
-            "THESOUND"
-        );
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(discountCode || "THESOUND");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
 
-        setCopied(true);
-
-        setTimeout(() => {
-          setCopied(false);
-        }, 2000);
-      } catch {}
-    };
-
-  const handleSubmit = async (
-    e: React.FormEvent
-  ) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       setLoading(true);
-
-      const response =
-        await fetch(
-          "/api/newsletter",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify(
-                formData
-              ),
-          }
-        );
-
-      const data =
-        await response.json();
-
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
       if (data.success) {
         setSubmitted(true);
-
-        setDiscountCode(
-          data.code ||
-            "THESOUND"
-        );
-
-        localStorage.setItem(
-          "dahriola_discount_claimed",
-          "true"
-        );
-
-        setFormData({
-          name: "",
-          email: "",
-          birthday: "",
-          source: "",
-        });
+        setDiscountCode(data.code || "THESOUND");
+        localStorage.setItem("dahriola_discount_claimed", "true");
+        setFormData({ name: "", email: "", birthday: "", source: "" });
       }
     } catch (error) {
       console.log(error);
@@ -139,33 +73,19 @@ export default function NewsletterPopup() {
         <div className="fixed inset-0 z-[200] overflow-y-auto">
           {/* BACKDROP */}
           <motion.div
-            initial={{
-              opacity: 0,
-            }}
-            animate={{
-              opacity: 1,
-            }}
-            exit={{
-              opacity: 0,
-            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={closePopup}
             className="fixed inset-0 bg-black/50 backdrop-blur-md"
           />
 
           <div className="relative min-h-screen flex items-center justify-center p-4">
             <motion.div
-              initial={{
-                opacity: 0,
-                y: 30,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              exit={{
-                opacity: 0,
-              }}
-              className="relative bg-white rounded-2xl w-full max-w-[950px] flex flex-col md:flex-row overflow-hidden max-h-[90vh]"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="relative bg-white rounded-2xl w-full max-w-[950px] flex flex-col md:flex-row overflow-hidden"
             >
               {/* CLOSE */}
               <button
@@ -175,19 +95,20 @@ export default function NewsletterPopup() {
                 <X size={18} />
               </button>
 
-              {/* IMAGE */}
-              <div className="relative w-full md:w-1/2 h-[320px] md:h-auto">
+              {/* IMAGE — full photo, no cropping */}
+              <div className="relative w-full md:w-1/2 bg-neutral-100 flex items-center justify-center">
                 <Image
                   src="/newsletter_2.jpg"
                   alt="Dahriola"
-                  fill
+                  width={600}
+                  height={700}
                   priority
-                  className="object-cover object-top"
+                  className="w-full h-auto object-contain"
                 />
               </div>
 
-              {/* CONTENT */}
-              <div className="w-full md:w-1/2 overflow-y-auto">
+              {/* CONTENT — scrollable on mobile */}
+              <div className="w-full md:w-1/2 overflow-y-auto max-h-[90vh] md:max-h-none">
                 <div className="p-6 md:p-12">
                   {!submitted ? (
                     <>
@@ -202,31 +123,17 @@ export default function NewsletterPopup() {
                       </h2>
 
                       <p className="mt-4 text-sm text-neutral-500">
-                        Join for exclusive
-                        previews,
-                        birthday surprises and
+                        Join for exclusive previews, birthday surprises and
                         early access.
                       </p>
 
-                      <form
-                        onSubmit={
-                          handleSubmit
-                        }
-                        className="space-y-5 mt-8"
-                      >
+                      <form onSubmit={handleSubmit} className="space-y-5 mt-8">
                         <input
                           required
-                          placeholder="FULL NAME"
-                          value={
-                            formData.name
-                          }
+                          placeholder="Full Name"
+                          value={formData.name}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              name:
-                                e.target
-                                  .value,
-                            })
+                            setFormData({ ...formData, name: e.target.value })
                           }
                           className="w-full border-b pb-3"
                         />
@@ -234,32 +141,21 @@ export default function NewsletterPopup() {
                         <input
                           type="email"
                           required
-                          placeholder="EMAIL"
-                          value={
-                            formData.email
-                          }
+                          placeholder="Email"
+                          value={formData.email}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              email:
-                                e.target
-                                  .value,
-                            })
+                            setFormData({ ...formData, email: e.target.value })
                           }
                           className="w-full border-b pb-3"
                         />
 
                         <input
                           type="month"
-                          value={
-                            formData.birthday
-                          }
+                          value={formData.birthday}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              birthday:
-                                e.target
-                                  .value,
+                              birthday: e.target.value,
                             })
                           }
                           className="w-full border-b pb-3"
@@ -267,83 +163,44 @@ export default function NewsletterPopup() {
 
                         <select
                           required
-                          value={
-                            formData.source
-                          }
+                          value={formData.source}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              source:
-                                e.target
-                                  .value,
-                            })
+                            setFormData({ ...formData, source: e.target.value })
                           }
                           className="w-full border-b pb-3"
                         >
-                          <option value="">
-                            How did you find us?
-                          </option>
-
-                          <option>
-                            Instagram
-                          </option>
-
-                          <option>
-                            TikTok
-                          </option>
-
-                          <option>
-                            Google
-                          </option>
-
-                          <option>
-                            Friend
-                          </option>
-
-                          <option>
-                            Pinterest
-                          </option>
+                          <option value="">How did you find us?</option>
+                          <option>Instagram</option>
+                          <option>TikTok</option>
+                          <option>Google</option>
+                          <option>Friend</option>
+                          <option>Pinterest</option>
                         </select>
 
                         <button
-                          disabled={
-                            loading
-                          }
+                          disabled={loading}
                           className="w-full bg-black text-white py-4 flex justify-center gap-3"
                         >
-                          {loading
-                            ? "Submitting..."
-                            : "Unlock My Discount"}
-
+                          {loading ? "Submitting..." : "Unlock My Discount"}
                           <ArrowRight />
                         </button>
                       </form>
                     </>
                   ) : (
                     <div className="text-center py-10">
-                      <p className="uppercase text-sm">
-                        Your discount code
-                      </p>
+                      <p className="uppercase text-sm">Your discount code</p>
 
                       <div
-                        onClick={
-                          copyCode
-                        }
+                        onClick={copyCode}
                         className="cursor-pointer border py-6 mt-5"
                       >
                         <h1 className="text-4xl font-bold tracking-[0.08em]">
-                          {discountCode ||
-                            "THESOUND"}
+                          {discountCode || "THESOUND"}
                         </h1>
 
                         <div className="mt-4 flex justify-center gap-2 text-sm">
-                          <Copy
-                            size={14}
-                          />
-
-                          {copied
-                            ? "Copied"
-                            : "Tap to copy"}
+                          <Copy size={14} />
+                          {copied ? "Copied" : "Tap to copy"}
                         </div>
                       </div>
 

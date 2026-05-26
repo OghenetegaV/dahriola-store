@@ -83,7 +83,7 @@ export default function BespokeGallery() {
           ))}
         </div>
 
-        <div className="hidden md:flex mt-16 items-center justify-center bg-[#fcfcfc] rounded-[2rem] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.7)] border border-neutral-100 p-6">
+        <div className="hidden md:flex mt-16 items-center justify-center  rounded-[2rem] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.7)] = p-6">
           <BespokeEnquiry />
         </div>
       </div>
