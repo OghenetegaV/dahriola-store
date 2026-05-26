@@ -48,7 +48,6 @@ const currencyToCountry: Record<string, string> = {
   CAD: "ca",
 };
 
-// These are product names (folders) in Sanity, not categories
 const COLLECTION_NAMES = ["Soweto", "Nia", "Thabang", "ayeye", "Djembe"];
 
 export default function Navbar() {
@@ -67,6 +66,18 @@ export default function Navbar() {
   const { cart, currency, setCurrency } = useStore();
 
   if (pathname?.startsWith("/admin")) return null;
+
+  // Lock/unlock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     setHasHydrated(true);
@@ -105,8 +116,6 @@ export default function Navbar() {
       setCategories(cats);
       setProducts(prods);
 
-      // Build the collection list from products whose names match COLLECTION_NAMES
-      // De-duplicate by name so each collection appears once
       const seen = new Set<string>();
       const collectionItems: Collection[] = [];
 
@@ -118,7 +127,6 @@ export default function Navbar() {
           seen.add(match.name);
           collectionItems.push({ title: match.name, slug: match.slug });
         } else if (!match) {
-          // Fallback: show the name with a slug derived from it
           const fallbackSlug = name.toLowerCase();
           if (!seen.has(name)) {
             seen.add(name);
@@ -160,11 +168,11 @@ export default function Navbar() {
       >
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 relative">
 
-          {/* LEFT — The Collection | Ready to Wear | Bespoke */}
+          {/* LEFT */}
           <div
             className={`hidden lg:flex items-center gap-10 text-[10px] uppercase tracking-[0.3em] font-bold ${textColor}`}
           >
-            {/* The Collection dropdown */}
+            {/* New Collection dropdown */}
             <div className="relative group h-20 flex items-center cursor-pointer">
               <span className="flex items-center gap-2 hover:text-brand-beryl transition-colors cursor-pointer">
                 New Collection{" "}
@@ -177,17 +185,6 @@ export default function Navbar() {
               <div className="absolute left-[-20px] top-full overflow-hidden max-h-0 opacity-0 group-hover:max-h-[400px] group-hover:opacity-100 transition-all duration-500 ease-in-out z-[110]">
                 <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-[0_10px_40px_rgba(0,0,0,0.08)] rounded-sm mt-1">
                   <div className="flex flex-col">
-                    {/* <Link
-                      href="/category/all"
-                      className="px-6 py-3 group/item flex justify-between items-center bg-neutral-50/30 border-b border-neutral-50"
-                    >
-                      <span className="text-brand-beryl font-black text-[9px] tracking-[0.2em]">
-                        All Products
-                      </span>
-                      <span className="text-[10px] opacity-40 group-hover/item:opacity-100 transition-all">
-                        →
-                      </span>
-                    </Link> */}
                     <div className="flex flex-col gap-0.5 p-3 min-w-[180px]">
                       {collections.length > 0 ? (
                         collections.map((col) => (
@@ -284,10 +281,8 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* RIGHT — Currency | Phone | Search | Wishlist | Cart */}
+          {/* RIGHT */}
           <div className="flex items-center gap-3 sm:gap-6">
-
-            {/* CURRENCY — moved here from the left */}
             <div className={`relative group h-20 hidden lg:flex items-center cursor-pointer text-[10px] uppercase tracking-[0.3em] font-bold ${textColor}`}>
               <div className="flex items-center gap-2 hover:text-brand-beryl">
                 <img
@@ -379,16 +374,17 @@ export default function Navbar() {
         </div>
       )}
 
+      {/* BACKDROP */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/5 z-[120]"
+          className="fixed inset-0 bg-black/5 z-[120] touch-none"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* MOBILE SIDEBAR */}
       <aside
-        className={`fixed top-0 left-0 z-[130] h-full w-full max-w-[320px] bg-white p-10 shadow-2xl transition-transform duration-700 ease-in-out lg:hidden ${
+        className={`fixed top-0 left-0 z-[130] h-full w-full max-w-[320px] bg-white p-10 shadow-2xl transition-transform duration-700 ease-in-out lg:hidden overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -410,7 +406,7 @@ export default function Navbar() {
           </div>
 
           <nav className="flex flex-col gap-10">
-            {/* The Collection */}
+            {/* New Collection */}
             <div className="flex flex-col">
               <p className="font-display text-2xl text-neutral-900 tracking-tight border-b border-neutral-100 pb-2">
                 New Collection

@@ -305,3 +305,13 @@ html {
 .animate-fade-in-up {
   animation: fade-in-up 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
