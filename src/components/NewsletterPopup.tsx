@@ -66,7 +66,7 @@ export default function NewsletterPopup() {
       try {
         await navigator.clipboard.writeText(
           discountCode ||
-            "WELCOME10"
+            "THESOUND"
         );
 
         setCopied(true);
@@ -111,7 +111,7 @@ export default function NewsletterPopup() {
 
         setDiscountCode(
           data.code ||
-            "WELCOME10"
+            "THESOUND"
         );
 
         localStorage.setItem(
@@ -333,7 +333,7 @@ export default function NewsletterPopup() {
                       >
                         <h1 className="text-4xl font-bold tracking-[0.08em]">
                           {discountCode ||
-                            "WELCOME10"}
+                            "THESOUND"}
                         </h1>
 
                         <div className="mt-4 flex justify-center gap-2 text-sm">

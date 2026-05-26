@@ -5,11 +5,11 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const collectionItems = [
-  { id: 1, name: "Essential Trousers", image: "/new-collection/trousers.png" },
-  { id: 2, name: "Signature Set", image: "/new-collection/set.png" },
-  { id: 3, name: "A-Line Dress", image: "/new-collection/dress-1.png" },
-  { id: 4, name: "Two Piece Set", image: "/new-collection/dress-2.png" },
-  { id: 5, name: "Tube Dress", image: "/new-collection/ayeye.png" },
+  { id: 1, name: "Djembe", image: "/new-collection/trousers.png" },
+  { id: 2, name: "Thabang", image: "/new-collection/set.png" },
+  { id: 3, name: "Soweto", image: "/new-collection/dress-1.png" },
+  { id: 4, name: "Nia", image: "/new-collection/dress-2.png" },
+  { id: 5, name: "Ayẹyẹ", image: "/new-collection/ayeye.png" },
 ];
 
 export default function CollectionTurntable() {
@@ -56,7 +56,7 @@ export default function CollectionTurntable() {
         }`}>
           <h2 className="font-display text-5xl md:text-6xl text-neutral-950 tracking-tighter relative z-10 pb-4">
             {/* Shop our <span className="italic font-light">latest</span> pieces */}
-           <span className="italic font-light">Coming soon</span>
+           <span className="italic font-light">New Collection</span>
 
           </h2>
           
@@ -125,7 +125,7 @@ export default function CollectionTurntable() {
           className="text-center"
         >
           <p className="text-[10px] uppercase tracking-[0.6em] font-bold text-neutral-400 mb-2">
-            New Collection
+            Shop
           </p>
           <h3 className="font-display text-3xl md:text-4xl text-black tracking-tighter">
             {currentItem.name}
