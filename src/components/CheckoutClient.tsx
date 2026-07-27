@@ -246,11 +246,11 @@ export default function CheckoutClient() {
   const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
 
   const fetchRates = async () => {
+    const isNigeria = formData.country === "NG";
     if (
       !formData.address ||
-      !formData.city ||
-      !formData.state ||
-      !formData.country
+      !formData.country ||
+      (isNigeria && !formData.state)   // state only required for Nigeria
     ) {
       return;
     }
@@ -259,12 +259,14 @@ export default function CheckoutClient() {
     setShippingError(null);
 
     try {
+      const totalQuantity = cart.reduce((n, item) => n + item.quantity, 0);
       const rates = await getShippingRates({
         line1: formData.address,
         city: formData.city,
         state: formData.state,
         country: formData.country,
         postalCode: formData.postalCode,
+        itemCount: totalQuantity,        // drives weight-based pricing
       });
 
       if (rates && rates.length > 0) {
@@ -589,78 +591,68 @@ export default function CheckoutClient() {
 
                 <div className="grid grid-cols-3 gap-3 mt-3">
                   <div className="relative">
-                    <select
-                      className="checkout-field appearance-none"
-                      value={selectedStateCode}
-                      disabled={loadingStates || states.length === 0}
-                      onChange={(e) => {
-                        const stateCode = e.target.value;
-                        const selectedState = states.find(
-                          (state) => state.code === stateCode
-                        );
+                    {states.length > 0 ? (
+                      <>
+                        <select
+                          className="checkout-field appearance-none"
+                          value={selectedStateCode}
+                          disabled={loadingStates}
+                          onChange={(e) => {
+                            const stateCode = e.target.value;
+                            const selectedState = states.find(
+                              (state) => state.code === stateCode
+                            );
 
-                        setSelectedStateCode(stateCode);
-                        setSelectedRate(null);
-                        setShippingRates([]);
+                            setSelectedStateCode(stateCode);
+                            setSelectedRate(null);
+                            setShippingRates([]);
 
-                        setFormData((prev) => ({
-                          ...prev,
-                          state: selectedState?.name || "",
-                          city: "",
-                        }));
-                      }}
-                    >
-                      <option value="">
-                        {loadingStates ? "Loading states..." : "State"}
-                      </option>
-
-                      {states.map((state) => (
-                        <option key={state.code} value={state.code}>
-                          {state.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <ChevronDown
-                      size={14}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      className="checkout-field appearance-none"
-                      value={formData.city}
-                      disabled={loadingCities || cities.length === 0}
-                      onChange={(e) => {
-                        setSelectedRate(null);
-                        setShippingRates([]);
-
-                        setFormData((prev) => ({
-                          ...prev,
-                          city: e.target.value,
-                        }));
-                      }}
-                    >
-                      <option value="">
-                        {loadingCities ? "Loading cities..." : "City"}
-                      </option>
-
-                      {cities.map((city) => (
-                        <option
-                          key={`${city.name}-${city.stateCode || ""}`}
-                          value={city.name}
+                            setFormData((prev) => ({
+                              ...prev,
+                              state: selectedState?.name || "",
+                            }));
+                          }}
                         >
-                          {city.name}
-                        </option>
-                      ))}
-                    </select>
+                          <option value="">
+                            {loadingStates ? "Loading states..." : "State"}
+                          </option>
 
-                    <ChevronDown
-                      size={14}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
-                    />
+                          {states.map((state) => (
+                            <option key={state.code} value={state.code}>
+                              {state.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        <ChevronDown
+                          size={14}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                        />
+                      </>
+                    ) : (
+                      <input
+                        placeholder="State / Region"
+                        className="checkout-field"
+                        value={formData.state}
+                        onChange={(e) => {
+                          setSelectedRate(null);
+                          setShippingRates([]);
+                          setFormData((prev) => ({ ...prev, state: e.target.value }));
+                        }}
+                      />
+                    )}
                   </div>
+
+                  <input
+                    placeholder="City"
+                    className="checkout-field"
+                    value={formData.city}
+                    onChange={(e) => {
+                      setSelectedRate(null);
+                      setShippingRates([]);
+                      setFormData((prev) => ({ ...prev, city: e.target.value }));
+                    }}
+                  />
 
                   <input
                     placeholder="Postal code optional"
@@ -687,9 +679,8 @@ export default function CheckoutClient() {
                   disabled={
                     loadingRates ||
                     !formData.address ||
-                    !formData.city ||
-                    !formData.state ||
-                    !formData.country
+                    !formData.country ||
+                    (formData.country === "NG" && !formData.state)
                   }
                   className="mt-4 w-full h-11 rounded-lg border border-brand-beryl text-brand-beryl text-[12px] font-semibold hover:bg-brand-beryl hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
