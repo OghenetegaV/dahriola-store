@@ -369,6 +369,31 @@ export default function CheckoutClient() {
       if (verification.success) {
         await reducePrintStockAfterOrder(cart);
 
+        // 1. Save the order directly to Sanity from the client/action layer
+        try {
+          await client.create({
+            _type: "order",
+            orderNumber: transactionReference,
+            customerName: formData.name,
+            customerEmail: formData.email,
+            shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
+            currency: currency,
+            totalAmount: finalTotal,
+            items: cart.map((item) => ({
+              _key: `${item._id}-${item.size}-${item.selectedPrintId || 'default'}`,
+              productName: item.name,
+              productId: item._id,
+              quantity: item.quantity,
+              size: item.size,
+              price: item.price,
+            })),
+            createdAt: new Date().toISOString(),
+          });
+        } catch (sanityErr) {
+          console.error("Failed to save order to Sanity:", sanityErr);
+        }
+
+        // 2. Send email notification
         const emailResult = await sendOrderNotification({
           orderNumber: transactionReference,
           customerName: formData.name,
