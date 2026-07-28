@@ -39,7 +39,17 @@ function SuccessInner() {
     (async () => {
       try {
         const res = await verifyPayment(reference);
-        if (active && res?.amount) setAmount(formatNaira(res.amount));
+        // Your verifyPayment returns { success, data }, where `data` is the
+        // Paystack transaction. The amount (in kobo) can sit at data.amount or
+        // data.data.amount depending on the action — handle both safely.
+        const d: any = res && "data" in res ? (res as any).data : undefined;
+        const kobo: number | undefined =
+          typeof d?.amount === "number"
+            ? d.amount
+            : typeof d?.data?.amount === "number"
+            ? d.data.amount
+            : undefined;
+        if (active && typeof kobo === "number") setAmount(formatNaira(kobo));
       } catch {
         // Non-blocking — the order is already placed; we just can't show the amount.
       } finally {
