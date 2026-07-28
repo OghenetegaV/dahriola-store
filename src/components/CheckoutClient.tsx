@@ -359,67 +359,125 @@ export default function CheckoutClient() {
   // @ts-ignore
   const initializePayment = usePaystackPayment(paystackConfig);
 
+  // Verify with a few retries, because a single Paystack API hiccup or a cold
+  // serverless start can make one call fail even though the payment succeeded.
+  const verifyPaymentWithRetry = async (
+    reference: string,
+    attempts = 3,
+  ): Promise<{ success: boolean; reached: boolean }> => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const result = await verifyPayment(reference);
+        if (result?.success) return { success: true, reached: true };
+        // Reached Paystack but it didn't (yet) report success — wait and retry.
+      } catch (err) {
+        console.error(`Verification attempt ${i + 1} threw:`, err);
+        // Could not reach the verify endpoint at all this time.
+      }
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+      }
+    }
+    // Never confirmed success. `reached:false` means we couldn't get a clear
+    // answer from Paystack — treat the paid order as fulfilled anyway, since
+    // react-paystack only fires onSuccess after the charge goes through.
+    return { success: false, reached: false };
+  };
+
+  // Records the order in Sanity + emails the client. Runs whenever Paystack's
+  // onSuccess fires — money has already moved by then, so this must NOT be
+  // gated on verification. Each step is independently guarded so one failure
+  // never blocks the others.
+  const fulfilOrder = async (transactionReference: string, verified: boolean) => {
+    // 1. Reduce stock
+    try {
+      await reducePrintStockAfterOrder(cart);
+    } catch (stockErr) {
+      console.error("Stock reduction failed:", stockErr);
+    }
+
+    // 2. Save the order to Sanity (so it appears on the dashboard)
+    try {
+      await client.create({
+        _type: "order",
+        orderNumber: transactionReference,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
+        currency: currency,
+        totalAmount: finalTotal,
+        paymentVerified: verified,
+        items: cart.map((item) => ({
+          _key: `${item._id}-${item.size}-${item.selectedPrintId || 'default'}`,
+          productName: item.name,
+          productId: item._id,
+          quantity: item.quantity,
+          size: item.size,
+          price: item.price,
+        })),
+        createdAt: new Date().toISOString(),
+      });
+    } catch (sanityErr) {
+      console.error("SANITY SAVE FAILED:", sanityErr);
+    }
+
+    // 3. Email the order notification
+    try {
+      await sendOrderNotification({
+        orderNumber: transactionReference,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        items: cart,
+        totalAmount: finalTotal,
+        currency,
+        shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
+      });
+    } catch (emailErr) {
+      console.error("Email notification failed:", emailErr);
+    }
+  };
+
   const handlePaymentSuccess = async (response: any) => {
     setIsProcessing(true);
 
+    // Paystack has already charged the customer at this point.
+    const transactionReference = response.reference || response.trxref;
+
     try {
-      const transactionReference = response.reference || response.trxref;
-      console.log("1. Payment success triggered. Ref:", transactionReference);
+      const { success, reached } = await verifyPaymentWithRetry(transactionReference);
 
-      const verification = await verifyPayment(transactionReference);
-      console.log("2. Verification result:", verification);
-
-      if (verification.success) {
-        console.log("3. Verification passed. Reducing stock...");
-        await reducePrintStockAfterOrder(cart);
-
-        console.log("4. Attempting to save to Sanity...");
-        try {
-          const sanityRes = await client.create({
-            _type: "order",
-            orderNumber: transactionReference,
-            customerName: formData.name,
-            customerEmail: formData.email,
-            shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
-            currency: currency,
-            totalAmount: finalTotal,
-            items: cart.map((item) => ({
-              _key: `${item._id}-${item.size}-${item.selectedPrintId || 'default'}`,
-              productName: item.name,
-              productId: item._id,
-              quantity: item.quantity,
-              size: item.size,
-              price: item.price,
-            })),
-            createdAt: new Date().toISOString(),
-          });
-          console.log("5. Sanity save success:", sanityRes._id);
-        } catch (sanityErr) {
-          console.error("6. SANITY SAVE FAILED:", sanityErr);
-        }
-
-        console.log("7. Attempting to send email notification...");
-        const emailResult = await sendOrderNotification({
-          orderNumber: transactionReference,
-          customerName: formData.name,
-          customerEmail: formData.email,
-          items: cart,
-          totalAmount: finalTotal,
-          currency,
-          shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
-        });
-        console.log("8. Email result:", emailResult);
-
+      // Fulfil the order if verification passed OR if we simply couldn't reach
+      // Paystack to confirm (reached === false). We only withhold fulfilment in
+      // the rare case Paystack explicitly and repeatedly says the charge is not
+      // successful (reached === true && success === false).
+      if (success || !reached) {
+        await fulfilOrder(transactionReference, success);
         clearCart();
         router.push(`/success?reference=${transactionReference}`);
-      } else {
-        console.error("VERIFICATION FAILED: verification.success was false.");
-        setShippingError("Payment verification failed.");
+        return;
+      }
+
+      // Paystack clearly reported the transaction as not successful.
+      console.error("Paystack reported transaction not successful:", transactionReference);
+      setShippingError(
+        "We couldn't confirm this payment. If you were charged, please contact us with your payment reference and we'll sort it out right away.",
+      );
+      setIsProcessing(false);
+    } catch (error) {
+      // Absolute last resort: onSuccess fired (charge went through) but our
+      // handler crashed. Still try to record + notify so the order isn't lost.
+      console.error("CRITICAL ERROR IN PAYMENT HANDLER:", error);
+      try {
+        await fulfilOrder(transactionReference, false);
+        clearCart();
+        router.push(`/success?reference=${transactionReference}`);
+      } catch (fallbackErr) {
+        console.error("Fallback fulfilment failed:", fallbackErr);
+        setShippingError(
+          "Your payment went through but we hit a snag saving the order. Please contact us with your payment reference so we can complete it.",
+        );
         setIsProcessing(false);
       }
-    } catch (error) {
-      console.error("CRITICAL ERROR IN PAYMENT HANDLER:", error);
-      setIsProcessing(false);
     }
   };
 
