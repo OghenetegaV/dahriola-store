@@ -359,44 +359,37 @@ export default function CheckoutClient() {
   // @ts-ignore
   const initializePayment = usePaystackPayment(paystackConfig);
 
-  // Verify with a few retries, because a single Paystack API hiccup or a cold
-  // serverless start can make one call fail even though the payment succeeded.
+  // Verify with a couple of retries so a single Paystack hiccup or cold start
+  // doesn't leave the `verified` flag wrong. This NEVER blocks fulfilment.
   const verifyPaymentWithRetry = async (
     reference: string,
     attempts = 3,
-  ): Promise<{ success: boolean; reached: boolean }> => {
+  ): Promise<boolean> => {
     for (let i = 0; i < attempts; i++) {
       try {
         const result = await verifyPayment(reference);
-        if (result?.success) return { success: true, reached: true };
-        // Reached Paystack but it didn't (yet) report success — wait and retry.
+        if (result?.success) return true;
       } catch (err) {
         console.error(`Verification attempt ${i + 1} threw:`, err);
-        // Could not reach the verify endpoint at all this time.
       }
       if (i < attempts - 1) {
         await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
       }
     }
-    // Never confirmed success. `reached:false` means we couldn't get a clear
-    // answer from Paystack — treat the paid order as fulfilled anyway, since
-    // react-paystack only fires onSuccess after the charge goes through.
-    return { success: false, reached: false };
+    return false;
   };
 
-  // Records the order in Sanity + emails the client. Runs whenever Paystack's
-  // onSuccess fires — money has already moved by then, so this must NOT be
-  // gated on verification. Each step is independently guarded so one failure
-  // never blocks the others.
+  // Records the order in Sanity + emails the client. Called whenever Paystack's
+  // onSuccess fires — money has already moved, so this must run regardless of
+  // the verification result. Field names match the Sanity `order` schema, and
+  // each step is guarded independently so one failure never blocks the others.
   const fulfilOrder = async (transactionReference: string, verified: boolean) => {
-    // 1. Reduce stock
     try {
       await reducePrintStockAfterOrder(cart);
     } catch (stockErr) {
       console.error("Stock reduction failed:", stockErr);
     }
 
-    // 2. Save the order to Sanity (so it appears on the dashboard)
     try {
       await client.create({
         _type: "order",
@@ -407,13 +400,15 @@ export default function CheckoutClient() {
         currency: currency,
         totalAmount: finalTotal,
         paymentVerified: verified,
+        delivered: false,
         items: cart.map((item) => ({
           _key: `${item._id}-${item.size}-${item.selectedPrintId || 'default'}`,
-          productName: item.name,
-          productId: item._id,
+          name: item.name,
+          price: item.price,
           quantity: item.quantity,
           size: item.size,
-          price: item.price,
+          selectedPrintName: item.selectedPrintName || "",
+          notes: item.notes || "",
         })),
         createdAt: new Date().toISOString(),
       });
@@ -421,7 +416,6 @@ export default function CheckoutClient() {
       console.error("SANITY SAVE FAILED:", sanityErr);
     }
 
-    // 3. Email the order notification
     try {
       await sendOrderNotification({
         orderNumber: transactionReference,
@@ -440,44 +434,28 @@ export default function CheckoutClient() {
   const handlePaymentSuccess = async (response: any) => {
     setIsProcessing(true);
 
-    // Paystack has already charged the customer at this point.
+    // react-paystack only fires onSuccess AFTER a successful charge, so the
+    // customer has been debited. The order must be recorded and the client
+    // notified no matter what verification says — verification only sets a flag.
     const transactionReference = response.reference || response.trxref;
 
+    let verified = false;
     try {
-      const { success, reached } = await verifyPaymentWithRetry(transactionReference);
+      verified = await verifyPaymentWithRetry(transactionReference);
+    } catch (err) {
+      console.error("Verification error (continuing to fulfil):", err);
+    }
 
-      // Fulfil the order if verification passed OR if we simply couldn't reach
-      // Paystack to confirm (reached === false). We only withhold fulfilment in
-      // the rare case Paystack explicitly and repeatedly says the charge is not
-      // successful (reached === true && success === false).
-      if (success || !reached) {
-        await fulfilOrder(transactionReference, success);
-        clearCart();
-        router.push(`/success?reference=${transactionReference}`);
-        return;
-      }
-
-      // Paystack clearly reported the transaction as not successful.
-      console.error("Paystack reported transaction not successful:", transactionReference);
+    try {
+      await fulfilOrder(transactionReference, verified);
+      clearCart();
+      router.push(`/success?reference=${transactionReference}`);
+    } catch (error) {
+      console.error("CRITICAL ERROR IN PAYMENT HANDLER:", error);
       setShippingError(
-        "We couldn't confirm this payment. If you were charged, please contact us with your payment reference and we'll sort it out right away.",
+        `Your payment went through but we hit a snag saving your order. Please contact us with your payment reference (${transactionReference}) and we'll complete it right away.`,
       );
       setIsProcessing(false);
-    } catch (error) {
-      // Absolute last resort: onSuccess fired (charge went through) but our
-      // handler crashed. Still try to record + notify so the order isn't lost.
-      console.error("CRITICAL ERROR IN PAYMENT HANDLER:", error);
-      try {
-        await fulfilOrder(transactionReference, false);
-        clearCart();
-        router.push(`/success?reference=${transactionReference}`);
-      } catch (fallbackErr) {
-        console.error("Fallback fulfilment failed:", fallbackErr);
-        setShippingError(
-          "Your payment went through but we hit a snag saving the order. Please contact us with your payment reference so we can complete it.",
-        );
-        setIsProcessing(false);
-      }
     }
   };
 
