@@ -84,7 +84,7 @@ export type DomesticTier = "T0_LAGOS" | "T1_SOUTHWEST" | "T2_SOUTH_FCT" | "T3_NO
 
 export const DOMESTIC_RATES: Record<DomesticTier, RateTier[]> = {
   T0_LAGOS: [
-    { service: "DHL Domestic Express", deliveryTime: "24–48 hours",     base: 4_500, perHalfKg: 700 },
+    { service: "DHL Domestic Express", deliveryTime: "24–48 hours",     base: 0, perHalfKg: 0},
     { service: "DHL Domestic Standard", deliveryTime: "2–4 business days", base: 2_500, perHalfKg: 500 },
   ],
   T1_SOUTHWEST: [

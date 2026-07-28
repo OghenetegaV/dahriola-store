@@ -364,14 +364,18 @@ export default function CheckoutClient() {
 
     try {
       const transactionReference = response.reference || response.trxref;
+      console.log("1. Payment success triggered. Ref:", transactionReference);
+
       const verification = await verifyPayment(transactionReference);
+      console.log("2. Verification result:", verification);
 
       if (verification.success) {
+        console.log("3. Verification passed. Reducing stock...");
         await reducePrintStockAfterOrder(cart);
 
-        // 1. Save the order directly to Sanity from the client/action layer
+        console.log("4. Attempting to save to Sanity...");
         try {
-          await client.create({
+          const sanityRes = await client.create({
             _type: "order",
             orderNumber: transactionReference,
             customerName: formData.name,
@@ -389,11 +393,12 @@ export default function CheckoutClient() {
             })),
             createdAt: new Date().toISOString(),
           });
+          console.log("5. Sanity save success:", sanityRes._id);
         } catch (sanityErr) {
-          console.error("Failed to save order to Sanity:", sanityErr);
+          console.error("6. SANITY SAVE FAILED:", sanityErr);
         }
 
-        // 2. Send email notification
+        console.log("7. Attempting to send email notification...");
         const emailResult = await sendOrderNotification({
           orderNumber: transactionReference,
           customerName: formData.name,
@@ -403,22 +408,17 @@ export default function CheckoutClient() {
           currency,
           shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
         });
-
-        if (!emailResult.success) {
-          console.error(
-            "Order was paid, but email notification failed:",
-            emailResult
-          );
-        }
+        console.log("8. Email result:", emailResult);
 
         clearCart();
         router.push(`/success?reference=${transactionReference}`);
       } else {
+        console.error("VERIFICATION FAILED: verification.success was false.");
         setShippingError("Payment verification failed.");
         setIsProcessing(false);
       }
     } catch (error) {
-      console.error("Payment success handler error:", error);
+      console.error("CRITICAL ERROR IN PAYMENT HANDLER:", error);
       setIsProcessing(false);
     }
   };
