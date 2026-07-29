@@ -14,7 +14,7 @@ function urlFor(source: any) {
   return builder.image(source);
 }
 
-const sizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+const sizes = ["XS", "S", "M", "L(12)", "L(14)", "XL(16)", "XL(18)", "2XL", "3XL"];
 
 const accordionTextClass =
   "text-[13px] md:text-[14px] leading-6 text-neutral-600";
