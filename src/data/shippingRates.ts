@@ -1,20 +1,26 @@
 // src/data/shippingRates.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// HARD-CODED DHL SHIPPING FALLBACK  (origin: Nigeria / Lagos)
+// HARD-CODED DHL SHIPPING FALLBACK  (origin: Nigeria / IBADAN, Oyo State)
 //
 // Why this exists: Terminal Africa's live-rate API was down. This file feeds the
 // checkout country/state dropdowns and generates delivery rates from static
 // DHL-modelled tables — no external API call. When Terminal is back, you can
 // swap the action imports back; nothing else needs to change.
 //
-// ⚠️  RATES ARE REPRESENTATIVE (NGN) AND EDITABLE.
-//     They follow DHL Express's zone structure and realistic Nigeria-origin
-//     price bands, but confirm the exact naira figures against a current DHL
-//     quote before relying on them long-term. To adjust, edit ZONE_RATES /
-//     DOMESTIC_RATES below — the dropdowns and checkout update automatically.
+// ⚠️  RATES ARE DHL-ANCHORED (NGN) AND EDITABLE.
+//     Domestic tiers are anchored to a REAL invoice: Ibadan → Lagos ≈ ₦7,500
+//     (Express, one packaged outfit). Origin is Ibadan, so Oyo is the local
+//     tier, Lagos sits in the Southwest neighbour tier, and rates scale up for
+//     the South/FCT and the North. International parcels still leave via DHL's
+//     Lagos gateway, so zone rates are independent of the Ibadan origin.
+//     To adjust, edit ZONE_RATES / DOMESTIC_RATES below — the dropdowns and
+//     checkout update automatically.
 //
-// All amounts are in NGN. Weight model: `base` covers the first 0.5 kg, then
-// `perHalfKg` is added for every additional 0.5 kg (rounded up).
+// WEIGHT MODEL: `base` covers DHL's minimum billable bracket (first 0.5 kg),
+// then `perHalfKg` is added for every additional 0.5 kg (rounded up). Apparel
+// is light but DHL bills a minimum, so a single garment lands in `base`. Note
+// couriers also bill volumetric weight (L×W×H ÷ 5000) — if she starts shipping
+// bulky multi-item boxes, raise DEFAULT_ITEM_WEIGHT_KG below.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type Country = { code: string; name: string; zone: ZoneId };
@@ -42,73 +48,79 @@ export type ZoneId =
 
 export const ZONE_RATES: Record<ZoneId, RateTier[]> = {
   Z1_WEST_AFRICA: [
-    { service: "DHL Express Worldwide", deliveryTime: "1–3 business days", base: 45_000, perHalfKg: 8_000 },
-    { service: "DHL Economy Select",    deliveryTime: "3–5 business days", base: 35_000, perHalfKg: 6_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "1–3 business days", base: 75_000,  perHalfKg: 14_000 },
+    { service: "DHL Economy Select",    deliveryTime: "3–5 business days", base: 60_000,  perHalfKg: 11_000 },
   ],
   Z2_AFRICA: [
-    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 60_000, perHalfKg: 10_000 },
-    { service: "DHL Economy Select",    deliveryTime: "4–7 business days", base: 48_000, perHalfKg: 8_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 95_000,  perHalfKg: 17_000 },
+    { service: "DHL Economy Select",    deliveryTime: "4–7 business days", base: 78_000,  perHalfKg: 14_000 },
   ],
   Z3_EUROPE_WEST: [
-    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 95_000, perHalfKg: 18_000 },
-    { service: "DHL Economy Select",    deliveryTime: "4–8 business days", base: 72_000, perHalfKg: 14_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 150_000, perHalfKg: 28_000 },
+    { service: "DHL Economy Select",    deliveryTime: "4–8 business days", base: 120_000, perHalfKg: 22_000 },
   ],
   Z4_EUROPE_EAST: [
-    { service: "DHL Express Worldwide", deliveryTime: "3–5 business days", base: 98_000, perHalfKg: 19_000 },
-    { service: "DHL Economy Select",    deliveryTime: "5–9 business days", base: 75_000, perHalfKg: 15_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "3–5 business days", base: 158_000, perHalfKg: 30_000 },
+    { service: "DHL Economy Select",    deliveryTime: "5–9 business days", base: 126_000, perHalfKg: 24_000 },
   ],
   Z5_NORTH_AMERICA: [
-    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 110_000, perHalfKg: 20_000 },
-    { service: "DHL Economy Select",    deliveryTime: "5–9 business days", base: 85_000, perHalfKg: 16_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 175_000, perHalfKg: 32_000 },
+    { service: "DHL Economy Select",    deliveryTime: "5–9 business days", base: 140_000, perHalfKg: 26_000 },
   ],
   Z6_MIDDLE_EAST: [
-    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 90_000, perHalfKg: 17_000 },
-    { service: "DHL Economy Select",    deliveryTime: "4–7 business days", base: 70_000, perHalfKg: 13_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "2–4 business days", base: 140_000, perHalfKg: 26_000 },
+    { service: "DHL Economy Select",    deliveryTime: "4–7 business days", base: 112_000, perHalfKg: 20_000 },
   ],
   Z7_ASIA: [
-    { service: "DHL Express Worldwide", deliveryTime: "3–5 business days", base: 105_000, perHalfKg: 19_000 },
-    { service: "DHL Economy Select",    deliveryTime: "6–10 business days", base: 82_000, perHalfKg: 15_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "3–5 business days", base: 165_000, perHalfKg: 30_000 },
+    { service: "DHL Economy Select",    deliveryTime: "6–10 business days", base: 132_000, perHalfKg: 24_000 },
   ],
   Z8_OCEANIA: [
-    { service: "DHL Express Worldwide", deliveryTime: "3–6 business days", base: 120_000, perHalfKg: 22_000 },
-    { service: "DHL Economy Select",    deliveryTime: "6–11 business days", base: 92_000, perHalfKg: 17_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "3–6 business days", base: 190_000, perHalfKg: 35_000 },
+    { service: "DHL Economy Select",    deliveryTime: "6–11 business days", base: 152_000, perHalfKg: 28_000 },
   ],
   Z9_LATAM_ROW: [
-    { service: "DHL Express Worldwide", deliveryTime: "4–7 business days", base: 130_000, perHalfKg: 24_000 },
-    { service: "DHL Economy Select",    deliveryTime: "7–12 business days", base: 100_000, perHalfKg: 18_000 },
+    { service: "DHL Express Worldwide", deliveryTime: "4–7 business days", base: 205_000, perHalfKg: 38_000 },
+    { service: "DHL Economy Select",    deliveryTime: "7–12 business days", base: 164_000, perHalfKg: 30_000 },
   ],
 };
 
-/* ── Nigeria domestic tiers ──────────────────────────────────────────────── */
-export type DomesticTier = "T0_LAGOS" | "T1_SOUTHWEST" | "T2_SOUTH_FCT" | "T3_NORTH";
+/* ── Nigeria domestic tiers (origin: Ibadan) ─────────────────────────────── */
+// Anchored to a real invoice: Ibadan → Lagos ≈ ₦7,500 (Express, one outfit).
+//   T0 = Oyo/Ibadan local (cheapest)
+//   T1 = Southwest neighbours incl. LAGOS  ← the ₦7,500 anchor
+//   T2 = South & FCT (major cities)
+//   T3 = North (furthest)
+export type DomesticTier = "T0_OYO_LOCAL" | "T1_SOUTHWEST" | "T2_SOUTH_FCT" | "T3_NORTH";
 
 export const DOMESTIC_RATES: Record<DomesticTier, RateTier[]> = {
-  T0_LAGOS: [
-    { service: "DHL Domestic Express", deliveryTime: "24–48 hours",     base: 15, perHalfKg: 0},
-    { service: "DHL Domestic Standard", deliveryTime: "2–4 business days", base: 2_500, perHalfKg: 500 },
+  T0_OYO_LOCAL: [
+    { service: "DHL Domestic Express",  deliveryTime: "24–48 hours",       base: 5_000, perHalfKg: 900 },
+    { service: "DHL Domestic Standard", deliveryTime: "1–3 business days", base: 4_000, perHalfKg: 700 },
   ],
   T1_SOUTHWEST: [
-    { service: "DHL Domestic Express", deliveryTime: "1–2 business days", base: 5_500, perHalfKg: 900 },
-    { service: "DHL Domestic Standard", deliveryTime: "2–4 business days", base: 3_500, perHalfKg: 600 },
+    { service: "DHL Domestic Express",  deliveryTime: "1–2 business days", base: 7_500, perHalfKg: 1_300 },
+    { service: "DHL Domestic Standard", deliveryTime: "2–4 business days", base: 6_000, perHalfKg: 1_000 },
   ],
   T2_SOUTH_FCT: [
-    { service: "DHL Domestic Express", deliveryTime: "2–3 business days", base: 6_500, perHalfKg: 1_100 },
-    { service: "DHL Domestic Standard", deliveryTime: "3–5 business days", base: 4_500, perHalfKg: 800 },
+    { service: "DHL Domestic Express",  deliveryTime: "2–3 business days", base: 11_000, perHalfKg: 1_800 },
+    { service: "DHL Domestic Standard", deliveryTime: "3–5 business days", base: 9_000,  perHalfKg: 1_500 },
   ],
   T3_NORTH: [
-    { service: "DHL Domestic Express", deliveryTime: "2–4 business days", base: 7_500, perHalfKg: 1_300 },
-    { service: "DHL Domestic Standard", deliveryTime: "4–7 business days", base: 5_500, perHalfKg: 1_000 },
+    { service: "DHL Domestic Express",  deliveryTime: "2–4 business days", base: 14_000, perHalfKg: 2_300 },
+    { service: "DHL Domestic Standard", deliveryTime: "4–7 business days", base: 11_500, perHalfKg: 1_900 },
   ],
 };
 
-/* ── Nigerian states (37 incl. FCT) → domestic tier ──────────────────────── */
+/* ── Nigerian states (37 incl. FCT) → domestic tier (Ibadan origin) ───────── */
 export const NIGERIAN_STATES: NigerianState[] = [
-  { code: "LA", name: "Lagos",        tier: "T0_LAGOS" },
+  { code: "OY", name: "Oyo",          tier: "T0_OYO_LOCAL" },
   { code: "OG", name: "Ogun",         tier: "T1_SOUTHWEST" },
-  { code: "OY", name: "Oyo",          tier: "T1_SOUTHWEST" },
   { code: "OS", name: "Osun",         tier: "T1_SOUTHWEST" },
   { code: "ON", name: "Ondo",         tier: "T1_SOUTHWEST" },
   { code: "EK", name: "Ekiti",        tier: "T1_SOUTHWEST" },
+  { code: "LA", name: "Lagos",        tier: "T1_SOUTHWEST" },
+  { code: "KW", name: "Kwara",        tier: "T1_SOUTHWEST" },
   { code: "FC", name: "FCT - Abuja",  tier: "T2_SOUTH_FCT" },
   { code: "RI", name: "Rivers",       tier: "T2_SOUTH_FCT" },
   { code: "DE", name: "Delta",        tier: "T2_SOUTH_FCT" },
@@ -117,7 +129,6 @@ export const NIGERIAN_STATES: NigerianState[] = [
   { code: "EN", name: "Enugu",        tier: "T2_SOUTH_FCT" },
   { code: "AB", name: "Abia",         tier: "T2_SOUTH_FCT" },
   { code: "IM", name: "Imo",          tier: "T2_SOUTH_FCT" },
-  { code: "KW", name: "Kwara",        tier: "T2_SOUTH_FCT" },
   { code: "KO", name: "Kogi",         tier: "T2_SOUTH_FCT" },
   { code: "CR", name: "Cross River",  tier: "T2_SOUTH_FCT" },
   { code: "AK", name: "Akwa Ibom",    tier: "T2_SOUTH_FCT" },
