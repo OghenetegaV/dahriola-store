@@ -23,6 +23,7 @@ import { getShippingRates } from "@/src/app/actions/shipping";
 import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
+import { createOrder } from "@/src/app/actions/order";
 import { reducePrintStockAfterOrder } from "@/src/app/actions/inventory";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -390,28 +391,38 @@ export default function CheckoutClient() {
       console.error("Stock reduction failed:", stockErr);
     }
 
+    // 2. Save the order to Sanity via the server action (browser writes are
+    //    rejected — the write token only exists server-side).
     try {
-      await client.create({
-        _type: "order",
+      const orderResult = await createOrder({
         orderNumber: transactionReference,
         customerName: formData.name,
         customerEmail: formData.email,
-        shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
+        shippingAddress: [
+          formData.address,
+          formData.apartment,
+          formData.city,
+          formData.state,
+          formData.postalCode,
+          formData.country,
+        ].filter(Boolean).join(", "),
         currency: currency,
         totalAmount: finalTotal,
         paymentVerified: verified,
-        delivered: false,
         items: cart.map((item) => ({
-          _key: `${item._id}-${item.size}-${item.selectedPrintId || 'default'}`,
+          _id: item._id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
           size: item.size,
+          selectedPrintId: item.selectedPrintId,
           selectedPrintName: item.selectedPrintName || "",
           notes: item.notes || "",
         })),
-        createdAt: new Date().toISOString(),
       });
+      if (!orderResult.success) {
+        console.error("Order save failed:", orderResult.message);
+      }
     } catch (sanityErr) {
       console.error("SANITY SAVE FAILED:", sanityErr);
     }
