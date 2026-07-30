@@ -421,10 +421,35 @@ export default function CheckoutClient() {
         orderNumber: transactionReference,
         customerName: formData.name,
         customerEmail: formData.email,
-        items: cart,
+        customerPhone: formData.phone,
+        shippingAddress: [
+          formData.address,
+          formData.apartment,
+          formData.city,
+          formData.state,
+          formData.postalCode,
+          formData.country,
+        ].filter(Boolean).join(", "),
+        items: cart.map((item) => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          size: item.size,
+          selectedPrintName: item.selectedPrintName || "",
+          notes: item.notes || "",
+        })),
+        subtotal: convertedSubtotal,
+        shippingFee: convertedShipping,
+        shippingMethod: selectedRate
+          ? `${selectedRate.service_name || selectedRate.carrier_name}${
+              selectedRate.delivery_time ? ` — ${selectedRate.delivery_time}` : ""
+            }`
+          : undefined,
         totalAmount: finalTotal,
         currency,
-        shippingAddress: `${formData.address}, ${formData.city}, ${formData.state}, ${formData.country}`,
+        paymentReference: transactionReference,
+        paymentVerified: verified,
+        orderDate: new Date().toISOString(),
       });
     } catch (emailErr) {
       console.error("Email notification failed:", emailErr);
