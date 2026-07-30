@@ -1,23 +1,7 @@
 // src/app/actions/order.ts
-// ─────────────────────────────────────────────────────────────────────────────
 // Creates the order document in Sanity FROM THE SERVER using a write token.
-//
-// Why this is needed: CheckoutClient runs in the browser, where the Sanity
-// client (src/lib/sanity) has no write token — so client.create() is silently
-// rejected and orders never appear in the Studio. This server action holds the
-// token safely and performs the write. Fields match src/sanity/schemaTypes/order.ts
-// exactly (name/price/quantity/size/selectedPrintName/notes + delivered + paymentVerified).
-//
-// SETUP (one-time):
-//   1. sanity.io/manage → your project → API → Tokens → Add API token →
-//      permission: Editor (or Write). Copy it.
-//   2. Add SANITY_API_WRITE_TOKEN=<token> to .env.local AND Vercel (Production).
-//   3. Confirm the projectId/dataset env names below match what src/lib/sanity uses.
-//   4. Redeploy.
-//
-// If @sanity/client isn't found at build, change the import to:
-//   import { createClient } from "next-sanity";
-// ─────────────────────────────────────────────────────────────────────────────
+// Now writes the full record: phone, shipping method + fee, discount code +
+// amount, subtotal, payment reference, verified flag — matching the schema.
 
 "use server";
 
@@ -32,7 +16,7 @@ const writeClient = createClient({
     process.env.SANITY_DATASET ??
     "production",
   apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION ?? "2024-01-01",
-  token: process.env.SANITY_API_WRITE_TOKEN, // server-only — never exposed to the browser
+  token: process.env.SANITY_API_WRITE_TOKEN, // server-only
   useCdn: false,
 });
 
@@ -51,9 +35,16 @@ type CreateOrderInput = {
   orderNumber: string;
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
   shippingAddress: string;
+  shippingMethod?: string;
   currency: string;
+  subtotal?: number;
+  shippingFee?: number;
+  discountCode?: string;
+  discountAmount?: number;
   totalAmount: number;
+  paymentReference?: string;
   paymentVerified: boolean;
   items: OrderItemInput[];
 };
@@ -72,9 +63,19 @@ export async function createOrder(
       orderNumber: input.orderNumber,
       customerName: input.customerName,
       customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone || "",
       shippingAddress: input.shippingAddress,
+      shippingMethod: input.shippingMethod || "",
       currency: input.currency,
+      subtotal: typeof input.subtotal === "number" ? input.subtotal : undefined,
+      shippingFee: typeof input.shippingFee === "number" ? input.shippingFee : undefined,
+      discountCode: input.discountCode || "",
+      discountAmount:
+        typeof input.discountAmount === "number" && input.discountAmount > 0
+          ? input.discountAmount
+          : undefined,
       totalAmount: input.totalAmount,
+      paymentReference: input.paymentReference || input.orderNumber,
       paymentVerified: input.paymentVerified,
       delivered: false,
       items: input.items.map((item) => ({

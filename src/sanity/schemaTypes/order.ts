@@ -1,67 +1,87 @@
 // src/sanity/schemaTypes/order.ts
-// Updated:
-// - item fields now match exactly what CheckoutClient writes (name, price,
-//   quantity, size, selectedPrintName, notes) — this is why orders looked
-//   blank/absent before: writes with unknown field names don't render.
-// - added `paymentVerified` (written by checkout) and a `delivered` toggle
-//   the client can tick when an order has shipped/arrived.
-// - added a list preview + ordering so the Orders list is readable at a glance.
+// Full order record — everything the client needs on one page.
+// Fields are grouped so the Studio form reads top-to-bottom: status → customer
+// → delivery → items → payment breakdown.
 
 export default {
   name: 'order',
   title: 'Orders',
   type: 'document',
+
+  groups: [
+    { name: 'status', title: 'Status', default: true },
+    { name: 'customer', title: 'Customer' },
+    { name: 'delivery', title: 'Delivery' },
+    { name: 'items', title: 'Items' },
+    { name: 'payment', title: 'Payment & Totals' },
+  ],
+
   fields: [
-    {
-      name: 'orderNumber',
-      title: 'Order Number',
-      type: 'string',
-      readOnly: true,
-    },
+    // ── Status ──────────────────────────────────────────────
     {
       name: 'delivered',
       title: 'Delivered',
       type: 'boolean',
       description: 'Tick once this order has been delivered to the customer.',
       initialValue: false,
+      group: 'status',
     },
     {
-      name: 'paymentVerified',
-      title: 'Payment Verified',
-      type: 'boolean',
-      description: 'Auto-set at checkout. True = Paystack confirmed the charge.',
+      name: 'orderNumber',
+      title: 'Order Number',
+      type: 'string',
       readOnly: true,
-      initialValue: false,
+      group: 'status',
     },
+    {
+      name: 'createdAt',
+      title: 'Order Date',
+      type: 'datetime',
+      readOnly: true,
+      group: 'status',
+    },
+
+    // ── Customer ────────────────────────────────────────────
     {
       name: 'customerName',
       title: 'Customer Name',
       type: 'string',
+      group: 'customer',
     },
     {
       name: 'customerEmail',
       title: 'Customer Email',
       type: 'string',
+      group: 'customer',
     },
+    {
+      name: 'customerPhone',
+      title: 'Customer Phone',
+      type: 'string',
+      group: 'customer',
+    },
+
+    // ── Delivery ────────────────────────────────────────────
     {
       name: 'shippingAddress',
       title: 'Shipping Address',
       type: 'text',
+      group: 'delivery',
     },
     {
-      name: 'currency',
-      title: 'Currency',
+      name: 'shippingMethod',
+      title: 'Shipping Method',
       type: 'string',
+      description: 'Courier + service selected at checkout (e.g. DHL Domestic Express).',
+      group: 'delivery',
     },
-    {
-      name: 'totalAmount',
-      title: 'Total Amount',
-      type: 'number',
-    },
+
+    // ── Items ───────────────────────────────────────────────
     {
       name: 'items',
       title: 'Ordered Items',
       type: 'array',
+      group: 'items',
       of: [
         {
           type: 'object',
@@ -74,28 +94,78 @@ export default {
             { name: 'notes', title: 'Notes', type: 'text' },
           ],
           preview: {
-            select: { title: 'name', subtitle: 'size', qty: 'quantity' },
-            prepare({ title, subtitle, qty }: { title?: string; subtitle?: string; qty?: number }) {
+            select: { title: 'name', size: 'size', qty: 'quantity', print: 'selectedPrintName' },
+            prepare({ title, size, qty, print }: any) {
               return {
                 title: title || 'Item',
-                subtitle: [subtitle && `Size: ${subtitle}`, qty && `Qty: ${qty}`]
-                  .filter(Boolean)
-                  .join(' • '),
+                subtitle: [
+                  size && `Size: ${size}`,
+                  qty && `Qty: ${qty}`,
+                  print && `Print: ${print}`,
+                ].filter(Boolean).join(' • '),
               };
             },
           },
         },
       ],
     },
+
+    // ── Payment & totals ────────────────────────────────────
     {
-      name: 'createdAt',
-      title: 'Order Date',
-      type: 'datetime',
+      name: 'currency',
+      title: 'Currency',
+      type: 'string',
+      group: 'payment',
+    },
+    {
+      name: 'subtotal',
+      title: 'Subtotal',
+      type: 'number',
+      group: 'payment',
+    },
+    {
+      name: 'shippingFee',
+      title: 'Shipping Fee',
+      type: 'number',
+      group: 'payment',
+    },
+    {
+      name: 'discountCode',
+      title: 'Discount Code',
+      type: 'string',
+      group: 'payment',
+    },
+    {
+      name: 'discountAmount',
+      title: 'Discount Amount',
+      type: 'number',
+      group: 'payment',
+    },
+    {
+      name: 'totalAmount',
+      title: 'Total Paid',
+      type: 'number',
+      group: 'payment',
+    },
+    {
+      name: 'paymentReference',
+      title: 'Payment Reference',
+      type: 'string',
+      description: 'Paystack transaction reference.',
       readOnly: true,
+      group: 'payment',
+    },
+    {
+      name: 'paymentVerified',
+      title: 'Payment Verified',
+      type: 'boolean',
+      description: 'Auto-set at checkout. True = Paystack confirmed the charge.',
+      readOnly: true,
+      initialValue: false,
+      group: 'payment',
     },
   ],
 
-  // Newest first in the Studio, with a Delivered/Pending grouping option.
   orderings: [
     {
       title: 'Newest first',
@@ -121,29 +191,12 @@ export default {
       delivered: 'delivered',
       verified: 'paymentVerified',
     },
-    prepare({
-      name,
-      order,
-      total,
-      currency,
-      delivered,
-      verified,
-    }: {
-      name?: string;
-      order?: string;
-      total?: number;
-      currency?: string;
-      delivered?: boolean;
-      verified?: boolean;
-    }) {
-      const money =
-        total != null ? `${currency || 'NGN'} ${Number(total).toLocaleString()}` : '';
+    prepare({ name, order, total, currency, delivered, verified }: any) {
+      const money = total != null ? `${currency || 'NGN'} ${Number(total).toLocaleString()}` : '';
       const flags = [
         delivered ? '✅ Delivered' : '📦 Pending',
         verified === false ? '⚠️ Unverified' : null,
-      ]
-        .filter(Boolean)
-        .join('  ');
+      ].filter(Boolean).join('  ');
       return {
         title: `${name || 'Customer'} — ${money}`.trim(),
         subtitle: [order, flags].filter(Boolean).join('   ·   '),

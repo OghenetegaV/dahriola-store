@@ -398,6 +398,7 @@ export default function CheckoutClient() {
         orderNumber: transactionReference,
         customerName: formData.name,
         customerEmail: formData.email,
+        customerPhone: formData.phone,
         shippingAddress: [
           formData.address,
           formData.apartment,
@@ -406,8 +407,18 @@ export default function CheckoutClient() {
           formData.postalCode,
           formData.country,
         ].filter(Boolean).join(", "),
+        shippingMethod: selectedRate
+          ? `${selectedRate.service_name || selectedRate.carrier_name}${
+              selectedRate.delivery_time ? ` — ${selectedRate.delivery_time}` : ""
+            }`
+          : undefined,
         currency: currency,
+        subtotal: convertedSubtotal,
+        shippingFee: convertedShipping,
+        discountCode: discountAmount > 0 ? discountCode : undefined,
+        discountAmount: discountAmount > 0 ? discountAmount : undefined,
         totalAmount: finalTotal,
+        paymentReference: transactionReference,
         paymentVerified: verified,
         items: cart.map((item) => ({
           _id: item._id,
