@@ -1,7 +1,7 @@
 // src/app/actions/order.ts
 // Creates the order document in Sanity FROM THE SERVER using a write token.
-// Now writes the full record: phone, shipping method + fee, discount code +
-// amount, subtotal, payment reference, verified flag — matching the schema.
+// Now also records marketing consent (emailOptIn / textOptIn) so the client can
+// see who agreed to receive news and offers.
 
 "use server";
 
@@ -46,6 +46,8 @@ type CreateOrderInput = {
   totalAmount: number;
   paymentReference?: string;
   paymentVerified: boolean;
+  emailOptIn?: boolean;   // marketing consent — email
+  textOptIn?: boolean;    // marketing consent — SMS/text
   items: OrderItemInput[];
 };
 
@@ -77,6 +79,8 @@ export async function createOrder(
       totalAmount: input.totalAmount,
       paymentReference: input.paymentReference || input.orderNumber,
       paymentVerified: input.paymentVerified,
+      emailOptIn: !!input.emailOptIn,
+      textOptIn: !!input.textOptIn,
       delivered: false,
       items: input.items.map((item) => ({
         _key: `${item._id}-${item.size ?? ""}-${item.selectedPrintId || "default"}`,

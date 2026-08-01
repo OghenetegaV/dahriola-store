@@ -1,7 +1,7 @@
 // src/sanity/schemaTypes/order.ts
-// Full order record — everything the client needs on one page.
-// Fields are grouped so the Studio form reads top-to-bottom: status → customer
-// → delivery → items → payment breakdown.
+// Adds marketing-consent fields (emailOptIn / textOptIn) so the client can see
+// who agreed to receive news & offers — filter the Orders list by these to pull
+// a marketing list. Everything else matches the full order record.
 
 export default {
   name: 'order',
@@ -14,69 +14,27 @@ export default {
     { name: 'delivery', title: 'Delivery' },
     { name: 'items', title: 'Items' },
     { name: 'payment', title: 'Payment & Totals' },
+    { name: 'marketing', title: 'Marketing' },
   ],
 
   fields: [
-    // ── Status ──────────────────────────────────────────────
-    {
-      name: 'delivered',
-      title: 'Delivered',
-      type: 'boolean',
-      description: 'Tick once this order has been delivered to the customer.',
-      initialValue: false,
-      group: 'status',
-    },
-    {
-      name: 'orderNumber',
-      title: 'Order Number',
-      type: 'string',
-      readOnly: true,
-      group: 'status',
-    },
-    {
-      name: 'createdAt',
-      title: 'Order Date',
-      type: 'datetime',
-      readOnly: true,
-      group: 'status',
-    },
+    // ── Status ──
+    { name: 'delivered', title: 'Delivered', type: 'boolean', initialValue: false, group: 'status',
+      description: 'Tick once this order has been delivered to the customer.' },
+    { name: 'orderNumber', title: 'Order Number', type: 'string', readOnly: true, group: 'status' },
+    { name: 'createdAt', title: 'Order Date', type: 'datetime', readOnly: true, group: 'status' },
 
-    // ── Customer ────────────────────────────────────────────
-    {
-      name: 'customerName',
-      title: 'Customer Name',
-      type: 'string',
-      group: 'customer',
-    },
-    {
-      name: 'customerEmail',
-      title: 'Customer Email',
-      type: 'string',
-      group: 'customer',
-    },
-    {
-      name: 'customerPhone',
-      title: 'Customer Phone',
-      type: 'string',
-      group: 'customer',
-    },
+    // ── Customer ──
+    { name: 'customerName', title: 'Customer Name', type: 'string', group: 'customer' },
+    { name: 'customerEmail', title: 'Customer Email', type: 'string', group: 'customer' },
+    { name: 'customerPhone', title: 'Customer Phone', type: 'string', group: 'customer' },
 
-    // ── Delivery ────────────────────────────────────────────
-    {
-      name: 'shippingAddress',
-      title: 'Shipping Address',
-      type: 'text',
-      group: 'delivery',
-    },
-    {
-      name: 'shippingMethod',
-      title: 'Shipping Method',
-      type: 'string',
-      description: 'Courier + service selected at checkout (e.g. DHL Domestic Express).',
-      group: 'delivery',
-    },
+    // ── Delivery ──
+    { name: 'shippingAddress', title: 'Shipping Address', type: 'text', group: 'delivery' },
+    { name: 'shippingMethod', title: 'Shipping Method', type: 'string', group: 'delivery',
+      description: 'Courier + service selected at checkout.' },
 
-    // ── Items ───────────────────────────────────────────────
+    // ── Items ──
     {
       name: 'items',
       title: 'Ordered Items',
@@ -98,11 +56,8 @@ export default {
             prepare({ title, size, qty, print }: any) {
               return {
                 title: title || 'Item',
-                subtitle: [
-                  size && `Size: ${size}`,
-                  qty && `Qty: ${qty}`,
-                  print && `Print: ${print}`,
-                ].filter(Boolean).join(' • '),
+                subtitle: [size && `Size: ${size}`, qty && `Qty: ${qty}`, print && `Print: ${print}`]
+                  .filter(Boolean).join(' • '),
               };
             },
           },
@@ -110,92 +65,54 @@ export default {
       ],
     },
 
-    // ── Payment & totals ────────────────────────────────────
+    // ── Payment & totals ──
+    { name: 'currency', title: 'Currency', type: 'string', group: 'payment' },
+    { name: 'subtotal', title: 'Subtotal', type: 'number', group: 'payment' },
+    { name: 'shippingFee', title: 'Shipping Fee', type: 'number', group: 'payment' },
+    { name: 'discountCode', title: 'Discount Code', type: 'string', group: 'payment' },
+    { name: 'discountAmount', title: 'Discount Amount', type: 'number', group: 'payment' },
+    { name: 'totalAmount', title: 'Total Paid', type: 'number', group: 'payment' },
+    { name: 'paymentReference', title: 'Payment Reference', type: 'string', readOnly: true, group: 'payment' },
+    { name: 'paymentVerified', title: 'Payment Verified', type: 'boolean', readOnly: true, initialValue: false, group: 'payment' },
+
+    // ── Marketing consent ──
     {
-      name: 'currency',
-      title: 'Currency',
-      type: 'string',
-      group: 'payment',
-    },
-    {
-      name: 'subtotal',
-      title: 'Subtotal',
-      type: 'number',
-      group: 'payment',
-    },
-    {
-      name: 'shippingFee',
-      title: 'Shipping Fee',
-      type: 'number',
-      group: 'payment',
-    },
-    {
-      name: 'discountCode',
-      title: 'Discount Code',
-      type: 'string',
-      group: 'payment',
-    },
-    {
-      name: 'discountAmount',
-      title: 'Discount Amount',
-      type: 'number',
-      group: 'payment',
-    },
-    {
-      name: 'totalAmount',
-      title: 'Total Paid',
-      type: 'number',
-      group: 'payment',
-    },
-    {
-      name: 'paymentReference',
-      title: 'Payment Reference',
-      type: 'string',
-      description: 'Paystack transaction reference.',
-      readOnly: true,
-      group: 'payment',
-    },
-    {
-      name: 'paymentVerified',
-      title: 'Payment Verified',
+      name: 'emailOptIn',
+      title: 'Opted in to Email offers',
       type: 'boolean',
-      description: 'Auto-set at checkout. True = Paystack confirmed the charge.',
-      readOnly: true,
+      description: 'Customer ticked "Email me with news and offers" at checkout.',
       initialValue: false,
-      group: 'payment',
+      group: 'marketing',
+    },
+    {
+      name: 'textOptIn',
+      title: 'Opted in to SMS/Text offers',
+      type: 'boolean',
+      description: 'Customer ticked "Text me with news and offers" at checkout.',
+      initialValue: false,
+      group: 'marketing',
     },
   ],
 
   orderings: [
-    {
-      title: 'Newest first',
-      name: 'createdAtDesc',
-      by: [{ field: 'createdAt', direction: 'desc' }],
-    },
-    {
-      title: 'Undelivered first',
-      name: 'deliveredAsc',
-      by: [
-        { field: 'delivered', direction: 'asc' },
-        { field: 'createdAt', direction: 'desc' },
-      ],
-    },
+    { title: 'Newest first', name: 'createdAtDesc', by: [{ field: 'createdAt', direction: 'desc' }] },
+    { title: 'Undelivered first', name: 'deliveredAsc',
+      by: [{ field: 'delivered', direction: 'asc' }, { field: 'createdAt', direction: 'desc' }] },
+    { title: 'Email opt-ins first', name: 'emailOptInDesc',
+      by: [{ field: 'emailOptIn', direction: 'desc' }, { field: 'createdAt', direction: 'desc' }] },
   ],
 
   preview: {
     select: {
-      name: 'customerName',
-      order: 'orderNumber',
-      total: 'totalAmount',
-      currency: 'currency',
-      delivered: 'delivered',
-      verified: 'paymentVerified',
+      name: 'customerName', order: 'orderNumber', total: 'totalAmount',
+      currency: 'currency', delivered: 'delivered', verified: 'paymentVerified', email: 'emailOptIn',
     },
-    prepare({ name, order, total, currency, delivered, verified }: any) {
+    prepare({ name, order, total, currency, delivered, verified, email }: any) {
       const money = total != null ? `${currency || 'NGN'} ${Number(total).toLocaleString()}` : '';
       const flags = [
         delivered ? '✅ Delivered' : '📦 Pending',
         verified === false ? '⚠️ Unverified' : null,
+        email ? '📧 Opt-in' : null,
       ].filter(Boolean).join('  ');
       return {
         title: `${name || 'Customer'} — ${money}`.trim(),

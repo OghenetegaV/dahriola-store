@@ -54,6 +54,8 @@ export default function CheckoutClient() {
   const [cities, setCities] = useState<any[]>([]);
 
   const [selectedCountryCode, setSelectedCountryCode] = useState("NG");
+  const [emailOptIn, setEmailOptIn] = useState(false);
+  const [textOptIn, setTextOptIn] = useState(false);
   const [selectedStateCode, setSelectedStateCode] = useState("");
 
   const [loadingCountries, setLoadingCountries] = useState(false);
@@ -247,12 +249,19 @@ export default function CheckoutClient() {
   const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
 
   const fetchRates = async () => {
-    const isNigeria = formData.country === "NG";
+    // Require the core address fields for EVERY country. The country selector is
+    // the single source of truth for where this ships — the state/region and
+    // city must be filled in too, so a foreign address can't be quoted at
+    // Nigerian domestic rates just because the country was left as NG.
     if (
-      !formData.address ||
+      !formData.address.trim() ||
       !formData.country ||
-      (isNigeria && !formData.state)   // state only required for Nigeria
+      !formData.city.trim() ||
+      !formData.state.trim()
     ) {
+      setShippingError(
+        "Please complete your full address — country, state/region, city, and street — before fetching shipping options."
+      );
       return;
     }
 
@@ -398,7 +407,6 @@ export default function CheckoutClient() {
         orderNumber: transactionReference,
         customerName: formData.name,
         customerEmail: formData.email,
-        customerPhone: formData.phone,
         shippingAddress: [
           formData.address,
           formData.apartment,
@@ -407,19 +415,11 @@ export default function CheckoutClient() {
           formData.postalCode,
           formData.country,
         ].filter(Boolean).join(", "),
-        shippingMethod: selectedRate
-          ? `${selectedRate.service_name || selectedRate.carrier_name}${
-              selectedRate.delivery_time ? ` — ${selectedRate.delivery_time}` : ""
-            }`
-          : undefined,
         currency: currency,
-        subtotal: convertedSubtotal,
-        shippingFee: convertedShipping,
-        discountCode: discountAmount > 0 ? discountCode : undefined,
-        discountAmount: discountAmount > 0 ? discountAmount : undefined,
         totalAmount: finalTotal,
-        paymentReference: transactionReference,
         paymentVerified: verified,
+        emailOptIn: emailOptIn,
+        textOptIn: textOptIn,
         items: cart.map((item) => ({
           _id: item._id,
           name: item.name,
@@ -620,7 +620,12 @@ export default function CheckoutClient() {
                 />
 
                 <label className="mt-3 flex items-center gap-2 text-[12px] text-neutral-600">
-                  <input type="checkbox" className="accent-black" />
+                  <input
+                    type="checkbox"
+                    className="accent-black"
+                    checked={emailOptIn}
+                    onChange={(e) => setEmailOptIn(e.target.checked)}
+                  />
                   Email me with news and offers
                 </label>
               </div>
@@ -786,9 +791,10 @@ export default function CheckoutClient() {
                   onClick={fetchRates}
                   disabled={
                     loadingRates ||
-                    !formData.address ||
+                    !formData.address.trim() ||
                     !formData.country ||
-                    (formData.country === "NG" && !formData.state)
+                    !formData.city.trim() ||
+                    !formData.state.trim()
                   }
                   className="mt-4 w-full h-11 rounded-lg border border-brand-beryl text-brand-beryl text-[12px] font-semibold hover:bg-brand-beryl hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
@@ -798,7 +804,12 @@ export default function CheckoutClient() {
                 </button>
 
                 <label className="mt-3 flex items-center gap-2 text-[12px] text-neutral-600">
-                  <input type="checkbox" className="accent-black" />
+                  <input
+                    type="checkbox"
+                    className="accent-black"
+                    checked={textOptIn}
+                    onChange={(e) => setTextOptIn(e.target.checked)}
+                  />
                   Text me with news and offers
                 </label>
               </div>
@@ -866,7 +877,17 @@ export default function CheckoutClient() {
                     onClose: () => setIsProcessing(false),
                   });
                 }}
-                disabled={!selectedRate || !formData.email || isProcessing}
+                disabled={
+                  !selectedRate ||
+                  !formData.email ||
+                  !formData.name.trim() ||
+                  !formData.phone.trim() ||
+                  !formData.address.trim() ||
+                  !formData.city.trim() ||
+                  !formData.state.trim() ||
+                  !formData.country ||
+                  isProcessing
+                }
                 className="w-full h-14 rounded-lg bg-brand-beryl text-white text-[14px] font-semibold hover:opacity-95 transition disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
