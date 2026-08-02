@@ -59,6 +59,23 @@ export default function CheckoutClient() {
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [textOptIn, setTextOptIn] = useState(false);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+  // true until Google fails to load; when false we allow manual entry + the
+  // built-in validation instead of hard-gating on a Google-confirmed address.
+  const [googleAvailable, setGoogleAvailable] = useState(true);
+
+  // Safety net: if Google Maps hasn't confirmed availability within 6 seconds
+  // (blocked by a network, ad blocker, outage, etc.), drop to manual entry so
+  // checkout is never left waiting on a script that won't arrive.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!addressConfirmed) {
+        const g = (window as unknown as { google?: any }).google;
+        if (!g?.maps?.places) setGoogleAvailable(false);
+      }
+    }, 6000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [addressMismatch, setAddressMismatch] = useState<string | null>(null);
 
   const [loadingCountries, setLoadingCountries] = useState(false);
@@ -283,7 +300,7 @@ export default function CheckoutClient() {
   const fetchRates = async () => {
     // Require a Google-confirmed address so the country can't contradict the
     // address (which is what caused the wrong-shipping mismatches).
-    if (!addressConfirmed) {
+    if (googleAvailable && !addressConfirmed) {
       setShippingError(
         "Please select your address from the search suggestions so we can confirm the destination."
       );
@@ -686,7 +703,10 @@ export default function CheckoutClient() {
                 </h2>
 
                 <div className="mb-3">
-                  <AddressAutocomplete onResolved={handleResolvedAddress} />
+                  <AddressAutocomplete
+                    onResolved={handleResolvedAddress}
+                    onManualFallback={() => setGoogleAvailable(false)}
+                  />
                   {addressMismatch && (
                     <p className="text-[12px] text-red-500 mt-2">{addressMismatch}</p>
                   )}
@@ -854,7 +874,7 @@ export default function CheckoutClient() {
                   onClick={fetchRates}
                   disabled={
                     loadingRates ||
-                    !addressConfirmed ||
+                    (googleAvailable && !addressConfirmed) ||
                     !formData.address.trim() ||
                     !formData.country ||
                     !formData.city.trim() ||
@@ -950,7 +970,7 @@ export default function CheckoutClient() {
                   !formData.city.trim() ||
                   !formData.state.trim() ||
                   !formData.country ||
-                  !addressConfirmed ||
+                  (googleAvailable && !addressConfirmed) ||
                   isProcessing
                 }
                 className="w-full h-14 rounded-lg bg-brand-beryl text-white text-[14px] font-semibold hover:opacity-95 transition disabled:opacity-40 flex items-center justify-center gap-2"
