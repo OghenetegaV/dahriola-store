@@ -66,6 +66,8 @@ export async function sendOrderNotification(orderData: {
   paymentReference?: string;     // NEW — Paystack reference, if different from order #
   paymentVerified?: boolean;     // NEW — verification flag for the client
   orderDate?: string;            // NEW — ISO date; defaults to now
+  emailOptIn?: boolean;
+  textOptIn?: boolean;
 }) {
   try {
     const transporter = getTransporter();
