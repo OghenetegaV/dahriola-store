@@ -24,6 +24,7 @@ import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
 import { createOrder } from "@/src/app/actions/order";
+import AddressAutocomplete, { ResolvedAddress } from "@/src/components/AddressAutocomplete";
 import { reducePrintStockAfterOrder } from "@/src/app/actions/inventory";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -54,9 +55,11 @@ export default function CheckoutClient() {
   const [cities, setCities] = useState<any[]>([]);
 
   const [selectedCountryCode, setSelectedCountryCode] = useState("NG");
+  const [selectedStateCode, setSelectedStateCode] = useState("");
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [textOptIn, setTextOptIn] = useState(false);
-  const [selectedStateCode, setSelectedStateCode] = useState("");
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [addressMismatch, setAddressMismatch] = useState<string | null>(null);
 
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingStates, setLoadingStates] = useState(false);
@@ -248,11 +251,45 @@ export default function CheckoutClient() {
 
   const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
 
+  // Fills every field from a Google-validated pick and sets country from Google's
+  // data, so the country can't contradict the address.
+  const handleResolvedAddress = (addr: ResolvedAddress) => {
+    setSelectedCountryCode(addr.countryCode);
+    setFormData((prev) => ({
+      ...prev,
+      address: addr.line1 || prev.address,
+      city: addr.city || prev.city,
+      state: addr.state || prev.state,
+      postalCode: addr.postalCode || prev.postalCode,
+      country: addr.countryCode,
+    }));
+    setAddressConfirmed(true);
+    setAddressMismatch(null);
+    setSelectedRate(null);
+    setShippingRates([]);
+  };
+
+  // If the user manually changes country away from the confirmed address, warn
+  // and force a re-confirm.
+  const flagIfInconsistent = (nextCountry: string) => {
+    if (addressConfirmed && nextCountry !== formData.country) {
+      setAddressMismatch(
+        "The country no longer matches your searched address. Please re-select your address from the suggestions so shipping is calculated correctly."
+      );
+      setAddressConfirmed(false);
+    }
+  };
+
   const fetchRates = async () => {
-    // Require the core address fields for EVERY country. The country selector is
-    // the single source of truth for where this ships — the state/region and
-    // city must be filled in too, so a foreign address can't be quoted at
-    // Nigerian domestic rates just because the country was left as NG.
+    // Require a Google-confirmed address so the country can't contradict the
+    // address (which is what caused the wrong-shipping mismatches).
+    if (!addressConfirmed) {
+      setShippingError(
+        "Please select your address from the search suggestions so we can confirm the destination."
+      );
+      return;
+    }
+    // Require the full address for EVERY country (not just Nigeria).
     if (
       !formData.address.trim() ||
       !formData.country ||
@@ -407,6 +444,7 @@ export default function CheckoutClient() {
         orderNumber: transactionReference,
         customerName: formData.name,
         customerEmail: formData.email,
+        customerPhone: formData.phone,
         shippingAddress: [
           formData.address,
           formData.apartment,
@@ -415,8 +453,18 @@ export default function CheckoutClient() {
           formData.postalCode,
           formData.country,
         ].filter(Boolean).join(", "),
+        shippingMethod: selectedRate
+          ? `${selectedRate.service_name || selectedRate.carrier_name}${
+              selectedRate.delivery_time ? ` — ${selectedRate.delivery_time}` : ""
+            }`
+          : undefined,
         currency: currency,
+        subtotal: convertedSubtotal,
+        shippingFee: convertedShipping,
+        discountCode: discountAmount > 0 ? discountCode : undefined,
+        discountAmount: discountAmount > 0 ? discountAmount : undefined,
         totalAmount: finalTotal,
+        paymentReference: transactionReference,
         paymentVerified: verified,
         emailOptIn: emailOptIn,
         textOptIn: textOptIn,
@@ -471,6 +519,8 @@ export default function CheckoutClient() {
         currency,
         paymentReference: transactionReference,
         paymentVerified: verified,
+        emailOptIn: emailOptIn,
+        textOptIn: textOptIn,
         orderDate: new Date().toISOString(),
       });
     } catch (emailErr) {
@@ -635,10 +685,23 @@ export default function CheckoutClient() {
                   Delivery
                 </h2>
 
+                <div className="mb-3">
+                  <AddressAutocomplete onResolved={handleResolvedAddress} />
+                  {addressMismatch && (
+                    <p className="text-[12px] text-red-500 mt-2">{addressMismatch}</p>
+                  )}
+                  {addressConfirmed && !addressMismatch && (
+                    <p className="text-[12px] text-green-600 mt-2">
+                      ✓ Address confirmed. You can adjust the fields below if needed.
+                    </p>
+                  )}
+                </div>
+
                 <div className="relative mb-3">
                   <select
                     value={selectedCountryCode}
                     onChange={(e) => {
+                      flagIfInconsistent(e.target.value);
                       setSelectedCountryCode(e.target.value);
                       setSelectedRate(null);
                       setShippingRates([]);
@@ -791,6 +854,7 @@ export default function CheckoutClient() {
                   onClick={fetchRates}
                   disabled={
                     loadingRates ||
+                    !addressConfirmed ||
                     !formData.address.trim() ||
                     !formData.country ||
                     !formData.city.trim() ||
@@ -886,6 +950,7 @@ export default function CheckoutClient() {
                   !formData.city.trim() ||
                   !formData.state.trim() ||
                   !formData.country ||
+                  !addressConfirmed ||
                   isProcessing
                 }
                 className="w-full h-14 rounded-lg bg-brand-beryl text-white text-[14px] font-semibold hover:opacity-95 transition disabled:opacity-40 flex items-center justify-center gap-2"
