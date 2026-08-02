@@ -6,6 +6,9 @@
 //
 // Fails safe: if Google can't load (missing key, network), it renders a plain
 // text input and calls onManualFallback so the existing manual fields take over.
+//
+// NOTE: this version uses local `any` types for the Google objects, so it needs
+// NO @types/google.maps package. Fully self-contained.
 
 "use client";
 
@@ -24,11 +27,13 @@ export type ResolvedAddress = {
   formatted: string;   // Google's full formatted string
 };
 
-function pick(
-  components: google.maps.GeocoderAddressComponent[],
-  type: string,
-  useShort = false,
-) {
+type AddressComponent = {
+  long_name: string;
+  short_name: string;
+  types: string[];
+};
+
+function pick(components: AddressComponent[], type: string, useShort = false) {
   const c = components.find((x) => x.types.includes(type));
   return c ? (useShort ? c.short_name : c.long_name) : "";
 }
@@ -46,11 +51,13 @@ export default function AddressAutocomplete({
   const [status, setStatus] = useState<"loading" | "ready" | "fallback">("loading");
 
   useEffect(() => {
-    let autocomplete: google.maps.places.Autocomplete | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let autocomplete: any = null;
     let cancelled = false;
 
     loadGoogleMaps()
-      .then((google) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((google: any) => {
         if (cancelled || !inputRef.current) return;
 
         autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
@@ -59,8 +66,8 @@ export default function AddressAutocomplete({
         });
 
         autocomplete.addListener("place_changed", () => {
-          const place = autocomplete!.getPlace();
-          const comps = place.address_components || [];
+          const place = autocomplete.getPlace();
+          const comps: AddressComponent[] = place.address_components || [];
           if (!comps.length) return;
 
           const streetNumber = pick(comps, "street_number");
@@ -87,16 +94,18 @@ export default function AddressAutocomplete({
 
         setStatus("ready");
       })
-      .catch((err) => {
-        console.warn("Address autocomplete unavailable, using manual entry:", err.message);
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("Address autocomplete unavailable, using manual entry:", msg);
         setStatus("fallback");
         onManualFallback?.();
       });
 
     return () => {
       cancelled = true;
-      if (autocomplete && (window as any).google?.maps?.event) {
-        (window as any).google.maps.event.clearInstanceListeners(autocomplete);
+      const g = (window as unknown as { google?: any }).google;
+      if (autocomplete && g?.maps?.event) {
+        g.maps.event.clearInstanceListeners(autocomplete);
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

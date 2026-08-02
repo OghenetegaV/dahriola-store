@@ -2,15 +2,18 @@
 // Loads the Google Maps JS API (Places library) once, on demand.
 // Safe to call multiple times — returns the same promise.
 // If the key is missing, it rejects, and callers fall back to manual entry.
+//
+// Uses `any` for the resolved google object so it needs no @types/google.maps.
 
-let loadPromise: Promise<typeof google> | null = null;
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function loadGoogleMaps(): Promise<typeof google> {
+let loadPromise: Promise<any> | null = null;
+
+export function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Google Maps can only load in the browser"));
   }
 
-  // Already loaded
   if ((window as any).google?.maps?.places) {
     return Promise.resolve((window as any).google);
   }
