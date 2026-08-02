@@ -1,34 +1,41 @@
 // src/components/AddressAutocomplete.tsx
-// A single "search your address" input backed by Google Places Autocomplete.
-// When the customer picks a suggestion, it returns fully structured, validated
-// components — including the ISO-2 country code — so the checkout can populate
-// every field and set the country from Google's data (not a guessable dropdown).
+// A prominent "search your address" input backed by Google Places Autocomplete.
+// When the customer picks a suggestion it returns fully structured, validated
+// components — including the ISO-2 country code — so checkout can populate every
+// field and set the country from Google's data (not a guessable dropdown).
 //
-// Fails safe: if Google can't load (missing key, network), it renders a plain
-// text input and calls onManualFallback so the existing manual fields take over.
+// Fails safe: if Google can't load (missing key, blocked network, outage), it
+// renders nothing and calls onManualFallback so the manual fields take over.
+//
+// Zero type dependencies: uses local `any` for Google objects, so NO
+// @types/google.maps package is required.
 
 "use client";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useRef, useState } from "react";
 import { MapPin, Loader2 } from "lucide-react";
 import { loadGoogleMaps } from "@/src/lib/googleMaps";
 
 export type ResolvedAddress = {
-  line1: string;      // street number + route
+  line1: string;
   city: string;
-  state: string;      // administrative_area_level_1 (full name)
-  stateCode: string;  // short form (e.g. "OH", "ON")
+  state: string;
+  stateCode: string;
   postalCode: string;
-  countryCode: string; // ISO-2 (e.g. "NG", "CA", "US", "NO")
+  countryCode: string; // ISO-2
   countryName: string;
-  formatted: string;   // Google's full formatted string
+  formatted: string;
 };
 
-function pick(
-  components: google.maps.GeocoderAddressComponent[],
-  type: string,
-  useShort = false,
-) {
+type AddressComponent = {
+  long_name: string;
+  short_name: string;
+  types: string[];
+};
+
+function pick(components: AddressComponent[], type: string, useShort = false) {
   const c = components.find((x) => x.types.includes(type));
   return c ? (useShort ? c.short_name : c.long_name) : "";
 }
@@ -36,7 +43,7 @@ function pick(
 export default function AddressAutocomplete({
   onResolved,
   onManualFallback,
-  placeholder = "Start typing your address…",
+  placeholder = "Start typing your street, city or postcode…",
 }: {
   onResolved: (addr: ResolvedAddress) => void;
   onManualFallback?: () => void;
@@ -46,21 +53,24 @@ export default function AddressAutocomplete({
   const [status, setStatus] = useState<"loading" | "ready" | "fallback">("loading");
 
   useEffect(() => {
-    let autocomplete: google.maps.places.Autocomplete | null = null;
+    let ac: any = null;
     let cancelled = false;
 
     loadGoogleMaps()
-      .then((google) => {
+      .then((google: any) => {
         if (cancelled || !inputRef.current) return;
 
-        autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+        ac = new google.maps.places.Autocomplete(inputRef.current, {
           fields: ["address_components", "formatted_address"],
           types: ["address"],
         });
 
-        autocomplete.addListener("place_changed", () => {
-          const place = autocomplete!.getPlace();
-          const comps = place.address_components || [];
+        // `ac` is guaranteed non-null here — capture it in a local const so the
+        // closure below doesn't see the outer nullable variable.
+        const instance = ac;
+        instance.addListener("place_changed", () => {
+          const place = instance.getPlace();
+          const comps: AddressComponent[] = place.address_components || [];
           if (!comps.length) return;
 
           const streetNumber = pick(comps, "street_number");
@@ -77,7 +87,7 @@ export default function AddressAutocomplete({
             state: pick(comps, "administrative_area_level_1"),
             stateCode: pick(comps, "administrative_area_level_1", true),
             postalCode: pick(comps, "postal_code"),
-            countryCode: pick(comps, "country", true), // ISO-2
+            countryCode: pick(comps, "country", true),
             countryName: pick(comps, "country"),
             formatted: place.formatted_address || "",
           };
@@ -87,23 +97,24 @@ export default function AddressAutocomplete({
 
         setStatus("ready");
       })
-      .catch((err) => {
-        console.warn("Address autocomplete unavailable, using manual entry:", err.message);
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("Address autocomplete unavailable, using manual entry:", msg);
         setStatus("fallback");
         onManualFallback?.();
       });
 
     return () => {
       cancelled = true;
-      if (autocomplete && (window as any).google?.maps?.event) {
-        (window as any).google.maps.event.clearInstanceListeners(autocomplete);
+      const g = (window as unknown as { google?: any }).google;
+      if (ac && g?.maps?.event) {
+        g.maps.event.clearInstanceListeners(ac);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // In fallback mode we render nothing here — the checkout's existing manual
-  // fields remain visible and functional.
+  // In fallback mode render nothing — the checkout's manual fields take over.
   if (status === "fallback") return null;
 
   return (
