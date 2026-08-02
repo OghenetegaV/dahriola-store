@@ -702,20 +702,44 @@ export default function CheckoutClient() {
                   Delivery
                 </h2>
 
-                <div className="mb-3">
-                  <AddressAutocomplete
-                    onResolved={handleResolvedAddress}
-                    onManualFallback={() => setGoogleAvailable(false)}
-                  />
-                  {addressMismatch && (
-                    <p className="text-[12px] text-red-500 mt-2">{addressMismatch}</p>
-                  )}
-                  {addressConfirmed && !addressMismatch && (
-                    <p className="text-[12px] text-green-600 mt-2">
-                      ✓ Address confirmed. You can adjust the fields below if needed.
-                    </p>
-                  )}
-                </div>
+                {googleAvailable && (
+                  <div className="mb-5 rounded-xl border-2 border-brand-beryl/40 bg-brand-beryl/5 p-4">
+                    <label className="flex items-center gap-2 text-[13px] font-semibold text-brand-beryl mb-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                      Search your address to autofill
+                    </label>
+                    <AddressAutocomplete
+                      onResolved={handleResolvedAddress}
+                      onManualFallback={() => setGoogleAvailable(false)}
+                      placeholder="Start typing your street, city or postcode…"
+                    />
+                    {addressMismatch && (
+                      <p className="text-[12px] text-red-500 mt-2">{addressMismatch}</p>
+                    )}
+                    {addressConfirmed && !addressMismatch ? (
+                      <p className="text-[12px] text-green-600 mt-2 font-medium">
+                        ✓ Address confirmed — you can fine-tune the fields below if needed.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-neutral-500 mt-2">
+                        Pick your address from the suggestions and we&apos;ll fill everything in for you.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {googleAvailable && (
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-px flex-1 bg-neutral-200" />
+                    <span className="text-[11px] uppercase tracking-wider text-neutral-400">
+                      or enter manually
+                    </span>
+                    <div className="h-px flex-1 bg-neutral-200" />
+                  </div>
+                )}
 
                 <div className="relative mb-3">
                   <select
