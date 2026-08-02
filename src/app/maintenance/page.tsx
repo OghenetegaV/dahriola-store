@@ -63,10 +63,10 @@ export default function MaintenancePage() {
         >
           For orders or enquiries, reach us on Instagram{" "}
           <a
-            href="https://instagram.com/dahriola"
+            href="https://instagram.com/dahriola_"
             style={{ color: "#3f5040", textDecoration: "none", fontWeight: 600 }}
           >
-            @dahriola
+            @dahriola_
           </a>
           <br />
           or email{" "}
