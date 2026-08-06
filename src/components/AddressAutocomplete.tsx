@@ -127,7 +127,11 @@ export default function AddressAutocomplete({
         ref={inputRef}
         type="text"
         placeholder={placeholder}
-        autoComplete="off"
+        // Chrome ignores autoComplete="off" on address fields; "new-password"
+        // plus a random name reliably suppresses its saved-address menu so it
+        // doesn't cover the Google Places suggestions.
+        autoComplete="new-password"
+        name={`addr-search-${Math.random().toString(36).slice(2)}`}
         className="w-full h-[52px] rounded-lg border-2 border-brand-beryl/50 bg-white pl-11 pr-10 text-[14px] outline-none transition focus:border-brand-beryl focus:ring-2 focus:ring-brand-beryl/20 placeholder:text-neutral-400"
       />
       {status === "loading" && (

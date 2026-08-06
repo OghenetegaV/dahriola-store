@@ -9,22 +9,16 @@ import {
   CreditCard,
   CheckCircle2,
   ShieldCheck,
-  ChevronDown,
   Plus,
   X,
   Trash2,
 } from "lucide-react";
-import {
-  getTerminalCountries,
-  getTerminalStates,
-  getTerminalCities,
-} from "@/src/app/actions/terminalLocations";
 import { getShippingRates } from "@/src/app/actions/shipping";
 import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
 import { createOrder } from "@/src/app/actions/order";
-import AddressAutocomplete, { ResolvedAddress } from "@/src/components/AddressAutocomplete";
+import CountryStateSelect from "@/src/components/CountryStateSelect";
 import { reducePrintStockAfterOrder } from "@/src/app/actions/inventory";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -50,37 +44,15 @@ export default function CheckoutClient() {
   const [selectedRate, setSelectedRate] = useState<any>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
 
-  const [countries, setCountries] = useState<any[]>([]);
-  const [states, setStates] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
 
-  const [selectedCountryCode, setSelectedCountryCode] = useState("NG");
+  const [selectedCountryCode, setSelectedCountryCode] = useState("");
   const [selectedStateCode, setSelectedStateCode] = useState("");
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [textOptIn, setTextOptIn] = useState(false);
-  const [addressConfirmed, setAddressConfirmed] = useState(false);
-  // true until Google fails to load; when false we allow manual entry + the
-  // built-in validation instead of hard-gating on a Google-confirmed address.
-  const [googleAvailable, setGoogleAvailable] = useState(true);
 
-  // Safety net: if Google Maps hasn't confirmed availability within 6 seconds
-  // (blocked by a network, ad blocker, outage, etc.), drop to manual entry so
-  // checkout is never left waiting on a script that won't arrive.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (!addressConfirmed) {
-        const g = (window as unknown as { google?: any }).google;
-        if (!g?.maps?.places) setGoogleAvailable(false);
-      }
-    }, 6000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const [addressMismatch, setAddressMismatch] = useState<string | null>(null);
 
-  const [loadingCountries, setLoadingCountries] = useState(false);
-  const [loadingStates, setLoadingStates] = useState(false);
-  const [loadingCities, setLoadingCities] = useState(false);
+
+
 
   const [discountCode, setDiscountCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -108,7 +80,7 @@ export default function CheckoutClient() {
     city: "",
     state: "",
     postalCode: "",
-    country: "NG",
+    country: "",
   });
 
   const openEditModal = (item: any) => {
@@ -162,98 +134,13 @@ export default function CheckoutClient() {
     fetchUpsells();
   }, [cart]);
 
+  // Country/state come from local baked data (src/data/locations.ts) via the
+  // CountryStateSelect component — no network calls. Just ensure formData.country
+  // starts in sync with the default selected country.
   useEffect(() => {
-    async function loadCountries() {
-      setLoadingCountries(true);
-
-      try {
-        const terminalCountries = await getTerminalCountries();
-
-        if (terminalCountries.length > 0) {
-          setCountries(terminalCountries);
-
-          const nigeria =
-            terminalCountries.find((country) => country.code === "NG") ||
-            terminalCountries[0];
-
-          setSelectedCountryCode(nigeria.code);
-
-          setFormData((prev) => ({
-            ...prev,
-            country: nigeria.code,
-          }));
-        }
-      } catch (error) {
-        console.error("Country loading error:", error);
-      } finally {
-        setLoadingCountries(false);
-      }
-    }
-
-    loadCountries();
-  }, []);
-
-  useEffect(() => {
-    async function loadStates() {
-      if (!selectedCountryCode) return;
-
-      setLoadingStates(true);
-      setStates([]);
-      setCities([]);
-      setSelectedStateCode("");
-      setSelectedRate(null);
-      setShippingRates([]);
-
-      setFormData((prev) => ({
-        ...prev,
-        country: selectedCountryCode,
-        state: "",
-        city: "",
-      }));
-
-      try {
-        const terminalStates = await getTerminalStates(selectedCountryCode);
-        setStates(terminalStates || []);
-      } catch (error) {
-        console.error("State loading error:", error);
-      } finally {
-        setLoadingStates(false);
-      }
-    }
-
-    loadStates();
-  }, [selectedCountryCode]);
-
-  useEffect(() => {
-    async function loadCities() {
-      if (!selectedCountryCode) return;
-
-      setLoadingCities(true);
-      setCities([]);
-      setSelectedRate(null);
-      setShippingRates([]);
-
-      setFormData((prev) => ({
-        ...prev,
-        city: "",
-      }));
-
-      try {
-        const terminalCities = await getTerminalCities(
-          selectedCountryCode,
-          selectedStateCode
-        );
-
-        setCities(terminalCities || []);
-      } catch (error) {
-        console.error("City loading error:", error);
-      } finally {
-        setLoadingCities(false);
-      }
-    }
-
-    loadCities();
-  }, [selectedCountryCode, selectedStateCode]);
+    setFormData((prev) => ({ ...prev, country: selectedCountryCode }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const formatMoney = (amount: number) =>
     new Intl.NumberFormat("en-US", {
@@ -268,45 +155,9 @@ export default function CheckoutClient() {
 
   const convertedSubtotal = subtotal * (exchangeRates[currency] || 1);
 
-  // Fills every field from a Google-validated pick and sets country from Google's
-  // data, so the country can't contradict the address.
-  const handleResolvedAddress = (addr: ResolvedAddress) => {
-    setSelectedCountryCode(addr.countryCode);
-    setFormData((prev) => ({
-      ...prev,
-      address: addr.line1 || prev.address,
-      city: addr.city || prev.city,
-      state: addr.state || prev.state,
-      postalCode: addr.postalCode || prev.postalCode,
-      country: addr.countryCode,
-    }));
-    setAddressConfirmed(true);
-    setAddressMismatch(null);
-    setSelectedRate(null);
-    setShippingRates([]);
-  };
-
-  // If the user manually changes country away from the confirmed address, warn
-  // and force a re-confirm.
-  const flagIfInconsistent = (nextCountry: string) => {
-    if (addressConfirmed && nextCountry !== formData.country) {
-      setAddressMismatch(
-        "The country no longer matches your searched address. Please re-select your address from the suggestions so shipping is calculated correctly."
-      );
-      setAddressConfirmed(false);
-    }
-  };
-
   const fetchRates = async () => {
-    // Require a Google-confirmed address so the country can't contradict the
-    // address (which is what caused the wrong-shipping mismatches).
-    if (googleAvailable && !addressConfirmed) {
-      setShippingError(
-        "Please select your address from the search suggestions so we can confirm the destination."
-      );
-      return;
-    }
-    // Require the full address for EVERY country (not just Nigeria).
+    // The state dropdown is derived from the country, so they can't mismatch.
+    // Just require the full address for every country.
     if (
       !formData.address.trim() ||
       !formData.country ||
@@ -702,75 +553,8 @@ export default function CheckoutClient() {
                   Delivery
                 </h2>
 
-                {googleAvailable && (
-                  <div className="mb-5 rounded-xl border-2 border-brand-beryl/40 bg-brand-beryl/5 p-4">
-                    <label className="flex items-center gap-2 text-[13px] font-semibold text-brand-beryl mb-2">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.3-4.3" />
-                      </svg>
-                      Search your address to autofill
-                    </label>
-                    <AddressAutocomplete
-                      onResolved={handleResolvedAddress}
-                      onManualFallback={() => setGoogleAvailable(false)}
-                      placeholder="Start typing your street, city or postcode…"
-                    />
-                    {addressMismatch && (
-                      <p className="text-[12px] text-red-500 mt-2">{addressMismatch}</p>
-                    )}
-                    {addressConfirmed && !addressMismatch ? (
-                      <p className="text-[12px] text-green-600 mt-2 font-medium">
-                        ✓ Address confirmed — you can fine-tune the fields below if needed.
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-neutral-500 mt-2">
-                        Pick your address from the suggestions and we&apos;ll fill everything in for you.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {googleAvailable && (
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-px flex-1 bg-neutral-200" />
-                    <span className="text-[11px] uppercase tracking-wider text-neutral-400">
-                      or enter manually
-                    </span>
-                    <div className="h-px flex-1 bg-neutral-200" />
-                  </div>
-                )}
-
-                <div className="relative mb-3">
-                  <select
-                    value={selectedCountryCode}
-                    onChange={(e) => {
-                      flagIfInconsistent(e.target.value);
-                      setSelectedCountryCode(e.target.value);
-                      setSelectedRate(null);
-                      setShippingRates([]);
-                    }}
-                    className="checkout-field appearance-none"
-                    disabled={loadingCountries}
-                  >
-                    {loadingCountries ? (
-                      <option>Loading countries...</option>
-                    ) : (
-                      countries.map((country) => (
-                        <option key={country.code} value={country.code}>
-                          {country.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-
-                  <ChevronDown
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+                {/* Name */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
                   <input
                     placeholder="First name"
                     className="checkout-field"
@@ -791,8 +575,29 @@ export default function CheckoutClient() {
                   />
                 </div>
 
+                {/* Country + State — state options are always derived from the
+                    chosen country, so a country/state mismatch is impossible. */}
+                <CountryStateSelect
+                  countryCode={selectedCountryCode}
+                  stateCode={selectedStateCode}
+                  stateText={formData.state}
+                  onCountryChange={(code) => {
+                    setSelectedCountryCode(code);
+                    setSelectedStateCode("");
+                    setSelectedRate(null);
+                    setShippingRates([]);
+                    setFormData((prev) => ({ ...prev, country: code, state: "" }));
+                  }}
+                  onStateChange={({ code, name }) => {
+                    setSelectedStateCode(code);
+                    setSelectedRate(null);
+                    setShippingRates([]);
+                    setFormData((prev) => ({ ...prev, state: name }));
+                  }}
+                />
+
                 <input
-                  placeholder="Address"
+                  placeholder="Address (street, house number)"
                   className="checkout-field mt-3"
                   value={formData.address}
                   onChange={(e) =>
@@ -809,60 +614,7 @@ export default function CheckoutClient() {
                   }
                 />
 
-                <div className="grid grid-cols-3 gap-3 mt-3">
-                  <div className="relative">
-                    {states.length > 0 ? (
-                      <>
-                        <select
-                          className="checkout-field appearance-none"
-                          value={selectedStateCode}
-                          disabled={loadingStates}
-                          onChange={(e) => {
-                            const stateCode = e.target.value;
-                            const selectedState = states.find(
-                              (state) => state.code === stateCode
-                            );
-
-                            setSelectedStateCode(stateCode);
-                            setSelectedRate(null);
-                            setShippingRates([]);
-
-                            setFormData((prev) => ({
-                              ...prev,
-                              state: selectedState?.name || "",
-                            }));
-                          }}
-                        >
-                          <option value="">
-                            {loadingStates ? "Loading states..." : "State"}
-                          </option>
-
-                          {states.map((state) => (
-                            <option key={state.code} value={state.code}>
-                              {state.name}
-                            </option>
-                          ))}
-                        </select>
-
-                        <ChevronDown
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
-                        />
-                      </>
-                    ) : (
-                      <input
-                        placeholder="State / Region"
-                        className="checkout-field"
-                        value={formData.state}
-                        onChange={(e) => {
-                          setSelectedRate(null);
-                          setShippingRates([]);
-                          setFormData((prev) => ({ ...prev, state: e.target.value }));
-                        }}
-                      />
-                    )}
-                  </div>
-
+                <div className="grid grid-cols-2 gap-3 mt-3">
                   <input
                     placeholder="City"
                     className="checkout-field"
@@ -873,9 +625,8 @@ export default function CheckoutClient() {
                       setFormData((prev) => ({ ...prev, city: e.target.value }));
                     }}
                   />
-
                   <input
-                    placeholder="Postal code optional"
+                    placeholder="Postal code (optional)"
                     className="checkout-field"
                     value={formData.postalCode}
                     onChange={(e) =>
@@ -893,12 +644,21 @@ export default function CheckoutClient() {
                   }
                 />
 
+                <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                  <p className="text-[11.5px] leading-relaxed text-amber-800">
+                    Please double-check your delivery details above before
+                    getting shipping options. Make sure your country, state and
+                    address are correct and consistent. Dahriola will not be
+                    responsible for delays, misdelivery or extra charges caused
+                    by an incorrect or inconsistent delivery address.
+                  </p>
+                </div>
+
                 <button
                   type="button"
                   onClick={fetchRates}
                   disabled={
                     loadingRates ||
-                    (googleAvailable && !addressConfirmed) ||
                     !formData.address.trim() ||
                     !formData.country ||
                     !formData.city.trim() ||
@@ -994,7 +754,6 @@ export default function CheckoutClient() {
                   !formData.city.trim() ||
                   !formData.state.trim() ||
                   !formData.country ||
-                  (googleAvailable && !addressConfirmed) ||
                   isProcessing
                 }
                 className="w-full h-14 rounded-lg bg-brand-beryl text-white text-[14px] font-semibold hover:opacity-95 transition disabled:opacity-40 flex items-center justify-center gap-2"
@@ -1211,6 +970,23 @@ export default function CheckoutClient() {
           padding: 0 13px;
           font-size: 13px;
           outline: none;
+        }
+
+        select.checkout-field {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          cursor: pointer;
+          /* room for the arrow + a custom chevron drawn as a background image */
+          padding-right: 34px;
+          background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+        }
+
+        select.checkout-field:invalid,
+        select.checkout-field.placeholder-shown {
+          color: #9ca3af;
         }
 
         .checkout-field:focus {
