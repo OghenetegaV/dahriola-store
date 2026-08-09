@@ -49,15 +49,22 @@ export default {
             { name: 'quantity', title: 'Quantity', type: 'number' },
             { name: 'size', title: 'Size', type: 'string' },
             { name: 'selectedPrintName', title: 'Print / Material', type: 'string' },
+            { name: 'heightLength', title: 'Height / Length', type: 'string' },
+            { name: 'gender', title: 'Gender', type: 'string' },
             { name: 'notes', title: 'Notes', type: 'text' },
           ],
           preview: {
-            select: { title: 'name', size: 'size', qty: 'quantity', print: 'selectedPrintName' },
-            prepare({ title, size, qty, print }: any) {
+            select: { title: 'name', size: 'size', qty: 'quantity', print: 'selectedPrintName', hl: 'heightLength', gender: 'gender' },
+            prepare({ title, size, qty, print, hl, gender }: any) {
               return {
                 title: title || 'Item',
-                subtitle: [size && `Size: ${size}`, qty && `Qty: ${qty}`, print && `Print: ${print}`]
-                  .filter(Boolean).join(' • '),
+                subtitle: [
+                  size && `Size: ${size}`,
+                  qty && `Qty: ${qty}`,
+                  hl && `H/L: ${hl}`,
+                  gender && `Gender: ${gender}`,
+                  print && `Print: ${print}`,
+                ].filter(Boolean).join(' • '),
               };
             },
           },

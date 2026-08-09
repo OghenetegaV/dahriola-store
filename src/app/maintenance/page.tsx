@@ -40,7 +40,7 @@ export default function MaintenancePage() {
             marginBottom: 20,
           }}
         >
-          Dahriola
+          Dahriola.
         </div>
 
         <h1 style={{ fontSize: 26, color: "#111", margin: "0 0 14px", fontWeight: 700 }}>
@@ -50,7 +50,7 @@ export default function MaintenancePage() {
         <p style={{ fontSize: 15, color: "#666", lineHeight: 1.6, margin: "0 0 28px" }}>
           Our store is briefly down for a little maintenance while we make things
           even better for you. Please check back shortly &mdash; thank you for your
-          patience. 💛
+          patience. 💚
         </p>
 
         <div

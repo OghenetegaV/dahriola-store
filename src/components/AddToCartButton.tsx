@@ -10,7 +10,8 @@ type AddToCartButtonProps = {
   product: any;
   selectedSize: string;
   selectedPrint?: any;
-  sizeNote?: string; // dresses: customer's height / desired dress length (required upstream)
+  sizeNote?: string; // customer's height / desired length (required upstream, non-jackets)
+  gender?: string;   // "Women's" / "Men's" (optional; unisex clarity)
 };
 
 export default function AddToCartButton({
@@ -18,6 +19,7 @@ export default function AddToCartButton({
   selectedSize,
   selectedPrint,
   sizeNote,
+  gender,
 }: AddToCartButtonProps) {
   const addItem = useStore((state) => state.addItem);
   const [quantity, setQuantity] = useState(1);
@@ -33,11 +35,12 @@ export default function AddToCartButton({
 
     // For dresses, the height/length collected on the product page rides along
     // in the same notes chain, so it flows to checkout and into the Sanity order.
-    const heightNote = sizeNote?.trim()
-      ? `Height / Length: ${sizeNote.trim()}`
-      : "";
+    const heightLength = sizeNote?.trim() || "";
+    const genderVal = gender?.trim() || "";
 
-    const finalNotes = [printNote, heightNote, notes.trim()]
+    // Keep a combined notes string too (for any view that only shows notes),
+    // but the dedicated fields below are what the client reads.
+    const finalNotes = [printNote, notes.trim()]
       .filter(Boolean)
       .join(" | ");
 
@@ -49,6 +52,8 @@ export default function AddToCartButton({
       quantity,
       size: selectedSize,
       notes: finalNotes,
+      heightLength,
+      gender: genderVal,
       selectedPrintId: selectedPrint?._id || selectedPrint?.id,
       selectedPrintName: selectedPrint?.name || "",
     });

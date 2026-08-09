@@ -28,6 +28,8 @@ type OrderItemInput = {
   size?: string;
   selectedPrintId?: string;
   selectedPrintName?: string;
+  heightLength?: string;
+  gender?: string;
   notes?: string;
 };
 
@@ -89,6 +91,8 @@ export async function createOrder(
         quantity: item.quantity,
         size: item.size,
         selectedPrintName: item.selectedPrintName || "",
+        heightLength: item.heightLength || "",
+        gender: item.gender || "",
         notes: item.notes || "",
       })),
       createdAt: new Date().toISOString(),

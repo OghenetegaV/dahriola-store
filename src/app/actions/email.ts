@@ -66,8 +66,6 @@ export async function sendOrderNotification(orderData: {
   paymentReference?: string;     // NEW — Paystack reference, if different from order #
   paymentVerified?: boolean;     // NEW — verification flag for the client
   orderDate?: string;            // NEW — ISO date; defaults to now
-  emailOptIn?: boolean;
-  textOptIn?: boolean;
 }) {
   try {
     const transporter = getTransporter();
@@ -120,6 +118,10 @@ export async function sendOrderNotification(orderData: {
           item.selectedPrintName
             ? `Print: ${escapeHtml(item.selectedPrintName)}`
             : "",
+          item.heightLength
+            ? `Height / Length: ${escapeHtml(item.heightLength)}`
+            : "",
+          item.gender ? `Gender: ${escapeHtml(item.gender)}` : "",
           item.notes ? `Notes: ${escapeHtml(item.notes)}` : "",
         ]
           .filter(Boolean)

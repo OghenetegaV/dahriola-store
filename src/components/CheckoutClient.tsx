@@ -344,6 +344,8 @@ export default function CheckoutClient() {
           size: item.size,
           selectedPrintId: item.selectedPrintId,
           selectedPrintName: item.selectedPrintName || "",
+          heightLength: item.heightLength || "",
+          gender: item.gender || "",
           notes: item.notes || "",
         })),
       });
@@ -374,6 +376,8 @@ export default function CheckoutClient() {
           quantity: item.quantity,
           size: item.size,
           selectedPrintName: item.selectedPrintName || "",
+          heightLength: item.heightLength || "",
+          gender: item.gender || "",
           notes: item.notes || "",
         })),
         subtotal: convertedSubtotal,

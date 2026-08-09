@@ -5,6 +5,7 @@ import { PortableText } from "@portabletext/react";
 import { ChevronDown, X, Check } from "lucide-react";
 import AddToCartButton from "@/src/components/AddToCartButton";
 import SizeGuideModal from "@/src/components/SizeGuideModal";
+import LengthChartModal from "@/src/components/LengthChartModal";
 import { client } from "@/src/lib/sanity";
 import imageUrlBuilder from "@sanity/image-url";
 
@@ -81,21 +82,27 @@ function getProductionTime(product: any) {
   return `This outfit requires ${productionTime} working days for production before dispatch.`;
 }
 
-// Is this product a dress? Handles slug as a plain string or Sanity {current},
-// with a title fallback — so it works regardless of how category is projected.
-function getIsDress(product: any): boolean {
+// Normalised category slug (handles slug as plain string or Sanity {current},
+// with a title fallback) — so it works regardless of how category is projected.
+function getCategorySlug(product: any): string {
   const rawSlug = product?.category?.slug;
-  const slug =
-    typeof rawSlug === "string" ? rawSlug : rawSlug?.current;
-  const title = product?.category?.title;
-  return (
-    slug?.toLowerCase() === "dresses" ||
-    title?.toLowerCase() === "dresses"
-  );
+  const slug = typeof rawSlug === "string" ? rawSlug : rawSlug?.current;
+  return (slug || product?.category?.title || "").toLowerCase();
+}
+
+function getIsDress(product: any): boolean {
+  return getCategorySlug(product) === "dresses";
+}
+
+// Every category EXCEPT jackets requires the customer's length/height, because
+// pants, skirts, co-ords and dresses are all length-sensitive. Jackets are not.
+function getNeedsLength(product: any): boolean {
+  return getCategorySlug(product) !== "jackets";
 }
 
 export default function ProductPageClient({ product }: { product: any }) {
   const isDress = getIsDress(product);
+  const needsLength = getNeedsLength(product);
   const sizes = isDress ? DRESS_SIZES : DEFAULT_SIZES;
 
   const [selectedSize, setSelectedSize] = useState("XS");
@@ -103,9 +110,12 @@ export default function ProductPageClient({ product }: { product: any }) {
   const [previewPrint, setPreviewPrint] = useState<any | null>(null);
   const [showPrintsModal, setShowPrintsModal] = useState(false);
 
-  // Dresses require the customer's height OR desired dress length before adding.
+  // All non-jacket items require the customer's height/length before adding.
   const [sizeNote, setSizeNote] = useState("");
   const [sizeNoteError, setSizeNoteError] = useState(false);
+  // Optional: who the item is being tailored for (unisex fit clarity).
+  const [genderFit, setGenderFit] = useState("");
+  const [genderError, setGenderError] = useState(false);
 
   const productionTimeText = getProductionTime(product);
 
@@ -143,18 +153,24 @@ export default function ProductPageClient({ product }: { product: any }) {
     setSelectedPrint(print);
   };
 
-  // For dresses, add-to-cart is gated until the height/length field is filled.
-  const dressNoteMissing = isDress && !sizeNote.trim();
+  // Add-to-cart is gated until the required height/length field is filled
+  // (all categories except jackets).
+  const lengthNoteMissing = needsLength && !sizeNote.trim();
+  const genderMissing = !genderFit.trim(); // gender required on ALL categories
+  const requiredMissing = lengthNoteMissing || genderMissing;
 
   return (
     <>
       <section className="mt-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-1">
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black">
-            Size(Kindly check through the Size Chart to confirm your best suited size)
+            Size
           </h2>
           <SizeGuideModal />
         </div>
+        <p className="text-[12px] text-neutral-500 mb-3 leading-5">
+          Kindly check through the size chart to confirm your best suited size.
+        </p>
 
         <div className="flex flex-wrap gap-2">
           {sizes.map((size) => {
@@ -185,6 +201,10 @@ export default function ProductPageClient({ product }: { product: any }) {
               <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black">
                 Available Prints
               </h2>
+              <p className="text-[12px] text-neutral-500 mt-1 leading-5">
+                Please select and confirm your print. Please note that the exact pattern placement may vary slightly
+                from the photo.
+              </p>
             </div>
 
             {printOptions.length > 6 && (
@@ -259,15 +279,19 @@ export default function ProductPageClient({ product }: { product: any }) {
         </section>
       )}
 
-      {/* Dress-only: mandatory height / dress length */}
-      {isDress && (
+      {/* All categories except jackets: mandatory height / length */}
+      {needsLength && (
         <section className="mt-8">
-          <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black mb-1">
-            Height / Dress Length <span className="text-red-500">*</span>
-          </h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black">
+              Height / Length <span className="text-red-500">*</span>
+            </h2>
+            <LengthChartModal />
+          </div>
           <p className="text-[12px] text-neutral-500 mb-3 leading-5">
-            For dresses we tailor to you — please enter your height (e.g. 5&apos;6&quot; / 168cm)
-            <span className="whitespace-nowrap"> or the exact dress length you want (e.g. 42&quot;).</span>
+            We tailor to you — please enter your height (e.g. 5&apos;6&quot; / 168cm)
+            <span className="whitespace-nowrap"> or the exact length you want (e.g. 42&quot;).</span>{" "}
+            Not sure? Tap <strong>View Length Chart</strong> above.
           </p>
 
           <textarea
@@ -287,28 +311,73 @@ export default function ProductPageClient({ product }: { product: any }) {
 
           {sizeNoteError && (
             <p className="text-[12px] text-red-500 mt-2">
-              Please enter your height or desired dress length before adding to bag.
+              Please enter your height or desired length before adding to bag.
             </p>
           )}
         </section>
       )}
 
+      {/* Gender — required for EVERY category, including jackets */}
       <section className="mt-8">
-        {dressNoteMissing ? (
-          // Gate: real button hidden until the required note is filled.
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-black mb-1">
+          Gender <span className="text-red-500">*</span>
+        </h2>
+        <p className="text-[12px] text-neutral-500 mb-2 leading-5">
+          Many of our pieces are unisex. Please tell us who it&apos;s for so we
+          tailor the fit correctly.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {["Female", "Male"].map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => {
+                setGenderFit(genderFit === opt ? "" : opt);
+                if (genderFit !== opt) setGenderError(false);
+              }}
+              className={`h-10 px-4 rounded-md border text-[13px] transition ${
+                genderFit === opt
+                  ? "bg-brand-beryl text-white border-brand-beryl"
+                  : genderError
+                  ? "bg-white text-black border-red-400 hover:border-red-500"
+                  : "bg-white text-black border-neutral-200 hover:border-brand-beryl"
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+        {genderError && (
+          <p className="text-[12px] text-red-500 mt-2">
+            Please select a gender before adding to bag.
+          </p>
+        )}
+      </section>
+
+      <section className="mt-8">
+        {requiredMissing ? (
+          // Gate: real button hidden until height/length AND gender are filled.
           <button
             type="button"
-            onClick={() => setSizeNoteError(true)}
+            onClick={() => {
+              if (lengthNoteMissing) setSizeNoteError(true);
+              if (genderMissing) setGenderError(true);
+            }}
             className="w-full h-14 rounded-lg bg-neutral-200 text-neutral-500 text-[14px] font-semibold cursor-not-allowed"
           >
-            Enter your height / dress length to continue
+            {lengthNoteMissing && genderMissing
+              ? "Enter your height / length and gender to continue"
+              : lengthNoteMissing
+              ? "Enter your height / length to continue"
+              : "Select a gender to continue"}
           </button>
         ) : (
           <AddToCartButton
             product={product}
             selectedSize={selectedSize}
             selectedPrint={activePrint}
-            sizeNote={isDress ? sizeNote.trim() : undefined}
+            sizeNote={needsLength ? sizeNote.trim() : undefined}
+            gender={genderFit || undefined}
           />
         )}
       </section>
