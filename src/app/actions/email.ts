@@ -66,6 +66,8 @@ export async function sendOrderNotification(orderData: {
   paymentReference?: string;     // NEW — Paystack reference, if different from order #
   paymentVerified?: boolean;     // NEW — verification flag for the client
   orderDate?: string;            // NEW — ISO date; defaults to now
+  emailOptIn?: boolean;          // NEW — marketing consent (email)
+  textOptIn?: boolean;           // NEW — marketing consent (SMS/text)
 }) {
   try {
     const transporter = getTransporter();
@@ -174,6 +176,17 @@ export async function sendOrderNotification(orderData: {
         ? `<span style="display:inline-block;background:#eaf6ec;color:#256b2e;font-size:11px;font-weight:bold;padding:3px 9px;border-radius:20px;">✓ Payment verified</span>`
         : "";
 
+    const marketingBadges = [
+      orderData.emailOptIn
+        ? `<span style="display:inline-block;background:#eef3fb;color:#274b8a;font-size:11px;font-weight:bold;padding:3px 9px;border-radius:20px;margin-right:6px;">📧 Opted in to email offers</span>`
+        : "",
+      orderData.textOptIn
+        ? `<span style="display:inline-block;background:#eef3fb;color:#274b8a;font-size:11px;font-weight:bold;padding:3px 9px;border-radius:20px;">💬 Opted in to SMS offers</span>`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
+
     const mailOptions = {
       from: `"Dahriola Store" <${senderEmail}>`,
       to: storeEmail,
@@ -221,6 +234,7 @@ export async function sendOrderNotification(orderData: {
                 </td>
               </tr>
             </table>
+            ${marketingBadges ? `<div style="margin-top:12px;">${marketingBadges}</div>` : ""}
           </div>
 
           <!-- Delivery -->
