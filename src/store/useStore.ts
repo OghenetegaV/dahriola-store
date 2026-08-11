@@ -12,6 +12,9 @@ export interface CartItem {
   size: string;
   notes?: string;
 
+  heightLength?: string;
+  gender?: string;
+
   selectedPrintId?: string;
   selectedPrintName?: string;
 }
@@ -37,6 +40,8 @@ interface StoreState {
       size?: string;
       quantity?: number;
       notes?: string;
+      heightLength?: string;
+      gender?: string;
       selectedPrintId?: string;
       selectedPrintName?: string;
     },
@@ -139,6 +144,12 @@ export const useStore = create<StoreState>()(
                 : targetItem.quantity,
             notes:
               updates.notes !== undefined ? updates.notes : targetItem.notes,
+            heightLength:
+              updates.heightLength !== undefined
+                ? updates.heightLength
+                : targetItem.heightLength,
+            gender:
+              updates.gender !== undefined ? updates.gender : targetItem.gender,
             selectedPrintId:
               updates.selectedPrintId !== undefined
                 ? updates.selectedPrintId
