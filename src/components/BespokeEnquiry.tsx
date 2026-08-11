@@ -7,24 +7,97 @@ import { Send, MapPin, Globe, CheckCircle2, X, PhoneCall, Upload, Image as Image
 // The Library Imports
 import 'react-phone-number-input/style.css';
 import PhoneInput from 'react-phone-number-input';
+import { sendBespokeEnquiry } from "@/src/app/actions/bespoke";
 
 export default function BespokeEnquiry() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [phoneValue, setPhoneValue] = useState<string | undefined>();
   const [isBulk, setIsBulk] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  
+
+  // Field state
+  const [clientName, setClientName] = useState("");
+  const [email, setEmail] = useState("");
+  const [service, setService] = useState("Bridal & Wedding Party");
+  const [vision, setVision] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
+      const f = e.target.files[0];
+      setFileName(f.name);
+      setImageFile(f);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Convert a File to raw base64 (no data: prefix) for the server action.
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1] || "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    setErrorMsg(null);
+    setSubmitting(true);
+
+    try {
+      // Guard against very large images (email attachment limits ~10MB).
+      let image = null;
+      if (imageFile) {
+        if (imageFile.size > 8 * 1024 * 1024) {
+          setErrorMsg("That image is too large (max 8MB). Please upload a smaller one.");
+          setSubmitting(false);
+          return;
+        }
+        const contentBase64 = await fileToBase64(imageFile);
+        image = {
+          filename: imageFile.name,
+          contentBase64,
+          contentType: imageFile.type || "image/jpeg",
+        };
+      }
+
+      const res = await sendBespokeEnquiry({
+        clientName,
+        email,
+        phone: phoneValue,
+        service,
+        vision,
+        isBulk,
+        image,
+      });
+
+      if (res.success) {
+        setIsSubmitted(true);
+        // reset the form
+        setClientName("");
+        setEmail("");
+        setPhoneValue(undefined);
+        setService("Bridal & Wedding Party");
+        setVision("");
+        setIsBulk(false);
+        setFileName(null);
+        setImageFile(null);
+      } else {
+        setErrorMsg(res.message || "Something went wrong. Please try again or call us.");
+      }
+    } catch (err) {
+      setErrorMsg("Something went wrong sending your enquiry. Please try again or call us.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -79,7 +152,7 @@ export default function BespokeEnquiry() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Client Name</label>
-                <input required type="text" className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-neutral-200 transition-all" placeholder="e.g. Temi Adekoya" />
+                <input required type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-neutral-200 transition-all" placeholder="e.g. Temi Adekoya" />
               </div>
 
               <div className="space-y-1">
@@ -99,12 +172,12 @@ export default function BespokeEnquiry() {
 
             <div className="space-y-1">
               <label className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Email Address</label>
-              <input required type="email" className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-neutral-200 transition-all" placeholder="contact@email.com" />
+              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-neutral-200 transition-all" placeholder="contact@email.com" />
             </div>
 
             <div className="space-y-1 relative">
               <label className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Service Interest</label>
-              <select className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none appearance-none text-neutral-600 cursor-pointer focus:ring-1 focus:ring-neutral-200 transition-all">
+              <select value={service} onChange={(e) => setService(e.target.value)} className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none appearance-none text-neutral-600 cursor-pointer focus:ring-1 focus:ring-neutral-200 transition-all">
                 <option>Bridal & Wedding Party</option>
                 <option>Red Carpet & Gala</option>
                 <option>Traditional Bespoke (Aso-Ebi)</option>
@@ -118,7 +191,7 @@ export default function BespokeEnquiry() {
 
             <div className="space-y-1">
               <label className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold ml-1">Your Vision</label>
-              <textarea rows={3} className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-1 focus:ring-neutral-200 transition-all" placeholder="Describe the design or occasion..." />
+              <textarea rows={3} value={vision} onChange={(e) => setVision(e.target.value)} className="w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm outline-none resize-none focus:ring-1 focus:ring-neutral-200 transition-all" placeholder="Describe the design or occasion..." />
             </div>
 
             {/* INSPIRATION UPLOAD BAR */}
@@ -155,8 +228,12 @@ export default function BespokeEnquiry() {
                 <span className="text-[11px] uppercase tracking-widest text-neutral-600 font-medium select-none">This is a bulk order enquiry</span>
             </div>
 
-            <button type="submit" className="w-full bg-neutral-900 text-white py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-neutral-800 transition-all shadow-lg active:scale-[0.98]">
-              Send Enquiry <Send size={14} />
+            {errorMsg && (
+              <p className="text-[12px] text-red-500 text-center">{errorMsg}</p>
+            )}
+
+            <button type="submit" disabled={submitting} className="w-full bg-neutral-900 text-white py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-neutral-800 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+              {submitting ? "Sending..." : (<>Send Enquiry <Send size={14} /></>)}
             </button>
           </form>
 
