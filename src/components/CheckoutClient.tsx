@@ -18,7 +18,7 @@ import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { sendOrderNotification } from "@/src/app/actions/email";
 import { createOrder } from "@/src/app/actions/order";
-import CountryStateSelect from "@/src/components/CountryStateSelect";
+import TerminalLocationSelect from "@/src/components/TerminalLocationSelect";
 import { reducePrintStockAfterOrder } from "@/src/app/actions/inventory";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -136,7 +136,7 @@ export default function CheckoutClient() {
   }, [cart]);
 
   // Country/state come from local baked data (src/data/locations.ts) via the
-  // CountryStateSelect component — no network calls. Just ensure formData.country
+  // Ensure formData.country stays in sync with the selected country.
   // starts in sync with the default selected country.
   useEffect(() => {
     setFormData((prev) => ({ ...prev, country: selectedCountryCode }));
@@ -587,24 +587,29 @@ export default function CheckoutClient() {
                   />
                 </div>
 
-                {/* Country + State — state options are always derived from the
-                    chosen country, so a country/state mismatch is impossible. */}
-                <CountryStateSelect
+                {/* Country → State → City, all validated by Terminal. */}
+                <TerminalLocationSelect
                   countryCode={selectedCountryCode}
                   stateCode={selectedStateCode}
-                  stateText={formData.state}
+                  stateName={formData.state}
+                  city={formData.city}
                   onCountryChange={(code) => {
                     setSelectedCountryCode(code);
                     setSelectedStateCode("");
                     setSelectedRate(null);
                     setShippingRates([]);
-                    setFormData((prev) => ({ ...prev, country: code, state: "" }));
+                    setFormData((prev) => ({ ...prev, country: code, state: "", city: "" }));
                   }}
                   onStateChange={({ code, name }) => {
                     setSelectedStateCode(code);
                     setSelectedRate(null);
                     setShippingRates([]);
-                    setFormData((prev) => ({ ...prev, state: name }));
+                    setFormData((prev) => ({ ...prev, state: name, city: "" }));
+                  }}
+                  onCityChange={(c) => {
+                    setSelectedRate(null);
+                    setShippingRates([]);
+                    setFormData((prev) => ({ ...prev, city: c }));
                   }}
                 />
 
@@ -626,26 +631,14 @@ export default function CheckoutClient() {
                   }
                 />
 
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <input
-                    placeholder="City"
-                    className="checkout-field"
-                    value={formData.city}
-                    onChange={(e) => {
-                      setSelectedRate(null);
-                      setShippingRates([]);
-                      setFormData((prev) => ({ ...prev, city: e.target.value }));
-                    }}
-                  />
-                  <input
-                    placeholder="Postal code (optional)"
-                    className="checkout-field"
-                    value={formData.postalCode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, postalCode: e.target.value })
-                    }
-                  />
-                </div>
+                <input
+                  placeholder="Postal code (optional)"
+                  className="checkout-field mt-3"
+                  value={formData.postalCode}
+                  onChange={(e) =>
+                    setFormData({ ...formData, postalCode: e.target.value })
+                  }
+                />
 
                 <input
                   placeholder="Phone"
