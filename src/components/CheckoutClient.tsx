@@ -41,6 +41,7 @@ export default function CheckoutClient() {
   const [loadingRates, setLoadingRates] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [shippingRates, setShippingRates] = useState<any[]>([]);
+  const [shippingToken, setShippingToken] = useState<string | null>(null);
   const [selectedRate, setSelectedRate] = useState<any>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
 
@@ -175,18 +176,29 @@ export default function CheckoutClient() {
 
     try {
       const totalQuantity = cart.reduce((n, item) => n + item.quantity, 0);
-      const rates = await getShippingRates({
+      const res = await getShippingRates({
         line1: formData.address,
         city: formData.city,
         state: formData.state,
         country: formData.country,
         postalCode: formData.postalCode,
-        itemCount: totalQuantity,        // drives weight-based pricing
+        itemCount: totalQuantity,        // drives weight-based pricing (DHL fallback)
+        // Terminal live-rate fields (ignored by the DHL fallback):
+        receiverName: formData.name,
+        receiverEmail: formData.email,
+        receiverPhone: formData.phone,
+        currency: currency,
+        items: cart.map((it) => ({
+          name: it.name,
+          price: it.price,
+          quantity: it.quantity,
+        })),
       });
 
-      if (rates && rates.length > 0) {
-        setShippingRates(rates);
-        setSelectedRate(rates[0]);
+      if (res.rates && res.rates.length > 0) {
+        setShippingRates(res.rates);
+        setSelectedRate(res.rates[0]);
+        setShippingToken(res.requestToken || null);
       } else {
         setShippingRates([]);
         setShippingError("No shipping rates found for this location.");
@@ -344,8 +356,6 @@ export default function CheckoutClient() {
           size: item.size,
           selectedPrintId: item.selectedPrintId,
           selectedPrintName: item.selectedPrintName || "",
-          heightLength: item.heightLength || "",
-          gender: item.gender || "",
           notes: item.notes || "",
         })),
       });
@@ -376,8 +386,6 @@ export default function CheckoutClient() {
           quantity: item.quantity,
           size: item.size,
           selectedPrintName: item.selectedPrintName || "",
-          heightLength: item.heightLength || "",
-          gender: item.gender || "",
           notes: item.notes || "",
         })),
         subtotal: convertedSubtotal,

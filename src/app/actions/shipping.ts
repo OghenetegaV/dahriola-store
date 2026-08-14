@@ -1,12 +1,9 @@
 // src/app/actions/shipping.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// FALLBACK VERSION — generates DHL-modelled rates from the hard-coded dataset
-// instead of calling Terminal Africa. Same function name + return shape.
-//
-// Accepts the address the client already sends, plus (optionally) itemCount or
-// weightKg for weight-accurate pricing. If neither is passed it assumes ~1 kg.
-// Country is expected as an ISO-2 code (e.g. "NG", "NO"); a full country name
-// is also tolerated as a fallback.
+// getShippingRates — tries Terminal Africa LIVE multi-courier rates first (for
+// BOTH domestic Nigeria and international), and automatically falls back to the
+// hard-coded DHL data if Terminal isn't configured, returns nothing, or errors.
+// Same return shape as the checkout expects: { rates, source, requestToken }.
 // ─────────────────────────────────────────────────────────────────────────────
 
 "use server";
@@ -16,38 +13,85 @@ import {
   COUNTRIES,
   type ComputedRate,
 } from "@/src/data/shippingRates";
+import { getTerminalRates } from "@/src/app/actions/terminal";
 
 type ShippingInput = {
   line1?: string;
   city?: string;
-  state?: string;        // NG state name OR code
-  country?: string;      // ISO-2 code preferred; full name tolerated
+  state?: string;
+  country?: string;
   postalCode?: string;
-  itemCount?: number;    // optional — pass cart quantity for accurate weight
-  weightKg?: number;     // optional — pass explicit parcel weight if known
+  itemCount?: number;
+  weightKg?: number;
+
+  // Needed by Terminal (ignored by the DHL fallback):
+  receiverName?: string;
+  receiverEmail?: string;
+  receiverPhone?: string;
+  items?: { name: string; price: number; quantity: number }[];
+  currency?: string;
+};
+
+export type ShippingRatesResponse = {
+  rates: ComputedRate[];
+  source: "terminal" | "dhl-fallback";
+  requestToken?: string;
 };
 
 function resolveCountryCode(country?: string): string {
   if (!country) return "";
   const c = country.trim();
-  if (c.length === 2) return c.toUpperCase();            // already ISO-2
-  const match = COUNTRIES.find(x => x.name.toLowerCase() === c.toLowerCase());
+  if (c.length === 2) return c.toUpperCase();
+  const match = COUNTRIES.find((x) => x.name.toLowerCase() === c.toLowerCase());
   return match?.code ?? c.toUpperCase();
 }
 
-export async function getShippingRates(input: ShippingInput): Promise<ComputedRate[]> {
+export async function getShippingRates(
+  input: ShippingInput,
+): Promise<ShippingRatesResponse> {
   const countryCode = resolveCountryCode(input.country);
-  if (!countryCode) return [];
 
-  // For Nigeria, state drives the domestic tier. `state` may be a code or a name.
+  // ── Try Terminal first (live multi-courier, NG + international) ──
+  if (countryCode && input.items && input.items.length > 0) {
+    try {
+      const tm = await getTerminalRates({
+        receiverName: input.receiverName || "Customer",
+        receiverEmail: input.receiverEmail || "",
+        receiverPhone: input.receiverPhone || "",
+        line1: input.line1 || "",
+        city: input.city || "",
+        state: input.state || "",
+        countryCode,
+        postalCode: input.postalCode,
+        items: input.items,
+        currency: input.currency,
+      });
+
+      if (tm.rates.length > 0) {
+        return {
+          rates: tm.rates,
+          source: "terminal",
+          requestToken: tm.requestToken,
+        };
+      }
+    } catch (err) {
+      console.error("Terminal failed, falling back to DHL:", err);
+    }
+  }
+
+  // ── Fallback: hard-coded DHL data ──
+  if (!countryCode) return { rates: [], source: "dhl-fallback" };
+
   const stateRaw = input.state?.trim() ?? "";
   const stateIsCode = /^[A-Z]{2}$/.test(stateRaw);
 
-  return computeShippingRates({
+  const rates = computeShippingRates({
     countryCode,
     stateCode: stateIsCode ? stateRaw : undefined,
     stateName: stateIsCode ? undefined : stateRaw || undefined,
     itemCount: input.itemCount,
     weightKg: input.weightKg,
   });
+
+  return { rates, source: "dhl-fallback" };
 }
