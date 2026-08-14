@@ -51,6 +51,40 @@ async function tPost(path: string, body: Record<string, unknown>) {
   return res.json();
 }
 
+async function tGet(path: string, params: Record<string, string>) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${TERMINAL.BASE}${path}?${qs}`, {
+    method: "GET",
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  return res.json();
+}
+
+// Normalise a phone number to international format for Terminal.
+// Nigerian numbers: 0803... → +234803..., 803... → +234803...
+// Anything already starting with + is left as-is.
+function toInternationalPhone(phone: string, countryCode: string): string {
+  const raw = (phone || "").replace(/[\s()-]/g, "");
+  if (!raw) return "";
+  if (raw.startsWith("+")) return raw;
+  if (raw.startsWith("00")) return "+" + raw.slice(2);
+
+  // Country dialing codes for the ones most relevant here.
+  const dial: Record<string, string> = {
+    NG: "234", US: "1", CA: "1", GB: "44", NO: "47",
+    GH: "233", KE: "254", ZA: "27", FR: "33", DE: "49",
+    IE: "353", NL: "31", AE: "971",
+  };
+  const code = dial[countryCode] || "234"; // default NG
+
+  let local = raw;
+  if (local.startsWith("0")) local = local.slice(1); // strip trunk 0
+  // If it already begins with the country code digits, don't double it.
+  if (local.startsWith(code)) return "+" + local;
+  return "+" + code + local;
+}
+
 /** Create a delivery address → returns AD-xxxx id, or null. */
 async function createDeliveryAddress(input: {
   name: string;
@@ -67,8 +101,9 @@ async function createDeliveryAddress(input: {
       first_name: input.name?.split(" ")[0] || "Customer",
       last_name: input.name?.split(" ").slice(1).join(" ") || ".",
       email: input.email || TERMINAL.SENDER_EMAIL,
-      phone: input.phone || "",
-      line1: input.line1,
+      phone: toInternationalPhone(input.phone, input.countryCode) || "",
+      line1: (input.line1 || "").slice(0, 45),
+      line2: (input.line1 || "").length > 45 ? (input.line1 || "").slice(45, 90) : "",
       city: input.city,
       state: input.state,
       country: input.countryCode,
@@ -89,15 +124,22 @@ async function createParcel(
 ): Promise<string | null> {
   try {
     const parcelItems = items.map((it) => ({
-      name: it.name,
-      description: it.name,
+      name: it.name || "Clothing item",
+      description: it.name || "Fashion / clothing item",
       quantity: it.quantity,
       value: Math.round(it.price),
       weight: TERMINAL.DEFAULT_ITEM_WEIGHT_KG,
       currency: "NGN",
     }));
 
+    // A readable parcel-level description (Terminal requires this on the parcel).
+    const parcelDescription =
+      items.length === 1
+        ? items[0].name || "Fashion / clothing order"
+        : `Dahriola order — ${items.length} items`;
+
     const body: Record<string, unknown> = {
+      description: parcelDescription,   // REQUIRED by Terminal
       items: parcelItems,
       weight_unit: "kg",
       // total weight (Terminal can also derive from items)
@@ -153,7 +195,7 @@ export async function getTerminalRates(input: {
 
   // 3. rates
   try {
-    const data = await tPost("/rates/shipment", {
+    const data = await tGet("/rates/shipment", {
       pickup_address: TERMINAL.PICKUP_ADDRESS_ID,
       delivery_address: deliveryId,
       parcel_id: parcelId,
