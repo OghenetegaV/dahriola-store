@@ -391,3 +391,59 @@ export async function sendLowStockNotification({
     };
   }
 }
+
+export async function sendNewsletterWelcome({
+  name,
+  email,
+  code,
+}: {
+  name: string;
+  email: string;
+  code: string;
+}) {
+  try {
+    const transporter = getTransporter();
+    const senderEmail = getSenderEmail();
+    const firstName = String(name || "").trim().split(" ")[0];
+
+    const info = await transporter.sendMail({
+      from: `"Dahriola" <${senderEmail}>`,
+      to: email,
+      subject: "Welcome to Dahriola — your 10% off code",
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #111; max-width: 520px; margin: 0 auto;">
+          <h2 style="margin-bottom: 8px;">Welcome${firstName ? `, ${escapeHtml(firstName)}` : ""}</h2>
+          <p>Thank you for joining the Dahriola family. Here is 10% off your first order:</p>
+
+          <div style="border: 1px solid #111; padding: 20px; text-align: center; margin: 24px 0;">
+            <span style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">${escapeHtml(code)}</span>
+          </div>
+
+          <p>Enter the code at checkout to apply your discount.</p>
+          <p style="margin-top: 24px; color: #777; font-size: 12px;">
+            Expect exclusive previews, birthday surprises and early access.
+          </p>
+        </div>
+      `,
+    });
+
+    console.log("Newsletter welcome email sent:", {
+      messageId: info.messageId,
+      to: email,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Newsletter Welcome Email Error:", {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      response: error?.response,
+    });
+
+    return {
+      success: false,
+      message: error?.message || "Newsletter welcome email failed.",
+    };
+  }
+}

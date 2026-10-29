@@ -217,7 +217,7 @@ export default function CheckoutClient() {
     setDiscountError(null);
 
     try {
-      const result = await validateCoupon(discountCode);
+      const result = await validateCoupon(discountCode, formData.email);
 
       if (result.success) {
         const savings =
@@ -227,7 +227,7 @@ export default function CheckoutClient() {
 
         setDiscountAmount(savings);
       } else {
-        setDiscountError(result.message);
+        setDiscountError(result.message ?? "Invalid code.");
         setDiscountAmount(0);
       }
     } catch {
@@ -747,8 +747,26 @@ export default function CheckoutClient() {
               </div>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   setIsProcessing(true);
+
+                  // Re-check the code against the final email in case it changed after applying
+                  if (discountAmount > 0 && discountCode) {
+                    try {
+                      const recheck = await validateCoupon(discountCode, formData.email);
+                      if (!recheck.success) {
+                        setDiscountAmount(0);
+                        setDiscountError(recheck.message ?? "Discount code is no longer valid.");
+                        setIsProcessing(false);
+                        return;
+                      }
+                    } catch {
+                      setDiscountError("Error validating code.");
+                      setIsProcessing(false);
+                      return;
+                    }
+                  }
+
                   initializePayment({
                     onSuccess: handlePaymentSuccess,
                     onClose: () => setIsProcessing(false),

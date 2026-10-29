@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Instagram, ArrowRight, ChevronDown } from "lucide-react";
 import { client } from "@/src/lib/sanity";
 import PolicyModal from "./PolicyModal";
+import { openNewsletterPopup } from "./NewsletterPopup";
 import { POLICIES } from "@/src/constants/policies";
 
 export default function Footer() {
@@ -13,6 +14,7 @@ export default function Footer() {
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [activePolicy, setActivePolicy] = useState<null | keyof typeof POLICIES>(null);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
   const footerRef = useRef(null);
 
   useEffect(() => {
@@ -107,10 +109,20 @@ export default function Footer() {
             <p className="text-[10px] uppercase tracking-[0.5em] font-bold text-neutral-500 mb-8">
               Join the Inner Circle
             </p>
-            <form className="relative group/form" onSubmit={(e) => e.preventDefault()}>
+            <form
+              className="relative group/form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                openNewsletterPopup(newsletterEmail.trim());
+                setNewsletterEmail("");
+              }}
+            >
               <input 
                 type="email" 
+                required
                 placeholder="EMAIL ADDRESS"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 className="w-full bg-transparent border-b border-white/10 pb-6 text-[11px] tracking-[0.3em] text-white focus:outline-none focus:border-brand-beryl transition-all duration-700 placeholder:text-neutral-700"
               />
               <button type="submit" className="absolute right-0 bottom-6 text-white hover:text-brand-beryl transition-colors group">
@@ -118,7 +130,7 @@ export default function Footer() {
               </button>
             </form>
             <p className="mt-6 text-[9px] uppercase tracking-widest text-neutral-600">
-              By subscribing, you agree to our privacy policy.
+              Get 10% off your first order. By subscribing, you agree to our privacy policy.
             </p>
           </div>
         </div>

@@ -2,11 +2,12 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { openNewsletterPopup } from "./NewsletterPopup";
 
 const messages = [
-  "🚚worldwide shipping",
-  "🎟️join our family for 10% off your first order",
-  "🪡open for bespoke inquiries",
+  { text: "🚚worldwide shipping" },
+  { text: "🎟️join our family for 10% off your first order", newsletter: true },
+  { text: "🪡open for bespoke inquiries" },
 ];
 
 export default function AnnouncementBar() {
@@ -31,7 +32,17 @@ export default function AnnouncementBar() {
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="text-[9px] font-bold uppercase tracking-[0.3em] text-white text-center"
         >
-          {messages[index]}
+          {messages[index].newsletter ? (
+            <button
+              type="button"
+              onClick={() => openNewsletterPopup()}
+              className="uppercase tracking-[0.3em] underline underline-offset-4"
+            >
+              {messages[index].text}
+            </button>
+          ) : (
+            messages[index].text
+          )}
         </motion.p>
       </AnimatePresence>
     </div>

@@ -9,6 +9,15 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
+const CLAIMED_KEY = "dahriola_discount_claimed";
+const CLOSED_KEY = "dahriola-newsletter-closed";
+const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000; // don't auto-open again for 3 days after closing
+export const OPEN_EVENT = "dahriola:open-newsletter";
+
+export function openNewsletterPopup(email?: string) {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { email } }));
+}
+
 export default function NewsletterPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -21,20 +30,55 @@ export default function NewsletterPopup() {
   const [submitted, setSubmitted] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const claimed = localStorage.getItem("dahriola_discount_claimed");
-    if (claimed) return;
-    const timer = setTimeout(() => {
+    let claimedCode: string | null = null;
+    let closedAt = 0;
+    try {
+      claimedCode = localStorage.getItem(CLAIMED_KEY);
+      closedAt = Number(localStorage.getItem(CLOSED_KEY) || 0);
+    } catch {}
+
+    // Anyone who already signed up sees their code when they reopen it
+    if (claimedCode) {
+      setSubmitted(true);
+      setDiscountCode(claimedCode === "true" ? "THESOUND" : claimedCode);
+    }
+
+    const openPopup = (e: Event) => {
+      const email = (e as CustomEvent<{ email?: string }>).detail?.email;
+      if (email) setFormData((prev) => ({ ...prev, email }));
+      setError("");
       setIsOpen(true);
-    }, 5000);
-    return () => clearTimeout(timer);
+    };
+    window.addEventListener(OPEN_EVENT, openPopup);
+
+    const recentlyClosed = Date.now() - closedAt < SNOOZE_MS;
+    const timer =
+      !claimedCode && !recentlyClosed
+        ? setTimeout(() => setIsOpen(true), 5000)
+        : undefined;
+
+    return () => {
+      window.removeEventListener(OPEN_EVENT, openPopup);
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   const closePopup = () => {
-    localStorage.setItem("dahriola-newsletter-closed", "true");
+    try {
+      localStorage.setItem(CLOSED_KEY, String(Date.now()));
+    } catch {}
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closePopup();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen]);
 
   const copyCode = async () => {
     try {
@@ -46,6 +90,8 @@ export default function NewsletterPopup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setError("");
     try {
       setLoading(true);
       const response = await fetch("/api/newsletter", {
@@ -53,15 +99,20 @@ export default function NewsletterPopup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      const data = await response.json();
-      if (data.success) {
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success) {
+        const code = data.code || "THESOUND";
         setSubmitted(true);
-        setDiscountCode(data.code || "THESOUND");
-        localStorage.setItem("dahriola_discount_claimed", "true");
+        setDiscountCode(code);
+        try {
+          localStorage.setItem(CLAIMED_KEY, code);
+        } catch {}
         setFormData({ name: "", email: "", birthday: "", source: "" });
+      } else {
+        setError(data.error || "Something went wrong. Please try again.");
       }
-    } catch (error) {
-      console.log(error);
+    } catch {
+      setError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -149,6 +200,9 @@ export default function NewsletterPopup() {
                           className="w-full border-b pb-3"
                         />
 
+                        <label className="block text-[10px] uppercase tracking-[0.25em] text-neutral-400 -mb-3">
+                          Birthday month (optional)
+                        </label>
                         <input
                           type="month"
                           value={formData.birthday}
@@ -177,9 +231,14 @@ export default function NewsletterPopup() {
                           <option>Pinterest</option>
                         </select>
 
+                        {error && (
+                          <p className="text-xs text-red-600">{error}</p>
+                        )}
+
                         <button
+                          type="submit"
                           disabled={loading}
-                          className="w-full bg-black text-white py-4 flex justify-center gap-3"
+                          className="w-full bg-black text-white py-4 flex justify-center gap-3 disabled:opacity-60"
                         >
                           {loading ? "Submitting..." : "Unlock My Discount"}
                           <ArrowRight />
@@ -206,6 +265,9 @@ export default function NewsletterPopup() {
 
                       <p className="mt-6 text-xs text-neutral-400 uppercase tracking-[0.25em]">
                         Apply at checkout
+                      </p>
+                      <p className="mt-2 text-xs text-neutral-400">
+                        We&apos;ve also emailed it to you.
                       </p>
                     </div>
                   )}

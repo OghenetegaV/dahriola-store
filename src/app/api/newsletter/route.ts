@@ -1,29 +1,37 @@
 import { NextResponse } from "next/server";
 import { GoogleSpreadsheet } from "google-spreadsheet";
 import { JWT } from "google-auth-library";
+import { sendNewsletterWelcome } from "@/src/app/actions/email";
+
+const DISCOUNT_CODE = process.env.NEWSLETTER_DISCOUNT_CODE?.trim() || "THESOUND";
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { name, email, birthday, source } = body;
+    const body = await req.json().catch(() => ({}));
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const birthday = String(body.birthday || "").trim();
+    const source = String(body.source || "").trim();
 
-    // Step 1: Check env vars are loaded
-    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-      console.error("❌ Missing GOOGLE_SERVICE_ACCOUNT_EMAIL");
-      return NextResponse.json({ success: false, error: "Missing service account email" }, { status: 500 });
-    }
-    if (!process.env.GOOGLE_PRIVATE_KEY) {
-      console.error("❌ Missing GOOGLE_PRIVATE_KEY");
-      return NextResponse.json({ success: false, error: "Missing private key" }, { status: 500 });
-    }
-    if (!process.env.GOOGLE_SHEET_ID) {
-      console.error("❌ Missing GOOGLE_SHEET_ID");
-      return NextResponse.json({ success: false, error: "Missing sheet ID" }, { status: 500 });
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return NextResponse.json(
+        { success: false, error: "Please enter a valid email address." },
+        { status: 400 }
+      );
     }
 
-    console.log("✅ Env vars loaded");
-    console.log("📧 Service account:", process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL);
-    console.log("📄 Sheet ID:", process.env.GOOGLE_SHEET_ID);
+    if (
+      !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
+      !process.env.GOOGLE_PRIVATE_KEY ||
+      !process.env.GOOGLE_SHEET_ID
+    ) {
+      console.error("❌ Newsletter: missing Google Sheets env vars");
+      return NextResponse.json(
+        { success: false, error: "Sign up is unavailable right now. Please try again later." },
+        { status: 500 }
+      );
+    }
 
     const auth = new JWT({
       email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -32,18 +40,16 @@ export async function POST(req: Request) {
     });
 
     const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, auth);
-
-    console.log("🔐 Attempting to load sheet...");
     await doc.loadInfo();
-    console.log("✅ Sheet loaded:", doc.title);
-
     const sheet = doc.sheetsByIndex[0];
-    console.log("📋 Using sheet:", sheet.title);
 
-    await sheet.loadHeaderRow();
+    try {
+      await sheet.loadHeaderRow();
+    } catch {
+      // loadHeaderRow throws on a completely empty sheet
+    }
 
     if (!sheet.headerValues || sheet.headerValues.length === 0) {
-      console.log("⚠️ No headers found, setting them now...");
       await sheet.setHeaderRow([
         "Name",
         "Email",
@@ -52,20 +58,15 @@ export async function POST(req: Request) {
         "Discount Code",
         "Created At",
       ]);
-      await sheet.loadHeaderRow();
     }
-
-    console.log("📝 Headers:", sheet.headerValues);
 
     const existing = await sheet.getRows();
     const alreadyExists = existing.some(
-      (row: any) =>
-        row.get("Email")?.toLowerCase() === email.toLowerCase()
+      (row: any) => String(row.get("Email") || "").trim().toLowerCase() === email
     );
 
     if (alreadyExists) {
-      console.log("ℹ️ Email already exists, returning existing code");
-      return NextResponse.json({ success: true, code: "THESOUND" });
+      return NextResponse.json({ success: true, code: DISCOUNT_CODE, existing: true });
     }
 
     await sheet.addRow({
@@ -73,17 +74,19 @@ export async function POST(req: Request) {
       Email: email,
       Birthday: birthday,
       Source: source,
-      "Discount Code": "THESOUND",
+      "Discount Code": DISCOUNT_CODE,
       "Created At": new Date().toISOString(),
     });
 
-    console.log("✅ Row added successfully for:", email);
+    // Email failure shouldn't block the sign up — the code is shown on screen too
+    await sendNewsletterWelcome({ name, email, code: DISCOUNT_CODE });
 
-    return NextResponse.json({ success: true, code: "THESOUND" });
-
+    return NextResponse.json({ success: true, code: DISCOUNT_CODE });
   } catch (error: any) {
     console.error("❌ NEWSLETTER ERROR:", error?.message || error);
-    console.error("Full error:", JSON.stringify(error, null, 2));
-    return NextResponse.json({ success: false, error: error?.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Something went wrong. Please try again." },
+      { status: 500 }
+    );
   }
 }

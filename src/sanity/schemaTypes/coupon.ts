@@ -41,6 +41,13 @@ export default {
       initialValue: true,
     },
     {
+      name: 'firstOrderOnly',
+      title: 'First Order Only?',
+      type: 'boolean',
+      description: 'Only works for customers who have never placed an order (checked by email)',
+      initialValue: false,
+    },
+    {
       name: 'expiryDate',
       title: 'Expiry Date',
       type: 'datetime',
