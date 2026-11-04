@@ -125,7 +125,9 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
           "Ticket Code": ticketCode,
           "Registered At": createdAt,
         },
-        `RSVP – ${event.title}`.slice(0, 99)
+        `RSVP – ${event.title}`.slice(0, 99),
+        // Optional separate spreadsheet for RSVPs; falls back to the newsletter one
+        process.env.RSVP_SHEET_ID
       );
     } catch (sheetErr: any) {
       console.error("RSVP sheet append failed:", sheetErr?.message || sheetErr);

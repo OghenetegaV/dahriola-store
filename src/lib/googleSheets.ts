@@ -2,10 +2,11 @@
 import { GoogleSpreadsheet } from "google-spreadsheet";
 import { JWT } from "google-auth-library";
 
-function getDoc() {
+// spreadsheetId defaults to GOOGLE_SHEET_ID (the newsletter spreadsheet)
+function getDoc(spreadsheetId?: string) {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const key = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetId = process.env.GOOGLE_SHEET_ID;
+  const sheetId = spreadsheetId?.trim() || process.env.GOOGLE_SHEET_ID;
 
   if (!email || !key || !sheetId) {
     throw new Error("Missing Google Sheets env vars");
@@ -22,8 +23,8 @@ function getDoc() {
 
 // Returns a sheet tab by title (or the first tab when no title is given),
 // creating the tab and its header row when missing.
-export async function getSheet(headers: string[], tabTitle?: string) {
-  const doc = getDoc();
+export async function getSheet(headers: string[], tabTitle?: string, spreadsheetId?: string) {
+  const doc = getDoc(spreadsheetId);
   await doc.loadInfo();
 
   let sheet = tabTitle ? doc.sheetsByTitle[tabTitle] : doc.sheetsByIndex[0];
@@ -47,8 +48,9 @@ export async function getSheet(headers: string[], tabTitle?: string) {
 export async function appendRow(
   headers: string[],
   row: Record<string, string | number>,
-  tabTitle?: string
+  tabTitle?: string,
+  spreadsheetId?: string
 ) {
-  const sheet = await getSheet(headers, tabTitle);
+  const sheet = await getSheet(headers, tabTitle, spreadsheetId);
   await sheet.addRow(row);
 }
