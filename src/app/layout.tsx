@@ -6,6 +6,10 @@ import Concierge from "../components/Concierge";
 import Footer from "../components/Footer";
 import AnnouncementBar from "../components/AnnouncementBar";
 import NewsletterPopup from "../components/NewsletterPopup";
+import EventPopup from "../components/EventPopup";
+import GoogleAnalytics from "../components/GoogleAnalytics";
+import { client } from "../lib/sanity";
+import { ACTIVE_EVENT_QUERY, type EventSummary } from "../lib/events";
 
 const ptSerif = PT_Serif({
   subsets: ["latin"],
@@ -81,11 +85,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+// Re-check Sanity at most once a minute so turning an event pop-up on/off
+// shows up without a redeploy
+export const revalidate = 60;
+
+async function getActiveEvent(): Promise<EventSummary | null> {
+  try {
+    return await client.fetch(ACTIVE_EVENT_QUERY);
+  } catch {
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const activeEvent = await getActiveEvent();
+
   return (
     <html lang="en" className="scroll-smooth">
       <body
@@ -94,8 +112,12 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <Concierge />
-        <NewsletterPopup />
+        {/* While an event is promoted, its pop-up replaces the newsletter auto-popup.
+            The newsletter popup stays mounted so the footer/announcement triggers still work. */}
+        {activeEvent && <EventPopup event={activeEvent} />}
+        <NewsletterPopup autoOpen={!activeEvent} />
         <Footer />
+        <GoogleAnalytics />
       </body>
     </html>
   );

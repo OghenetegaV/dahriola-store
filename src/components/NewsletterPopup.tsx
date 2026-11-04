@@ -8,7 +8,10 @@ import {
   Copy,
 } from "lucide-react";
 import Image from "next/image";
+import { trackNewsletterSignUp } from "@/src/lib/analytics";
 
+const DEFAULT_CODE = "WELCOME10";
+const RETIRED_CODES = ["true", "THESOUND", "WELCOME@10"]; // values saved by older versions of the popup
 const CLAIMED_KEY = "dahriola_discount_claimed";
 const CLOSED_KEY = "dahriola-newsletter-closed";
 const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000; // don't auto-open again for 3 days after closing
@@ -18,7 +21,7 @@ export function openNewsletterPopup(email?: string) {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { email } }));
 }
 
-export default function NewsletterPopup() {
+export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -43,7 +46,9 @@ export default function NewsletterPopup() {
     // Anyone who already signed up sees their code when they reopen it
     if (claimedCode) {
       setSubmitted(true);
-      setDiscountCode(claimedCode === "true" ? "THESOUND" : claimedCode);
+      setDiscountCode(
+        RETIRED_CODES.includes(claimedCode) ? DEFAULT_CODE : claimedCode
+      );
     }
 
     const openPopup = (e: Event) => {
@@ -56,7 +61,7 @@ export default function NewsletterPopup() {
 
     const recentlyClosed = Date.now() - closedAt < SNOOZE_MS;
     const timer =
-      !claimedCode && !recentlyClosed
+      autoOpen && !claimedCode && !recentlyClosed
         ? setTimeout(() => setIsOpen(true), 5000)
         : undefined;
 
@@ -64,7 +69,7 @@ export default function NewsletterPopup() {
       window.removeEventListener(OPEN_EVENT, openPopup);
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [autoOpen]);
 
   const closePopup = () => {
     try {
@@ -82,7 +87,7 @@ export default function NewsletterPopup() {
 
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(discountCode || "THESOUND");
+      await navigator.clipboard.writeText(discountCode || DEFAULT_CODE);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {}
@@ -101,7 +106,8 @@ export default function NewsletterPopup() {
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.success) {
-        const code = data.code || "THESOUND";
+        const code = data.code || DEFAULT_CODE;
+        if (!data.existing) trackNewsletterSignUp(formData.source);
         setSubmitted(true);
         setDiscountCode(code);
         try {
@@ -254,7 +260,7 @@ export default function NewsletterPopup() {
                         className="cursor-pointer border py-6 mt-5"
                       >
                         <h1 className="text-4xl font-bold tracking-[0.08em]">
-                          {discountCode || "THESOUND"}
+                          {discountCode || DEFAULT_CODE}
                         </h1>
 
                         <div className="mt-4 flex justify-center gap-2 text-sm">

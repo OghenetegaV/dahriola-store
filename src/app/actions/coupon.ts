@@ -1,15 +1,6 @@
 "use server";
 
-import { createClient } from "@sanity/client";
-
-// Server-side client so order history can be checked without exposing it to the browser
-const serverClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
-  apiVersion: "2024-03-03",
-  token: process.env.SANITY_API_WRITE_TOKEN,
-  useCdn: false,
-});
+import { writeClient as serverClient } from "@/src/lib/sanityWrite";
 
 export async function validateCoupon(inputCode: string, customerEmail?: string) {
   const query = `*[_type == "coupon" && code == $code && isActive == true][0]{

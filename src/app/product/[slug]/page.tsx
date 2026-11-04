@@ -138,7 +138,7 @@ export default async function ProductPage({
                     </h1>
                   </div>
 
-                  <WishlistButton productId={product._id} />
+                  <WishlistButton productId={product._id} productName={product.name} price={product.priceNGN} />
                 </div>
 
                 <div className="mt-3 flex items-center gap-3">

@@ -16,6 +16,12 @@ import {
 import { getShippingRates } from "@/src/app/actions/shipping";
 import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
+import {
+  trackAddPaymentInfo,
+  trackAddShippingInfo,
+  trackBeginCheckout,
+  trackPurchase,
+} from "@/src/lib/analytics";
 import { sendOrderNotification } from "@/src/app/actions/email";
 import { createOrder } from "@/src/app/actions/order";
 import TerminalLocationSelect from "@/src/components/TerminalLocationSelect";
@@ -246,6 +252,30 @@ export default function CheckoutClient() {
 
   const finalTotal = convertedSubtotal + convertedShipping - discountAmount;
 
+  // Analytics payload in the shopper's chosen currency
+  const gaCheckout = () => ({
+    currency,
+    value: finalTotal,
+    coupon: discountAmount > 0 ? discountCode : undefined,
+    items: cart.map((item) => ({ ...item, price: item.price * (exchangeRates[currency] || 1) })),
+  });
+
+  useEffect(() => {
+    if (hasHydrated && cart.length) trackBeginCheckout(gaCheckout());
+    // once per visit to checkout
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated]);
+
+  useEffect(() => {
+    if (selectedRate) {
+      trackAddShippingInfo({
+        ...gaCheckout(),
+        shippingTier: selectedRate.service_name || selectedRate.carrier_name,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRate?.id]);
+
   const exchangeRate = exchangeRates[currency] || 1;
 
   const finalTotalNGN =
@@ -429,6 +459,12 @@ export default function CheckoutClient() {
 
     try {
       await fulfilOrder(transactionReference, verified);
+      trackPurchase({
+        ...gaCheckout(),
+        transactionId: transactionReference,
+        shipping: convertedShipping,
+        discount: discountAmount || undefined,
+      });
       clearCart();
       router.push(`/success?reference=${transactionReference}`);
     } catch (error) {
@@ -767,6 +803,7 @@ export default function CheckoutClient() {
                     }
                   }
 
+                  trackAddPaymentInfo(gaCheckout());
                   initializePayment({
                     onSuccess: handlePaymentSuccess,
                     onClose: () => setIsProcessing(false),

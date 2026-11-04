@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { trackSearch } from "@/src/lib/analytics";
 import { Search, X, ChevronDown } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { useStore } from "@/src/store/useStore";
@@ -26,6 +27,13 @@ export default function ProductSearch({
   const { currency, exchangeRates } = useStore();
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Report a search once the shopper stops typing
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    const timer = setTimeout(() => trackSearch(searchQuery), 1500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [isSearchOpen, setIsSearchOpen] = useState(isOverlay);
   const [sortBy, setSortBy] = useState("Newest");
   const [priceRange, setPriceRange] = useState<{

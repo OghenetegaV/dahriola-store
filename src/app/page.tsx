@@ -7,6 +7,7 @@ import ServicesGrid from "../components/ServicesGrid";
 import FeaturedProducts from "../components/FeaturedProducts"; 
 import ClientShowcase from "../components/ClientShowcase";
 import CollectionTurntable from "../components/CollectionTurntable";
+import { ACTIVE_EVENT_QUERY } from "../lib/events";
 
 async function getProducts() {
   const query = `*[_type == "product" && defined(images)] | order(_createdAt desc) [0...6] {
@@ -24,11 +25,14 @@ async function getProducts() {
 }
 
 export default async function HomePage() {
-  const products = await getProducts();
+  const [products, activeEvent] = await Promise.all([
+    getProducts(),
+    client.fetch(ACTIVE_EVENT_QUERY).catch(() => null),
+  ]);
 
   return (
     <div className="relative w-full">
-      <AnnouncementBar />
+      <AnnouncementBar event={activeEvent} />
       <Hero />
       <CategorySlider />
       <AboutDahriola />

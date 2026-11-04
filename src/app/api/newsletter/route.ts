@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { GoogleSpreadsheet } from "google-spreadsheet";
-import { JWT } from "google-auth-library";
+import { getSheet } from "@/src/lib/googleSheets";
 import { sendNewsletterWelcome } from "@/src/app/actions/email";
 
-const DISCOUNT_CODE = process.env.NEWSLETTER_DISCOUNT_CODE?.trim() || "THESOUND";
+const DISCOUNT_CODE = process.env.NEWSLETTER_DISCOUNT_CODE?.trim() || "WELCOME10";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
@@ -21,44 +20,14 @@ export async function POST(req: Request) {
       );
     }
 
-    if (
-      !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
-      !process.env.GOOGLE_PRIVATE_KEY ||
-      !process.env.GOOGLE_SHEET_ID
-    ) {
-      console.error("❌ Newsletter: missing Google Sheets env vars");
-      return NextResponse.json(
-        { success: false, error: "Sign up is unavailable right now. Please try again later." },
-        { status: 500 }
-      );
-    }
-
-    const auth = new JWT({
-      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-
-    const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, auth);
-    await doc.loadInfo();
-    const sheet = doc.sheetsByIndex[0];
-
-    try {
-      await sheet.loadHeaderRow();
-    } catch {
-      // loadHeaderRow throws on a completely empty sheet
-    }
-
-    if (!sheet.headerValues || sheet.headerValues.length === 0) {
-      await sheet.setHeaderRow([
-        "Name",
-        "Email",
-        "Birthday",
-        "Source",
-        "Discount Code",
-        "Created At",
-      ]);
-    }
+    const sheet = await getSheet([
+      "Name",
+      "Email",
+      "Birthday",
+      "Source",
+      "Discount Code",
+      "Created At",
+    ]);
 
     const existing = await sheet.getRows();
     const alreadyExists = existing.some(

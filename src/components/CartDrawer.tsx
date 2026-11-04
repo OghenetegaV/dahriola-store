@@ -2,12 +2,20 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/src/store/useStore";
+import { useEffect } from "react";
+import { trackViewCart } from "@/src/lib/analytics";
 import Image from "next/image";
 import Link from "next/link";
 import { X, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react";
 
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { cart, currency, exchangeRates, removeItem, updateQuantity } = useStore();
+
+  useEffect(() => {
+    if (isOpen && cart.length) trackViewCart(cart);
+    // only when the drawer opens, not on every cart change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
   
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const convertedTotal = subtotal * exchangeRates[currency];

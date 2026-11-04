@@ -3,15 +3,18 @@
 import { Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { isInWishlist, toggleWishlist } from "@/src/lib/wishlist";
+import { trackAddToWishlist } from "@/src/lib/analytics";
 
 type WishlistButtonProps = {
   productId: string;
   productName?: string;
+  price?: number;
 };
 
 export default function WishlistButton({
   productId,
   productName,
+  price,
 }: WishlistButtonProps) {
   const [wishlisted, setWishlisted] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -24,6 +27,9 @@ export default function WishlistButton({
   function handleToggle() {
     const result = toggleWishlist(productId);
     setWishlisted(result.isWishlisted);
+    if (result.isWishlisted) {
+      trackAddToWishlist({ _id: productId, name: productName || productId, price });
+    }
   }
 
   if (!mounted) {

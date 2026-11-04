@@ -1,6 +1,16 @@
 "use server";
 
 import nodemailer from "nodemailer";
+import QRCode from "qrcode";
+import {
+  type EventSummary,
+  buildIcs,
+  eventLocation,
+  eventUrl,
+  formatEventWhen,
+  googleCalendarUrl,
+  SITE_URL,
+} from "@/src/lib/events";
 
 function requireEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -445,5 +455,134 @@ export async function sendNewsletterWelcome({
       success: false,
       message: error?.message || "Newsletter welcome email failed.",
     };
+  }
+}
+
+// ── Event emails ────────────────────────────────────────────────────────────
+
+type RsvpRecipient = {
+  name: string;
+  email: string;
+  guests?: number;
+  ticketCode: string;
+};
+
+function checkInUrl(ticketCode: string) {
+  return `${SITE_URL}/events/check-in?code=${encodeURIComponent(ticketCode)}`;
+}
+
+// Festive wrapper shared by all event emails. `christmas` adds the red/green/gold treatment.
+function eventEmailShell(event: EventSummary, inner: string) {
+  const festive = event.theme !== "default";
+  const accent = festive ? "#9E1B32" : "#111111";
+  const band = festive
+    ? `<div style="background:#0F3D2E;color:#E8C77A;text-align:center;padding:10px 0;font-size:12px;letter-spacing:6px;">&#10052; &nbsp; DAHRIOLA &nbsp; &#10052;</div>`
+    : `<div style="background:#111;color:#fff;text-align:center;padding:10px 0;font-size:12px;letter-spacing:6px;">DAHRIOLA</div>`;
+
+  return `
+    <div style="background:${festive ? "#F7F2EA" : "#FAFAFA"};padding:24px 0;">
+      <div style="font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid ${festive ? "#E8C77A" : "#e5e5e5"};">
+        ${band}
+        ${event.flyerUrl ? `<img src="${event.flyerUrl}?w=1120&fit=max" alt="${escapeHtml(event.title)}" style="display:block;width:100%;height:auto;" />` : ""}
+        <div style="padding:28px 28px 8px;">
+          ${inner}
+        </div>
+        <div style="padding:0 28px 28px;">
+          <table role="presentation" style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;margin-top:8px;">
+            <tr><td style="padding:8px 0;color:#777;width:90px;">When</td><td style="padding:8px 0;">${escapeHtml(formatEventWhen(event))}</td></tr>
+            <tr><td style="padding:8px 0;color:#777;">Where</td><td style="padding:8px 0;">${escapeHtml(eventLocation(event) || "Lagos — venue to be announced")}${event.mapLink ? ` &middot; <a href="${event.mapLink}" style="color:${accent};">Map</a>` : ""}</td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-family:Arial,sans-serif;font-size:13px;">
+            <a href="${googleCalendarUrl(event)}" style="display:inline-block;background:${accent};color:#fff;text-decoration:none;padding:12px 18px;margin:0 8px 8px 0;">Add to Google Calendar</a>
+            <a href="${eventUrl(event.slug)}" style="display:inline-block;border:1px solid ${accent};color:${accent};text-decoration:none;padding:11px 18px;margin:0 0 8px;">Event page</a>
+          </p>
+          <p style="font-family:Arial,sans-serif;font-size:12px;color:#777;margin:8px 0 0;">Using Apple Calendar or Outlook? Open the attached invite (.ics).</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function eventAttachments(event: EventSummary, recipient: RsvpRecipient) {
+  const qr = await QRCode.toBuffer(checkInUrl(recipient.ticketCode), { width: 360, margin: 1 });
+  return {
+    qrHtml: `
+      <div style="text-align:center;border:1px dashed #E8C77A;padding:18px;margin:20px 0;">
+        <p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#777;margin:0 0 10px;">YOUR TICKET</p>
+        <img src="cid:ticket-qr" alt="Ticket QR code" width="180" height="180" style="display:inline-block;" />
+        <p style="font-family:Arial,sans-serif;font-size:22px;letter-spacing:4px;font-weight:bold;margin:10px 0 0;">${escapeHtml(recipient.ticketCode)}</p>
+        <p style="font-family:Arial,sans-serif;font-size:12px;color:#777;margin:6px 0 0;">Show this at the door${recipient.guests ? ` &middot; admits you + ${Number(recipient.guests)}` : ""}</p>
+      </div>`,
+    attachments: [{ filename: "ticket.png", content: qr, cid: "ticket-qr" }],
+    icalEvent: {
+      filename: "dahriola-event.ics",
+      method: "PUBLISH",
+      content: buildIcs(event, { name: recipient.name, email: recipient.email }),
+    },
+  };
+}
+
+export async function sendRsvpConfirmation(event: EventSummary, recipient: RsvpRecipient) {
+  try {
+    const transporter = getTransporter();
+    const firstName = String(recipient.name || "").trim().split(" ")[0];
+    const { qrHtml, attachments, icalEvent } = await eventAttachments(event, recipient);
+
+    const inner = `
+      <h1 style="font-weight:normal;font-size:28px;margin:0 0 12px;">You're on the list${firstName ? `, ${escapeHtml(firstName)}` : ""}!</h1>
+      <p style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;margin:0;">
+        Thank you for registering for <strong>${escapeHtml(event.title)}</strong>. We can't wait to celebrate the season with you.
+      </p>
+      ${qrHtml}
+    `;
+
+    await transporter.sendMail({
+      from: `"Dahriola" <${getSenderEmail()}>`,
+      to: recipient.email,
+      subject: `You're registered: ${event.title}`,
+      html: eventEmailShell(event, inner),
+      attachments,
+      icalEvent,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("RSVP Confirmation Email Error:", error?.message || error);
+    return { success: false, message: error?.message || "RSVP email failed." };
+  }
+}
+
+export async function sendEventReminder(
+  event: EventSummary,
+  recipient: RsvpRecipient,
+  kind: "48h" | "24h"
+) {
+  try {
+    const transporter = getTransporter();
+    const firstName = String(recipient.name || "").trim().split(" ")[0];
+    const { qrHtml, attachments, icalEvent } = await eventAttachments(event, recipient);
+    const headline = kind === "48h" ? "Two days to go!" : "See you tomorrow!";
+
+    const inner = `
+      <h1 style="font-weight:normal;font-size:28px;margin:0 0 12px;">${headline}</h1>
+      <p style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;margin:0;">
+        Hi${firstName ? ` ${escapeHtml(firstName)}` : ""}, this is a friendly reminder that <strong>${escapeHtml(event.title)}</strong> is ${kind === "48h" ? "in two days" : "tomorrow"}. Keep this email handy — your ticket is below.
+      </p>
+      ${qrHtml}
+    `;
+
+    await transporter.sendMail({
+      from: `"Dahriola" <${getSenderEmail()}>`,
+      to: recipient.email,
+      subject: `${headline} ${event.title}`,
+      html: eventEmailShell(event, inner),
+      attachments,
+      icalEvent,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Event Reminder Email Error:", error?.message || error);
+    return { success: false, message: error?.message || "Reminder email failed." };
   }
 }

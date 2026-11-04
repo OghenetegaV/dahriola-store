@@ -8,6 +8,7 @@ import { Send, MapPin, Globe, CheckCircle2, X, PhoneCall, Upload, Image as Image
 import 'react-phone-number-input/style.css';
 import PhoneInput from 'react-phone-number-input';
 import { sendBespokeEnquiry } from "@/src/app/actions/bespoke";
+import { trackBespokeEnquiry } from "@/src/lib/analytics";
 
 export default function BespokeEnquiry() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -81,6 +82,7 @@ export default function BespokeEnquiry() {
 
       if (res.success) {
         setIsSubmitted(true);
+        trackBespokeEnquiry();
         // reset the form
         setClientName("");
         setEmail("");

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackViewItem } from "@/src/lib/analytics";
 import { PortableText } from "@portabletext/react";
 import { ChevronDown, X, Check } from "lucide-react";
 import AddToCartButton from "@/src/components/AddToCartButton";
@@ -104,6 +105,15 @@ export default function ProductPageClient({ product }: { product: any }) {
   const isDress = getIsDress(product);
   const needsLength = getNeedsLength(product);
   const sizes = isDress ? DRESS_SIZES : DEFAULT_SIZES;
+
+  useEffect(() => {
+    trackViewItem({
+      _id: product._id,
+      name: product.name,
+      price: product.priceNGN,
+      category: product.categoryName,
+    });
+  }, [product._id, product.name, product.priceNGN, product.categoryName]);
 
   const [selectedSize, setSelectedSize] = useState("XS");
   const [selectedPrint, setSelectedPrint] = useState<any | null>(null);

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { trackAddToCart, trackRemoveFromCart } from "@/src/lib/analytics";
 
 export type Currency = "NGN" | "USD" | "GBP" | "EUR" | "CAD";
 
@@ -71,12 +72,13 @@ function sameCartItem(a: CartItem, b: CartItem) {
 
 export const useStore = create<StoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       cart: [],
       currency: "NGN",
       exchangeRates: DEFAULT_EXCHANGE_RATES,
 
-      addItem: (newItem) =>
+      addItem: (newItem) => {
+        trackAddToCart(newItem);
         set((state) => {
           const existingItemIndex = state.cart.findIndex((item) =>
             sameCartItem(item, newItem)
@@ -95,9 +97,19 @@ export const useStore = create<StoreState>()(
           }
 
           return { cart: [...state.cart, newItem] };
-        }),
+        });
+      },
 
-      removeItem: (id, size, selectedPrintId) =>
+      removeItem: (id, size, selectedPrintId) => {
+        get()
+          .cart.filter(
+            (item) =>
+              item._id === id &&
+              item.size === size &&
+              (selectedPrintId === undefined ||
+                (item.selectedPrintId || "") === (selectedPrintId || ""))
+          )
+          .forEach((item) => trackRemoveFromCart(item));
         set((state) => ({
           cart: state.cart.filter(
             (item) =>
@@ -108,7 +120,8 @@ export const useStore = create<StoreState>()(
                   (item.selectedPrintId || "") === (selectedPrintId || ""))
               )
           ),
-        })),
+        }));
+      },
 
       updateQuantity: (id, size, quantity, selectedPrintId) =>
         set((state) => ({
