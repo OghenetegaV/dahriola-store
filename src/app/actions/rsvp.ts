@@ -112,26 +112,37 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     });
 
     // The RSVP is saved — Sheet and email failures are logged but don't fail it
-    try {
-      await appendRow(
-        SHEET_HEADERS,
-        {
-          Name: name,
-          Email: email,
-          Phone: phone,
-          "Plus-ones": guests,
-          "How they heard": source,
-          "Marketing opt-in": input.marketingOptIn ? "Yes" : "No",
-          "Ticket Code": ticketCode,
-          "Registered At": createdAt,
-        },
-        `RSVP – ${event.title}`.slice(0, 99),
-        // Optional separate spreadsheet for RSVPs; falls back to the newsletter one
-        process.env.RSVP_SHEET_ID
-      );
-    } catch (sheetErr: any) {
-      console.error("RSVP sheet append failed:", sheetErr?.message || sheetErr);
+    // Always written to the main (newsletter) spreadsheet; also copied to a
+    // separate RSVP spreadsheet when RSVP_SHEET_ID is set (e.g. to share with
+    // event staff without exposing subscriber emails).
+    const row = {
+      Name: name,
+      Email: email,
+      Phone: phone,
+      "Plus-ones": guests,
+      "How they heard": source,
+      "Marketing opt-in": input.marketingOptIn ? "Yes" : "No",
+      "Ticket Code": ticketCode,
+      "Registered At": createdAt,
+    };
+    const tab = `RSVP – ${event.title}`.slice(0, 99);
+    const rsvpSheetId = process.env.RSVP_SHEET_ID?.trim();
+    const targets: (string | undefined)[] = [undefined];
+    if (rsvpSheetId && rsvpSheetId !== process.env.GOOGLE_SHEET_ID?.trim()) {
+      targets.push(rsvpSheetId);
     }
+
+    const results = await Promise.allSettled(
+      targets.map((sheetId) => appendRow(SHEET_HEADERS, row, tab, sheetId))
+    );
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        console.error(
+          `RSVP sheet append failed (${i === 0 ? "main sheet" : "RSVP sheet"}):`,
+          r.reason?.message || r.reason
+        );
+      }
+    });
 
     await sendRsvpConfirmation(event, { name, email, guests, ticketCode });
 
