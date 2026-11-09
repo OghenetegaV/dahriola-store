@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowRight } from "lucide-react";
 import EventCountdown from "./EventCountdown";
 import { trackSelectPromotion, trackViewPromotion } from "@/src/lib/analytics";
-import { type EventSummary, formatEventDate, formatEventTime } from "@/src/lib/events";
+import { type EventSummary, formatEventDateRange, formatEventHours } from "@/src/lib/events";
 
 const SNOOZE_MS = 2 * 24 * 60 * 60 * 1000; // don't auto-open again for 2 days after closing
 
@@ -95,7 +95,7 @@ export default function EventPopup({ event }: { event: EventSummary }) {
                 </h2>
 
                 <p className="mt-4 text-sm uppercase tracking-[0.2em] opacity-80">
-                  {formatEventDate(event.startDate)} · {formatEventTime(event.startDate)}
+                  {formatEventDateRange(event, { weekday: false })} · {formatEventHours(event)}
                 </p>
 
                 <EventCountdown target={event.startDate} className="mt-8" />

@@ -17,9 +17,10 @@ import RsvpForm from "@/src/components/RsvpForm";
 import FestiveParticles from "./FestiveParticles";
 import {
   type EventSummary,
+  eventDayCount,
   eventLocation,
-  formatEventDate,
-  formatEventTime,
+  formatEventDateRange,
+  formatEventHours,
   googleCalendarUrl,
 } from "@/src/lib/events";
 
@@ -157,11 +158,14 @@ function TiltFlyer({ src, alt }: { src: string; alt: string }) {
 }
 
 /** Shown when no flyer has been uploaded: a spinning wreath with the date in it. */
-function DateWreath({ iso }: { iso: string }) {
+function DateWreath({ event }: { event: EventSummary }) {
   const reduce = useReducedMotion();
-  const d = new Date(iso);
-  const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Africa/Lagos" });
-  const month = d.toLocaleDateString("en-GB", { month: "long", timeZone: "Africa/Lagos" });
+  const fmt = (iso: string, o: Intl.DateTimeFormatOptions) =>
+    new Date(iso).toLocaleDateString("en-GB", { ...o, timeZone: "Africa/Lagos" });
+  const firstDay = fmt(event.startDate, { day: "numeric" });
+  const lastDay = fmt(event.endDate, { day: "numeric" });
+  const day = eventDayCount(event) > 1 && firstDay !== lastDay ? `${firstDay}–${lastDay}` : firstDay;
+  const month = fmt(event.startDate, { month: "long" });
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.6 }}
@@ -192,7 +196,9 @@ function DateWreath({ iso }: { iso: string }) {
         <circle cx="100" cy="100" r="70" fill="none" stroke="#E8C77A" strokeWidth="0.6" strokeDasharray="2 4" />
       </motion.svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="font-display text-7xl sm:text-8xl shimmer-text leading-none">{day}</span>
+        <span className={`font-display shimmer-text leading-none ${day.length > 2 ? "text-6xl sm:text-7xl" : "text-7xl sm:text-8xl"}`}>
+          {day}
+        </span>
         <span className="mt-2 text-xs uppercase tracking-[0.5em] text-[#E8C77A]">{month}</span>
       </div>
     </motion.div>
@@ -234,12 +240,13 @@ export default function EventExperience({ event, description, isPast }: Props) {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   const location = eventLocation(event);
+  const dayCount = eventDayCount(event);
   const words = event.title.split(" ");
   const festive = event.theme !== "default";
 
   const details = [
-    { icon: CalendarDays, label: "Date", value: formatEventDate(event.startDate) },
-    { icon: Clock, label: "Time", value: `${formatEventTime(event.startDate)} – ${formatEventTime(event.endDate)}` },
+    { icon: CalendarDays, label: dayCount > 1 ? "Dates" : "Date", value: formatEventDateRange(event) },
+    { icon: Clock, label: dayCount > 1 ? "Opening hours" : "Time", value: formatEventHours(event) },
     location ? { icon: MapPin, label: "Venue", value: location, href: event.mapLink } : null,
     (event.maxGuests ?? 0) > 0
       ? { icon: Users, label: "Plus-ones", value: `Bring up to ${event.maxGuests} guest${event.maxGuests! > 1 ? "s" : ""}` }
@@ -326,7 +333,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
                   className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs sm:text-sm backdrop-blur-md"
                 >
                   <d.icon size={14} className="text-[#E8C77A]" />
-                  {d.label === "Date" ? formatEventDate(event.startDate).replace(/,? \d{4}$/, "") : d.value}
+                  {d.icon === CalendarDays ? formatEventDateRange(event, { year: false }) : d.value}
                 </motion.span>
               ))}
             </motion.div>
@@ -369,7 +376,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
             {event.flyerUrl ? (
               <TiltFlyer src={`${event.flyerUrl}?w=1000&fit=max&auto=format`} alt={`${event.title} flyer`} />
             ) : (
-              <DateWreath iso={event.startDate} />
+              <DateWreath event={event} />
             )}
           </div>
         </motion.div>

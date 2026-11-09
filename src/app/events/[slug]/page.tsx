@@ -3,7 +3,7 @@ import type { PortableTextBlock } from "@portabletext/react";
 import { notFound } from "next/navigation";
 import { client } from "@/src/lib/sanity";
 import EventExperience from "@/src/components/events/EventExperience";
-import { EVENT_SUMMARY_FIELDS, type EventSummary, eventUrl, formatEventDate } from "@/src/lib/events";
+import { EVENT_SUMMARY_FIELDS, type EventSummary, eventUrl, formatEventDateRange } from "@/src/lib/events";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export async function generateMetadata({
   const event = await getEvent(slug);
   if (!event) return { title: "Event not found" };
 
-  const description = `${event.tagline || event.title} — ${formatEventDate(event.startDate)}. RSVP now.`;
+  const description = `${event.tagline || event.title} — ${formatEventDateRange(event)}. RSVP now.`;
   const images = event.flyerUrl ? [{ url: `${event.flyerUrl}?w=1200&h=630&fit=crop` }] : ["/og-image.jpg"];
 
   return {
