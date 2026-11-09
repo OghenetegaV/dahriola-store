@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ArrowRight, CalendarPlus, Download, Loader2 } from "lucide-react";
 import { submitRsvp } from "@/src/app/actions/rsvp";
 import { trackRsvp } from "@/src/lib/analytics";
+import { motion } from "framer-motion";
+import ConfettiBurst from "./events/ConfettiBurst";
 import { type EventSummary, buildIcs, googleCalendarUrl } from "@/src/lib/events";
 
 export default function RsvpForm({ event }: { event: EventSummary }) {
@@ -59,11 +61,24 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
 
   if (result) {
     return (
-      <div className="text-center py-6">
+      <motion.div
+        className="relative text-center py-6"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
+      >
+        {!result.alreadyRegistered && <ConfettiBurst />}
         <p className="text-[10px] uppercase tracking-[0.4em] opacity-70">
           {result.alreadyRegistered ? "You're already registered" : "You're on the list"}
         </p>
-        <p className="font-display text-4xl tracking-[0.12em] mt-4">{result.ticketCode}</p>
+        <motion.p
+          className="font-display text-5xl tracking-[0.12em] mt-4 shimmer-text"
+          initial={{ opacity: 0, y: 20, letterSpacing: "0.6em" }}
+          animate={{ opacity: 1, y: 0, letterSpacing: "0.12em" }}
+          transition={{ delay: 0.3, duration: 0.9 }}
+        >
+          {result.ticketCode}
+        </motion.p>
         <p className="mt-3 text-sm opacity-80">
           Your ticket and QR code are on their way to your inbox. Show it at the door.
         </p>
@@ -84,7 +99,7 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
             <Download size={14} /> Apple / Outlook
           </button>
         </div>
-      </div>
+      </motion.div>
     );
   }
 

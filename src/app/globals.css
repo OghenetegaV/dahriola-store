@@ -398,3 +398,130 @@ html {
     animation: none;
   }
 }
+
+
+/* ===== Event page experience ===== */
+.event-experience {
+  background:
+    radial-gradient(ellipse at top, #134a38 0%, transparent 60%),
+    var(--xmas-green);
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    110deg,
+    var(--xmas-cream) 25%,
+    var(--xmas-gold) 42%,
+    #fff6dc 50%,
+    var(--xmas-gold) 58%,
+    var(--xmas-cream) 75%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -150% 0; }
+}
+
+.flip-tile {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(232, 199, 122, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  perspective: 400px;
+}
+.flip-tile::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.detail-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(232, 199, 122, 0.25);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.detail-card:hover {
+  border-color: rgba(232, 199, 122, 0.7);
+  box-shadow: 0 30px 60px -25px rgba(232, 199, 122, 0.35);
+}
+
+.pulse-glow { animation: pulse-glow 2.4s ease-out infinite; }
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(232, 199, 122, 0.6); }
+  70% { box-shadow: 0 0 0 20px rgba(232, 199, 122, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 199, 122, 0); }
+}
+
+.shine {
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.glow-border {
+  position: relative;
+  border-radius: 2rem;
+  background: rgba(10, 40, 30, 0.65);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 50px 100px -30px rgba(0, 0, 0, 0.7);
+}
+.glow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--border-angle),
+    var(--xmas-gold),
+    var(--xmas-red) 25%,
+    transparent 40%,
+    var(--xmas-gold) 55%,
+    var(--xmas-red) 75%,
+    var(--xmas-gold)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-spin 6s linear infinite;
+  pointer-events: none;
+}
+@keyframes border-spin {
+  to { --border-angle: 360deg; }
+}
+
+/* Inputs inside the RSVP card */
+.event-experience #rsvp input,
+.event-experience #rsvp select {
+  transition: border-color 0.3s ease, padding-left 0.3s ease;
+}
+.event-experience #rsvp input:focus,
+.event-experience #rsvp select:focus {
+  border-color: var(--xmas-gold);
+  padding-left: 0.5rem;
+}
+.event-experience #rsvp input::placeholder { color: rgba(247, 242, 234, 0.55); }
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text,
+  .shine,
+  .pulse-glow,
+  .glow-border::before {
+    animation: none;
+  }
+}

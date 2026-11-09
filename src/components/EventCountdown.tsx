@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 type Props = {
   target: string; // ISO date
-  variant?: "boxes" | "inline";
+  variant?: "boxes" | "inline" | "flip";
   className?: string;
 };
 
@@ -34,7 +35,13 @@ export default function EventCountdown({ target, variant = "boxes", className = 
   }, [target]);
 
   if (!time) {
-    return <div className={className} aria-hidden="true" style={{ minHeight: variant === "boxes" ? 64 : 16 }} />;
+    return (
+      <div
+        className={className}
+        aria-hidden="true"
+        style={{ minHeight: variant === "flip" ? 110 : variant === "boxes" ? 64 : 16 }}
+      />
+    );
   }
 
   if (time.done) {
@@ -46,6 +53,45 @@ export default function EventCountdown({ target, variant = "boxes", className = 
       <span className={className}>
         {time.days}d {String(time.hours).padStart(2, "0")}h {String(time.minutes).padStart(2, "0")}m
       </span>
+    );
+  }
+
+  if (variant === "flip") {
+    const flipUnits = [
+      { label: "Days", value: time.days },
+      { label: "Hours", value: time.hours },
+      { label: "Minutes", value: time.minutes },
+      { label: "Seconds", value: time.seconds },
+    ];
+    return (
+      <div
+        className={`grid grid-cols-4 gap-2 sm:gap-4 ${className}`}
+        role="timer"
+        aria-label={`${time.days} days ${time.hours} hours ${time.minutes} minutes to go`}
+      >
+        {flipUnits.map((u) => {
+          const text = String(u.value).padStart(2, "0");
+          return (
+            <div key={u.label} className="flip-tile relative min-w-0 overflow-hidden rounded-2xl text-center py-4 sm:py-6">
+              <div className="relative h-[1.1em] font-display text-3xl sm:text-5xl lg:text-6xl leading-none tabular-nums overflow-hidden">
+                <AnimatePresence initial={false}>
+                  <motion.span
+                    key={text}
+                    className="absolute inset-0 flex items-center justify-center"
+                    initial={{ y: "-100%", opacity: 0 }}
+                    animate={{ y: "0%", opacity: 1 }}
+                    exit={{ y: "100%", opacity: 0 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {text}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+              <div className="mt-2 text-[8px] sm:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.3em] opacity-70">{u.label}</div>
+            </div>
+          );
+        })}
+      </div>
     );
   }
 
