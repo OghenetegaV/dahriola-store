@@ -4,17 +4,27 @@ import { JWT } from "google-auth-library";
 
 // spreadsheetId defaults to GOOGLE_SHEET_ID (the newsletter spreadsheet)
 function getDoc(spreadsheetId?: string) {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const key = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetId = spreadsheetId?.trim() || process.env.GOOGLE_SHEET_ID;
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const sheetId = spreadsheetId?.trim() || process.env.GOOGLE_SHEET_ID?.trim();
+  // Tolerate the usual ways the key gets pasted into Vercel: wrapped in
+  // quotes, with literal "\n" sequences, or with Windows line endings.
+  const key = process.env.GOOGLE_PRIVATE_KEY?.trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\n/g, "\n")
+    .replace(/\r/g, "");
 
   if (!email || !key || !sheetId) {
-    throw new Error("Missing Google Sheets env vars");
+    const missing = [
+      !email && "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+      !key && "GOOGLE_PRIVATE_KEY",
+      !sheetId && "GOOGLE_SHEET_ID",
+    ].filter(Boolean);
+    throw new Error(`Missing Google Sheets env vars: ${missing.join(", ")}`);
   }
 
   const auth = new JWT({
     email,
-    key: key.replace(/\\n/g, "\n"),
+    key,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
