@@ -14,7 +14,7 @@ import {
   Globe,
   Heart,
 } from "lucide-react";
-import { client } from "@/src/lib/sanity";
+import { getCategories } from "@/src/app/actions/catalog";
 import { useStore } from "@/src/store/useStore";
 import CartDrawer from "./CartDrawer";
 import { getWishlist } from "@/src/lib/wishlist";
@@ -54,9 +54,7 @@ export default function Navbar() {
 
     const fetchCategories = async () => {
       try {
-        const data: Category[] = await client.fetch(
-          `*[_type == "category"]{ title, "slug": slug.current }`
-        );
+        const data: Category[] = await getCategories();
         setCategories(data);
       } catch (error) {
         console.error("Sanity fetch error:", error);

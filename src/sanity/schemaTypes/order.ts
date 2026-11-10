@@ -14,6 +14,7 @@ export default {
     { name: 'delivery', title: 'Delivery' },
     { name: 'items', title: 'Items' },
     { name: 'payment', title: 'Payment & Totals' },
+    { name: 'gift', title: 'Gift' },
     { name: 'marketing', title: 'Marketing' },
   ],
 
@@ -78,9 +79,24 @@ export default {
     { name: 'shippingFee', title: 'Shipping Fee', type: 'number', group: 'payment' },
     { name: 'discountCode', title: 'Discount Code', type: 'string', group: 'payment' },
     { name: 'discountAmount', title: 'Discount Amount', type: 'number', group: 'payment' },
-    { name: 'totalAmount', title: 'Total Paid', type: 'number', group: 'payment' },
+    { name: 'totalAmount', title: 'Order Total', type: 'number', group: 'payment',
+      description: 'Worked out by the server from current prices, coupon and shipping (NGN).' },
+    { name: 'amountPaid', title: 'Amount Paid (Paystack)', type: 'number', readOnly: true, group: 'payment',
+      description: 'What Paystack confirms was actually charged, in NGN.' },
+    { name: 'displayCurrency', title: 'Shopper Viewed Prices In', type: 'string', readOnly: true, group: 'payment' },
+    { name: 'displayTotal', title: 'Total Shown To Shopper', type: 'number', readOnly: true, group: 'payment' },
     { name: 'paymentReference', title: 'Payment Reference', type: 'string', readOnly: true, group: 'payment' },
-    { name: 'paymentVerified', title: 'Payment Verified', type: 'boolean', readOnly: true, initialValue: false, group: 'payment' },
+    { name: 'paymentVerified', title: 'Payment Verified', type: 'boolean', readOnly: true, initialValue: false, group: 'payment',
+      description: 'Ticked when Paystack confirms the payment and the amount matches the order total.' },
+    { name: 'verificationNote', title: 'Verification Note', type: 'string', readOnly: true, group: 'payment',
+      description: 'Why a payment could not be verified — check it in the Paystack dashboard.' },
+
+    // ── Gift ──
+    { name: 'isGift', title: 'Gift Order', type: 'boolean', readOnly: true, group: 'gift' },
+    { name: 'giftRecipient', title: 'Gift For', type: 'string', readOnly: true, group: 'gift' },
+    { name: 'giftDeliverToOwner', title: "Delivered To Recipient's Saved Address", type: 'boolean', readOnly: true, group: 'gift' },
+    { name: 'giftMessage', title: 'Gift Message', type: 'text', readOnly: true, group: 'gift' },
+    { name: 'giftListId', title: 'Shared List ID', type: 'string', readOnly: true, group: 'gift' },
 
     // ── Marketing consent ──
     {
@@ -113,12 +129,14 @@ export default {
     select: {
       name: 'customerName', order: 'orderNumber', total: 'totalAmount',
       currency: 'currency', delivered: 'delivered', verified: 'paymentVerified', email: 'emailOptIn',
+      gift: 'isGift',
     },
-    prepare({ name, order, total, currency, delivered, verified, email }: any) {
+    prepare({ name, order, total, currency, delivered, verified, email, gift }: any) {
       const money = total != null ? `${currency || 'NGN'} ${Number(total).toLocaleString()}` : '';
       const flags = [
         delivered ? '✅ Delivered' : '📦 Pending',
         verified === false ? '⚠️ Unverified' : null,
+        gift ? '🎁 Gift' : null,
         email ? '📧 Opt-in' : null,
       ].filter(Boolean).join('  ');
       return {

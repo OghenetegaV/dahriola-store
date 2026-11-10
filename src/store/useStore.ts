@@ -18,6 +18,11 @@ export interface CartItem {
 
   selectedPrintId?: string;
   selectedPrintName?: string;
+
+  // Set when the item is being bought as a gift from someone's shared list
+  giftListId?: string;
+  giftItemKey?: string;
+  giftOwnerName?: string;
 }
 
 interface StoreState {
@@ -66,7 +71,8 @@ function sameCartItem(a: CartItem, b: CartItem) {
     a._id === b._id &&
     a.size === b.size &&
     (a.notes || "") === (b.notes || "") &&
-    (a.selectedPrintId || "") === (b.selectedPrintId || "")
+    (a.selectedPrintId || "") === (b.selectedPrintId || "") &&
+    (a.giftItemKey || "") === (b.giftItemKey || "")
   );
 }
 

@@ -12,23 +12,27 @@ import {
   Plus,
   X,
   Trash2,
+  Gift,
 } from "lucide-react";
 import { getShippingRates } from "@/src/app/actions/shipping";
-import { verifyPayment } from "@/src/app/actions/payment";
 import { validateCoupon } from "@/src/app/actions/coupon";
+import {
+  completeCheckout,
+  getGiftListSummary,
+  getGiftShippingRates,
+  quoteCheckout,
+} from "@/src/app/actions/checkout";
 import {
   trackAddPaymentInfo,
   trackAddShippingInfo,
   trackBeginCheckout,
   trackPurchase,
 } from "@/src/lib/analytics";
-import { sendOrderNotification } from "@/src/app/actions/email";
-import { createOrder } from "@/src/app/actions/order";
 import TerminalLocationSelect from "@/src/components/TerminalLocationSelect";
-import { reducePrintStockAfterOrder } from "@/src/app/actions/inventory";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { client, urlFor } from "@/src/lib/sanity";
+import { urlFor } from "@/src/lib/sanity";
+import { getUpsellProducts } from "@/src/app/actions/catalog";
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -89,6 +93,58 @@ export default function CheckoutClient() {
     postalCode: "",
     country: "",
   });
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [payError, setPayError] = useState<string | null>(null);
+  const [confirmedKobo, setConfirmedKobo] = useState<number | null>(null);
+
+  // ---- Gift orders (items bought from someone's shared list) ----
+  const giftListId = cart.find((i) => i.giftListId)?.giftListId;
+  const [giftSummary, setGiftSummary] = useState<{
+    publicId: string;
+    ownerFirstName: string;
+    hasAddress: boolean;
+  } | null>(null);
+  const [giftDelivery, setGiftDelivery] = useState<"owner" | "other">("owner");
+  const [giftMessage, setGiftMessage] = useState("");
+  const giftActive = !!giftListId && giftSummary?.publicId === giftListId;
+  const giftToOwner = giftActive && !!giftSummary?.hasAddress && giftDelivery === "owner";
+
+  useEffect(() => {
+    if (!giftListId) return;
+    getGiftListSummary(giftListId)
+      .then((summary) => setGiftSummary(summary))
+      .catch(() => setGiftSummary(null));
+  }, [giftListId]);
+
+  const resetRates = () => {
+    setSelectedRate(null);
+    setShippingRates([]);
+  };
+
+  const checkoutItems = () =>
+    cart.map((i) => ({
+      _id: i._id,
+      name: i.name,
+      quantity: i.quantity,
+      size: i.size,
+      selectedPrintId: i.selectedPrintId,
+      selectedPrintName: i.selectedPrintName,
+      heightLength: i.heightLength,
+      gender: i.gender,
+      notes: i.notes,
+      giftListId: i.giftListId,
+      giftItemKey: i.giftItemKey,
+    }));
+
+  const deliveryAddress = () => ({
+    line1: formData.address,
+    apartment: formData.apartment,
+    city: formData.city,
+    state: formData.state,
+    country: formData.country,
+    postalCode: formData.postalCode,
+  });
 
   const openEditModal = (item: any) => {
     setEditingItem(item);
@@ -121,16 +177,7 @@ export default function CheckoutClient() {
       try {
         const cartIds = cart.map((item) => item._id);
 
-        const products = await client.fetch(
-          `*[_type == "product" && !(_id in $cartIds)][0...4]{
-            _id,
-            name,
-            priceNGN,
-            images,
-            "slug": slug.current
-          }`,
-          { cartIds }
-        );
+        const products = await getUpsellProducts(cartIds);
 
         setUpsellProducts(products || []);
       } catch (error) {
@@ -216,6 +263,26 @@ export default function CheckoutClient() {
     }
   };
 
+  const fetchGiftRates = async () => {
+    if (!giftListId) return;
+    setLoadingRates(true);
+    setShippingError(null);
+    try {
+      const res = await getGiftShippingRates(giftListId, checkoutItems());
+      if (res.rates.length > 0) {
+        setShippingRates(res.rates);
+        setSelectedRate(res.rates[0]);
+      } else {
+        setShippingRates([]);
+        setShippingError(res.message || "No shipping options found for the saved address.");
+      }
+    } catch {
+      setShippingError("Unable to fetch rates. Please check your connection.");
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
   const handleApplyDiscount = async () => {
     if (!discountCode) return;
 
@@ -276,189 +343,108 @@ export default function CheckoutClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRate?.id]);
 
-  const exchangeRate = exchangeRates[currency] || 1;
-
-  const finalTotalNGN =
-    currency === "NGN" ? finalTotal : finalTotal / exchangeRate;
-
-  const paystackConfig = {
-    reference: `dahriola-${Date.now()}`,
-    email: formData.email,
-    amount: Math.round(finalTotalNGN * 100),
+  // The amount and reference are supplied by the server when Pay is clicked.
+  const initializePayment = usePaystackPayment({
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+    email: formData.email,
+    amount: 0,
     currency: "NGN",
-    metadata: {
-      custom_fields: [
-        {
-          display_name: "Customer Name",
-          variable_name: "customer_name",
-          value: formData.name,
-        },
-        {
-          display_name: "Phone Number",
-          variable_name: "phone_number",
-          value: formData.phone,
-        },
-        {
-          display_name: "Display Currency",
-          variable_name: "display_currency",
-          value: currency,
-        },
-        {
-          display_name: "Display Total",
-          variable_name: "display_total",
-          value: finalTotal,
-        },
-      ],
-    },
-  };
+  });
 
-  // @ts-ignore
-  const initializePayment = usePaystackPayment(paystackConfig);
+  const quoteInput = () => ({
+    items: checkoutItems(),
+    couponCode: discountAmount > 0 ? discountCode : undefined,
+    email: formData.email,
+    rate: selectedRate,
+    address: giftToOwner ? null : deliveryAddress(),
+    gift: giftActive ? { deliverToOwner: giftToOwner } : null,
+  });
 
-  // Verify with a couple of retries so a single Paystack hiccup or cold start
-  // doesn't leave the `verified` flag wrong. This NEVER blocks fulfilment.
-  const verifyPaymentWithRetry = async (
-    reference: string,
-    attempts = 3,
-  ): Promise<boolean> => {
-    for (let i = 0; i < attempts; i++) {
-      try {
-        const result = await verifyPayment(reference);
-        if (result?.success) return true;
-      } catch (err) {
-        console.error(`Verification attempt ${i + 1} threw:`, err);
-      }
-      if (i < attempts - 1) {
-        await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
-      }
-    }
-    return false;
-  };
-
-  // Records the order in Sanity + emails the client. Called whenever Paystack's
-  // onSuccess fires — money has already moved, so this must run regardless of
-  // the verification result. Field names match the Sanity `order` schema, and
-  // each step is guarded independently so one failure never blocks the others.
-  const fulfilOrder = async (transactionReference: string, verified: boolean) => {
-    try {
-      await reducePrintStockAfterOrder(cart);
-    } catch (stockErr) {
-      console.error("Stock reduction failed:", stockErr);
-    }
-
-    // 2. Save the order to Sanity via the server action (browser writes are
-    //    rejected — the write token only exists server-side).
-    try {
-      const orderResult = await createOrder({
-        orderNumber: transactionReference,
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        shippingAddress: [
-          formData.address,
-          formData.apartment,
-          formData.city,
-          formData.state,
-          formData.postalCode,
-          formData.country,
-        ].filter(Boolean).join(", "),
-        shippingMethod: selectedRate
-          ? `${selectedRate.service_name || selectedRate.carrier_name}${
-              selectedRate.delivery_time ? ` — ${selectedRate.delivery_time}` : ""
-            }`
-          : undefined,
-        currency: currency,
-        subtotal: convertedSubtotal,
-        shippingFee: convertedShipping,
-        discountCode: discountAmount > 0 ? discountCode : undefined,
-        discountAmount: discountAmount > 0 ? discountAmount : undefined,
-        totalAmount: finalTotal,
-        paymentReference: transactionReference,
-        paymentVerified: verified,
-        emailOptIn: emailOptIn,
-        textOptIn: textOptIn,
-        items: cart.map((item) => ({
-          _id: item._id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          size: item.size,
-          selectedPrintId: item.selectedPrintId,
-          selectedPrintName: item.selectedPrintName || "",
-          heightLength: item.heightLength || "",
-          gender: item.gender || "",
-          notes: item.notes || "",
-        })),
-      });
-      if (!orderResult.success) {
-        console.error("Order save failed:", orderResult.message);
-      }
-    } catch (sanityErr) {
-      console.error("SANITY SAVE FAILED:", sanityErr);
-    }
-
-    try {
-      await sendOrderNotification({
-        orderNumber: transactionReference,
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        shippingAddress: [
-          formData.address,
-          formData.apartment,
-          formData.city,
-          formData.state,
-          formData.postalCode,
-          formData.country,
-        ].filter(Boolean).join(", "),
-        items: cart.map((item) => ({
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          size: item.size,
-          selectedPrintName: item.selectedPrintName || "",
-          heightLength: item.heightLength || "",
-          gender: item.gender || "",
-          notes: item.notes || "",
-        })),
-        subtotal: convertedSubtotal,
-        shippingFee: convertedShipping,
-        shippingMethod: selectedRate
-          ? `${selectedRate.service_name || selectedRate.carrier_name}${
-              selectedRate.delivery_time ? ` — ${selectedRate.delivery_time}` : ""
-            }`
-          : undefined,
-        totalAmount: finalTotal,
-        currency,
-        paymentReference: transactionReference,
-        paymentVerified: verified,
-        emailOptIn: emailOptIn,
-        textOptIn: textOptIn,
-        orderDate: new Date().toISOString(),
-      });
-    } catch (emailErr) {
-      console.error("Email notification failed:", emailErr);
-    }
-  };
-
-  const handlePaymentSuccess = async (response: any) => {
+  const startPayment = async () => {
     setIsProcessing(true);
-
-    // react-paystack only fires onSuccess AFTER a successful charge, so the
-    // customer has been debited. The order must be recorded and the client
-    // notified no matter what verification says — verification only sets a flag.
-    const transactionReference = response.reference || response.trxref;
-
-    let verified = false;
+    setPayError(null);
     try {
-      verified = await verifyPaymentWithRetry(transactionReference);
-    } catch (err) {
-      console.error("Verification error (continuing to fulfil):", err);
+      const quote = await quoteCheckout(quoteInput());
+      if (!quote.success) {
+        setPayError(quote.message ?? "We couldn't prepare your payment. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
+      if (quote.couponError) {
+        setDiscountAmount(0);
+        setDiscountError(quote.couponError);
+        setIsProcessing(false);
+        return;
+      }
+
+      // If prices changed since the page loaded, show the real amount first.
+      const rate = exchangeRates[currency] || 1;
+      const shownNGN = currency === "NGN" ? finalTotal : finalTotal / rate;
+      if (Math.abs(shownNGN - quote.total) > 1 && confirmedKobo !== quote.totalKobo) {
+        setConfirmedKobo(quote.totalKobo);
+        setPayError(
+          `Prices have been updated. Your total is ₦${quote.total.toLocaleString()}. Click Pay again to continue.`
+        );
+        setIsProcessing(false);
+        return;
+      }
+
+      trackAddPaymentInfo(gaCheckout());
+      initializePayment({
+        config: {
+          reference: quote.reference,
+          email: formData.email,
+          amount: quote.totalKobo,
+          currency: "NGN",
+          metadata: {
+            custom_fields: [
+              { display_name: "Customer Name", variable_name: "customer_name", value: formData.name },
+              { display_name: "Phone Number", variable_name: "phone_number", value: formData.phone },
+              { display_name: "Display Currency", variable_name: "display_currency", value: currency },
+              { display_name: "Display Total", variable_name: "display_total", value: finalTotal },
+              ...(giftActive
+                ? [{ display_name: "Gift For", variable_name: "gift_for", value: giftSummary?.ownerFirstName || "" }]
+                : []),
+            ],
+          },
+        },
+        onSuccess: (response: { reference?: string; trxref?: string }) =>
+          handlePaymentSuccess(response, quote.reference),
+        onClose: () => setIsProcessing(false),
+      });
+    } catch {
+      setPayError("We couldn't start the payment. Please try again.");
+      setIsProcessing(false);
     }
+  };
+
+  // Paystack has charged the customer. The server confirms the payment with
+  // Paystack, records the order, updates stock and sends the emails.
+  const handlePaymentSuccess = async (
+    response: { reference?: string; trxref?: string },
+    fallbackReference: string
+  ) => {
+    setIsProcessing(true);
+    const transactionReference = response?.reference || response?.trxref || fallbackReference;
 
     try {
-      await fulfilOrder(transactionReference, verified);
+      const result = await completeCheckout({
+        ...quoteInput(),
+        reference: transactionReference,
+        customer: { name: formData.name, email: formData.email, phone: formData.phone },
+        giftMessage: giftActive ? giftMessage : undefined,
+        emailOptIn,
+        textOptIn,
+        displayCurrency: currency,
+        displayTotal: finalTotal,
+      });
+
+      if (!result.success) {
+        setPayError(result.message);
+        setIsProcessing(false);
+        return;
+      }
+
       trackPurchase({
         ...gaCheckout(),
         transactionId: transactionReference,
@@ -466,11 +452,11 @@ export default function CheckoutClient() {
         discount: discountAmount || undefined,
       });
       clearCart();
-      router.push(`/success?reference=${transactionReference}`);
+      router.push(`/success?reference=${encodeURIComponent(transactionReference)}`);
     } catch (error) {
       console.error("CRITICAL ERROR IN PAYMENT HANDLER:", error);
-      setShippingError(
-        `Your payment went through but we hit a snag saving your order. Please contact us with your payment reference (${transactionReference}) and we'll complete it right away.`,
+      setPayError(
+        `Your payment went through but we hit a snag saving your order. Please contact us with your payment reference (${transactionReference}) and we'll complete it right away.`
       );
       setIsProcessing(false);
     }
@@ -602,31 +588,88 @@ export default function CheckoutClient() {
 
               <div>
                 <h2 className="text-[17px] font-semibold text-black mb-3">
-                  Delivery
+                  {giftToOwner ? "Your details" : "Delivery"}
                 </h2>
+
+                {giftActive && giftSummary && (
+                  <div className="mb-5 rounded-xl border border-[#E8C77A] bg-[#fdf9f0] p-4">
+                    <p className="flex items-center gap-2 text-[13px] font-semibold text-black">
+                      <Gift size={15} /> You&apos;re sending a gift to {giftSummary.ownerFirstName}
+                    </p>
+
+                    {giftSummary.hasAddress ? (
+                      <div className="mt-3 space-y-2 text-[13px]">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            className="accent-black mt-0.5"
+                            checked={giftDelivery === "owner"}
+                            onChange={() => {
+                              setGiftDelivery("owner");
+                              resetRates();
+                            }}
+                          />
+                          <span>
+                            Deliver to {giftSummary.ownerFirstName}&apos;s saved address
+                            <span className="block text-[11px] text-neutral-500">
+                              Their address stays private. We&apos;ll deliver it straight to them.
+                            </span>
+                          </span>
+                        </label>
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            className="accent-black mt-0.5"
+                            checked={giftDelivery === "other"}
+                            onChange={() => {
+                              setGiftDelivery("other");
+                              resetRates();
+                            }}
+                          />
+                          <span>Send it to a different address</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-[12px] text-neutral-600">
+                        {giftSummary.ownerFirstName} hasn&apos;t saved a delivery address, so please enter where it should go.
+                      </p>
+                    )}
+
+                    <textarea
+                      placeholder="Add a gift message (optional)"
+                      maxLength={500}
+                      rows={2}
+                      className="checkout-field mt-3 resize-none"
+                      value={giftMessage}
+                      onChange={(e) => setGiftMessage(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 {/* Name */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <input
                     placeholder="First name"
                     className="checkout-field"
-                    value={formData.name.split(" ")[0] || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    value={firstName}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      setFormData((prev) => ({ ...prev, name: `${e.target.value} ${lastName}`.trim() }));
+                    }}
                   />
                   <input
                     placeholder="Last name"
                     className="checkout-field"
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        name: `${formData.name} ${e.target.value}`,
-                      })
-                    }
+                    value={lastName}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      setFormData((prev) => ({ ...prev, name: `${firstName} ${e.target.value}`.trim() }));
+                    }}
                   />
                 </div>
 
+                {!giftToOwner && (
+                <>
                 {/* Country → State → City, all validated by Terminal. */}
                 <TerminalLocationSelect
                   countryCode={selectedCountryCode}
@@ -680,6 +723,9 @@ export default function CheckoutClient() {
                   }
                 />
 
+                </>
+                )}
+
                 <input
                   placeholder="Phone"
                   className="checkout-field mt-3"
@@ -689,6 +735,7 @@ export default function CheckoutClient() {
                   }
                 />
 
+                {!giftToOwner && (
                 <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
                   <p className="text-[11.5px] leading-relaxed text-amber-800">
                     Please double-check your delivery details above before
@@ -698,16 +745,18 @@ export default function CheckoutClient() {
                     by an incorrect or inconsistent delivery address.
                   </p>
                 </div>
+                )}
 
                 <button
                   type="button"
-                  onClick={fetchRates}
+                  onClick={giftToOwner ? fetchGiftRates : fetchRates}
                   disabled={
                     loadingRates ||
-                    !formData.address.trim() ||
-                    !formData.country ||
-                    !formData.city.trim() ||
-                    !formData.state.trim()
+                    (!giftToOwner &&
+                      (!formData.address.trim() ||
+                        !formData.country ||
+                        !formData.city.trim() ||
+                        !formData.state.trim()))
                   }
                   className="mt-4 w-full h-11 rounded-lg border border-brand-beryl text-brand-beryl text-[12px] font-semibold hover:bg-brand-beryl hover:text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
@@ -782,42 +831,22 @@ export default function CheckoutClient() {
                 )}
               </div>
 
+              {payError && (
+                <p className="text-[12px] text-red-600 -mt-2">{payError}</p>
+              )}
+
               <button
-                onClick={async () => {
-                  setIsProcessing(true);
-
-                  // Re-check the code against the final email in case it changed after applying
-                  if (discountAmount > 0 && discountCode) {
-                    try {
-                      const recheck = await validateCoupon(discountCode, formData.email);
-                      if (!recheck.success) {
-                        setDiscountAmount(0);
-                        setDiscountError(recheck.message ?? "Discount code is no longer valid.");
-                        setIsProcessing(false);
-                        return;
-                      }
-                    } catch {
-                      setDiscountError("Error validating code.");
-                      setIsProcessing(false);
-                      return;
-                    }
-                  }
-
-                  trackAddPaymentInfo(gaCheckout());
-                  initializePayment({
-                    onSuccess: handlePaymentSuccess,
-                    onClose: () => setIsProcessing(false),
-                  });
-                }}
+                onClick={startPayment}
                 disabled={
                   !selectedRate ||
                   !formData.email ||
                   !formData.name.trim() ||
                   !formData.phone.trim() ||
-                  !formData.address.trim() ||
-                  !formData.city.trim() ||
-                  !formData.state.trim() ||
-                  !formData.country ||
+                  (!giftToOwner &&
+                    (!formData.address.trim() ||
+                      !formData.city.trim() ||
+                      !formData.state.trim() ||
+                      !formData.country)) ||
                   isProcessing
                 }
                 className="w-full h-14 rounded-lg bg-brand-beryl text-white text-[14px] font-semibold hover:opacity-95 transition disabled:opacity-40 flex items-center justify-center gap-2"
@@ -875,6 +904,11 @@ export default function CheckoutClient() {
                       <p className="text-[11px] text-neutral-500 mt-1">
                         Size: {item.size} • Qty: {item.quantity}
                       </p>
+                      {item.giftListId && (
+                        <p className="text-[11px] text-[#9E1B32] mt-0.5 inline-flex items-center gap-1">
+                          <Gift size={11} /> Gift for {item.giftOwnerName || "someone special"}
+                        </p>
+                      )}
 
                       <div className="flex items-center gap-3 mt-1">
                         <button

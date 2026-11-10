@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Instagram, ArrowRight, ChevronDown } from "lucide-react";
-import { client } from "@/src/lib/sanity";
+import { getCategories } from "@/src/app/actions/catalog";
 import PolicyModal from "./PolicyModal";
 import { openNewsletterPopup } from "./NewsletterPopup";
 import { POLICIES } from "@/src/constants/policies";
 
 export default function Footer() {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<{ title: string; slug: string }[]>([]);
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [activePolicy, setActivePolicy] = useState<null | keyof typeof POLICIES>(null);
@@ -19,7 +19,7 @@ export default function Footer() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const data = await client.fetch(`*[_type == "category"]{ title, "slug": slug.current }`);
+      const data = await getCategories();
       setCategories(data);
     };
     fetchCategories();

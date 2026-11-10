@@ -12,4 +12,5 @@ export const writeClient = createClient({
   apiVersion: "2024-03-03",
   token: process.env.SANITY_API_WRITE_TOKEN,
   useCdn: false,
+  perspective: "published",
 });

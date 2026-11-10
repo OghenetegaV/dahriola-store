@@ -6,5 +6,6 @@ import review from "./review";
 import order from './order';
 import event from './event';
 import rsvp from './rsvp';
+import sharedList from './sharedList';
 
-export const schemaTypes = [product, category, print, coupon, review, order, event, rsvp];
+export const schemaTypes = [product, category, print, coupon, review, order, event, rsvp, sharedList];

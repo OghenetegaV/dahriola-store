@@ -14,7 +14,7 @@ import {
   Heart,
   Search,
 } from "lucide-react";
-import { client } from "@/src/lib/sanity";
+import { getCategories, getNavProducts } from "@/src/app/actions/catalog";
 import { useStore } from "@/src/store/useStore";
 import CartDrawer from "./CartDrawer";
 import ProductSearch from "./ProductSearch";
@@ -90,28 +90,7 @@ export default function Navbar() {
     window.addEventListener("storage", syncWishlist);
 
     const fetchData = async () => {
-      const [cats, prods] = await Promise.all([
-        client.fetch(`
-          *[_type == "category"]{
-            title,
-            "slug": slug.current
-          }
-        `),
-        client.fetch(`
-          *[_type == "product"]{
-            _id,
-            name,
-            briefDescription,
-            description,
-            priceNGN,
-            images,
-            _createdAt,
-            productType,
-            "slug": slug.current,
-            "categoryName": category->title
-          }
-        `),
-      ]);
+      const [cats, prods] = await Promise.all([getCategories(), getNavProducts()]);
 
       setCategories(cats);
       setProducts(prods);

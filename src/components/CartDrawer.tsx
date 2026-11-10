@@ -2,14 +2,29 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/src/store/useStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import ShareListModal from "@/src/components/ShareListModal";
 import { trackViewCart } from "@/src/lib/analytics";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Plus, Minus, ShoppingBag, ArrowRight } from "lucide-react";
+import { X, Plus, Minus, ShoppingBag, ArrowRight, Gift } from "lucide-react";
 
 export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { cart, currency, exchangeRates, removeItem, updateQuantity } = useStore();
+  const [shareOpen, setShareOpen] = useState(false);
+  // Gifts someone is buying for another person aren't part of their own shareable cart
+  const shareableItems = cart
+    .filter((item) => !item.giftListId)
+    .map((item) => ({
+      productId: item._id,
+      size: item.size,
+      selectedPrintId: item.selectedPrintId,
+      selectedPrintName: item.selectedPrintName,
+      heightLength: item.heightLength,
+      gender: item.gender,
+      notes: item.notes,
+      quantity: item.quantity,
+    }));
 
   useEffect(() => {
     if (isOpen && cart.length) trackViewCart(cart);
@@ -150,6 +165,16 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
                   </span>
                 </Link>
                 
+                {shareableItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShareOpen(true)}
+                    className="flex items-center justify-center gap-2 w-full py-4 rounded-full border border-neutral-200 text-[10px] uppercase tracking-[0.3em] font-bold hover:border-neutral-900 transition"
+                  >
+                    <Gift size={13} /> Share my cart · Let someone gift it
+                  </button>
+                )}
+
                 <p className="text-[8px] text-center text-neutral-400 uppercase tracking-widest leading-loose">
                   Shipping & taxes calculated at checkout
                 </p>
@@ -158,6 +183,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean, onClo
           </motion.div>
         </>
       )}
+      <ShareListModal key="share-cart" open={shareOpen} onClose={() => setShareOpen(false)} kind="cart" items={shareableItems} />
     </AnimatePresence>
   );
 }

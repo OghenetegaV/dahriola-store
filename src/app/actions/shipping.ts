@@ -14,6 +14,7 @@ import {
   type ComputedRate,
 } from "@/src/data/shippingRates";
 import { getTerminalRates } from "@/src/app/actions/terminal";
+import { addressKey, signRate } from "@/src/lib/signing";
 
 type ShippingInput = {
   line1?: string;
@@ -33,7 +34,9 @@ type ShippingInput = {
 };
 
 export type ShippingRatesResponse = {
-  rates: ComputedRate[];
+  // Every rate is in NGN and signed by the server (see src/lib/signing.ts),
+  // so checkout can trust the amount the browser sends back.
+  rates: (ComputedRate & { exp: number; sig: string })[];
   source: "terminal" | "dhl-fallback";
   requestToken?: string;
 };
@@ -50,6 +53,8 @@ export async function getShippingRates(
   input: ShippingInput,
 ): Promise<ShippingRatesResponse> {
   const countryCode = resolveCountryCode(input.country);
+  const addrKey = addressKey(countryCode, input.state, input.city);
+  const sign = <T extends { id: string; amount: number }>(r: T) => signRate(r, addrKey);
 
   // ── Try Terminal first (live multi-courier, NG + international) ──
   if (countryCode && input.items && input.items.length > 0) {
@@ -64,12 +69,15 @@ export async function getShippingRates(
         countryCode,
         postalCode: input.postalCode,
         items: input.items,
-        currency: input.currency,
+        // Always quote in NGN — checkout converts for display and Paystack
+        // charges in NGN. (Requesting the shopper's currency here made
+        // non-NGN shoppers pay a double-converted shipping fee.)
+        currency: "NGN",
       });
 
       if (tm.rates.length > 0) {
         return {
-          rates: tm.rates,
+          rates: tm.rates.map(sign),
           source: "terminal",
           requestToken: tm.requestToken,
         };
@@ -93,5 +101,5 @@ export async function getShippingRates(
     weightKg: input.weightKg,
   });
 
-  return { rates, source: "dhl-fallback" };
+  return { rates: rates.map(sign), source: "dhl-fallback" };
 }
