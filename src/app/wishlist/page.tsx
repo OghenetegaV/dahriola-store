@@ -77,7 +77,7 @@ export default function WishlistPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {products.map((product) => (
           <div key={product._id} className="border rounded-xl p-3">
-            <Link href={`/shop/${product.slug}`}>
+            <Link href={`/product/${product.slug}`}>
               <div className="aspect-[3/4] bg-[#f5f5f5] rounded-lg overflow-hidden mb-3">
                 {product.images?.[0] ? (
                   <img
@@ -89,7 +89,7 @@ export default function WishlistPage() {
               </div>
             </Link>
 
-            <Link href={`/shop/${product.slug}`}>
+            <Link href={`/product/${product.slug}`}>
               <h2 className="text-sm font-medium mb-1">{product.name}</h2>
             </Link>
 

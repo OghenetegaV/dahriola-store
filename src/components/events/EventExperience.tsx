@@ -243,6 +243,10 @@ export default function EventExperience({ event, description, isPast }: Props) {
 
   const location = eventLocation(event);
   const dayCount = eventDayCount(event);
+  // The embedded map searches by address (the venue name alone can match the wrong place)
+  const mapQuery = event.venueAddress || location;
+  const directionsUrl =
+    event.mapLink || `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
   const words = event.title.split(" ");
   const festive = event.theme !== "default";
 
@@ -465,6 +469,59 @@ export default function EventExperience({ event, description, isPast }: Props) {
           </motion.div>
         </div>
       </section>
+
+      {/* ================= MAP ================= */}
+      {mapQuery && (
+        <section id="map" className="relative pb-24">
+          <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-12">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={fadeUp}
+              className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
+            >
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.45em] text-[#E8C77A]">Find us</span>
+                <h2 className="mt-4 font-display text-3xl md:text-5xl">{event.venueName || "The venue"}</h2>
+                {event.venueAddress && (
+                  <p className="mt-3 flex items-start gap-2 text-sm md:text-base text-[#F7F2EA]/80">
+                    <MapPin size={16} className="mt-0.5 shrink-0 text-[#E8C77A]" />
+                    {event.venueAddress}
+                  </p>
+                )}
+              </div>
+              <motion.a
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                className="inline-flex shrink-0 items-center gap-3 self-start rounded-full bg-[#9E1B32] px-7 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-white md:self-auto"
+              >
+                <MapPin size={16} /> Get directions
+              </motion.a>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 60, scale: 0.97 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 1, ease: EASE }}
+              className="mt-10 overflow-hidden rounded-3xl border border-[#E8C77A]/40 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)]"
+            >
+              <iframe
+                title={`Map to ${event.venueName || event.venueAddress}`}
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&output=embed`}
+                className="block h-[340px] w-full md:h-[440px]"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* ================= RSVP ================= */}
       <section id="rsvp" className="relative scroll-mt-24 pb-32 pt-10">
