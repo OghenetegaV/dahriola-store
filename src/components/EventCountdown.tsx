@@ -72,8 +72,8 @@ export default function EventCountdown({ target, variant = "boxes", className = 
         {flipUnits.map((u) => {
           const text = String(u.value).padStart(2, "0");
           return (
-            <div key={u.label} className="flip-tile relative min-w-0 overflow-hidden rounded-2xl text-center py-4 sm:py-6">
-              <div className="relative h-[1.1em] font-display text-3xl sm:text-5xl lg:text-6xl leading-none tabular-nums overflow-hidden">
+            <div key={u.label} className="flip-tile relative min-w-0 overflow-hidden rounded-2xl text-center py-4 sm:py-6 lg:py-4">
+              <div className="relative h-[1.1em] font-display text-3xl sm:text-5xl lg:text-[2.6rem] leading-none tabular-nums overflow-hidden">
                 <AnimatePresence initial={false}>
                   <motion.span
                     key={text}

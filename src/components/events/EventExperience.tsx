@@ -5,7 +5,6 @@ import {
   motion,
   useMotionValue,
   useReducedMotion,
-  useScroll,
   useSpring,
   useTransform,
   type Variants,
@@ -42,6 +41,7 @@ const fadeUp: Variants = {
 function Ornament({
   left,
   length,
+  mobileLength,
   size,
   color,
   delay,
@@ -49,6 +49,8 @@ function Ornament({
 }: {
   left: string;
   length: number;
+  /** shorter string on phones so the bauble doesn't sit on the text */
+  mobileLength?: number;
   size: number;
   color: string;
   delay: number;
@@ -66,7 +68,10 @@ function Ornament({
         rotate: { duration: 3.6 + delay, repeat: Infinity, ease: "easeInOut", delay },
       }}
     >
-      <div className="w-px bg-gradient-to-b from-transparent to-[#E8C77A]" style={{ height: length }} />
+      <div
+        className="w-px h-[var(--len-m)] md:h-[var(--len)] bg-gradient-to-b from-transparent to-[#E8C77A]"
+        style={{ "--len": `${length}px`, "--len-m": `${mobileLength ?? length}px` } as React.CSSProperties}
+      />
       <svg width={size} height={size * 1.18} viewBox="0 0 40 47" className="drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
         <rect x="15" y="0" width="10" height="7" rx="1.5" fill="#E8C77A" />
         <circle cx="20" cy="27" r="19" fill={color} />
@@ -117,7 +122,7 @@ function TiltFlyer({ src, alt }: { src: string; alt: string }) {
       initial={{ opacity: 0, scale: 0.85, rotate: -6, y: 60 }}
       animate={{ opacity: 1, scale: 1, rotate: 0, y: 0 }}
       transition={{ duration: 1.2, delay: 0.5, ease: EASE }}
-      className="relative mx-auto w-full max-w-md [perspective:1200px]"
+      className="relative mx-auto w-full max-w-md lg:max-w-[min(26rem,62vh)] [perspective:1200px]"
     >
       {/* halo */}
       <motion.div
@@ -209,18 +214,18 @@ function Marquee({ words, reverse = false, className = "" }: { words: string[]; 
   const reduce = useReducedMotion();
   const row = [...words, ...words, ...words, ...words];
   return (
-    <div className={`overflow-hidden whitespace-nowrap py-4 ${className}`} aria-hidden="true">
+    <div className={`overflow-hidden whitespace-nowrap py-2.5 ${className}`} aria-hidden="true">
       <motion.div
         className="inline-flex"
         animate={reduce ? undefined : { x: reverse ? ["-50%", "0%"] : ["0%", "-50%"] }}
-        transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 90, repeat: Infinity, ease: "linear" }}
       >
         {[row, row].map((r, k) => (
           <span key={k} className="inline-flex">
             {r.map((w, i) => (
-              <span key={i} className="mx-6 inline-flex items-center gap-6 font-display text-2xl md:text-3xl uppercase tracking-[0.15em]">
+              <span key={i} className="mx-5 inline-flex items-center gap-5 font-display text-sm md:text-base uppercase tracking-[0.3em]">
                 {w}
-                <Sparkles size={18} className="text-[#E8C77A]" />
+                <Sparkles size={12} className="opacity-60" />
               </span>
             ))}
           </span>
@@ -235,9 +240,6 @@ function Marquee({ words, reverse = false, className = "" }: { words: string[]; 
 export default function EventExperience({ event, description, isPast }: Props) {
   const reduce = useReducedMotion();
   const heroRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", reduce ? "0%" : "25%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   const location = eventLocation(event);
   const dayCount = eventDayCount(event);
@@ -262,16 +264,15 @@ export default function EventExperience({ event, description, isPast }: Props) {
 
         {festive && (
           <>
-            <Ornament left="6%" length={70} size={46} color="#9E1B32" delay={0} />
-            <Ornament left="16%" length={130} size={30} color="#E8C77A" delay={0.6} className="hidden md:flex" />
-            <Ornament left="78%" length={100} size={38} color="#2E7D5B" delay={0.3} className="hidden md:flex" />
-            <Ornament left="90%" length={55} size={52} color="#9E1B32" delay={0.9} />
+            <Ornament left="1.5%" length={170} size={40} color="#9E1B32" delay={0} className="hidden xl:flex" />
+            <Ornament left="53%" length={230} size={30} color="#E8C77A" delay={0.6} className="hidden lg:flex" />
+            <Ornament left="57%" length={150} size={34} color="#2E7D5B" delay={0.3} className="hidden lg:flex" />
+            <Ornament left="90%" length={150} mobileLength={105} size={50} color="#9E1B32" delay={0.9} />
           </>
         )}
 
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 items-center gap-14 px-6 py-16 lg:grid-cols-[1.15fr_1fr] lg:px-12"
+        <div
+          className="relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 items-center gap-14 px-6 py-16 lg:grid-cols-[1.15fr_1fr] lg:gap-12 lg:px-12 lg:py-10"
         >
           <div className="min-w-0">
             <motion.span
@@ -290,7 +291,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
               {festive ? "A DAHRIOLA Christmas" : "DAHRIOLA Events"}
             </motion.span>
 
-            <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:text-7xl xl:text-8xl">
+            <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:mt-5 lg:text-[3.6rem] lg:leading-[1.02] xl:text-[4.1rem]">
               {words.map((w, i) => (
                 <Fragment key={i}>
                 <span className="inline-block max-w-full overflow-hidden pb-2 align-bottom">
@@ -313,7 +314,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
                 initial="hidden"
                 animate="show"
                 custom={words.length * 0.9 + 3}
-                className="mt-6 max-w-xl text-lg md:text-2xl font-light text-[#F7F2EA]/90"
+                className="mt-6 max-w-xl text-lg md:text-2xl lg:mt-3 lg:text-xl font-light text-[#F7F2EA]/90"
               >
                 {event.tagline}
               </motion.p>
@@ -323,7 +324,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
               initial="hidden"
               animate="show"
               variants={{ show: { transition: { staggerChildren: 0.12, delayChildren: 0.9 } } }}
-              className="mt-8 flex flex-wrap gap-3"
+              className="mt-8 flex flex-wrap gap-3 lg:mt-5 lg:gap-2"
             >
               {details.slice(0, 3).map((d) => (
                 <motion.span
@@ -339,12 +340,12 @@ export default function EventExperience({ event, description, isPast }: Props) {
             </motion.div>
 
             {!isPast && (
-              <motion.div variants={fadeUp} initial="hidden" animate="show" custom={12} className="mt-10 max-w-xl">
+              <motion.div variants={fadeUp} initial="hidden" animate="show" custom={12} className="mt-10 max-w-xl lg:mt-6 lg:max-w-lg">
                 <EventCountdown target={event.startDate} variant="flip" />
               </motion.div>
             )}
 
-            <motion.div variants={fadeUp} initial="hidden" animate="show" custom={14} className="mt-10 flex flex-wrap gap-4">
+            <motion.div variants={fadeUp} initial="hidden" animate="show" custom={14} className="mt-10 flex flex-wrap gap-4 lg:mt-6">
               {!isPast && event.rsvpOpen && (
                 <motion.a
                   href="#rsvp"
@@ -379,7 +380,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
               <DateWreath event={event} />
             )}
           </div>
-        </motion.div>
+        </div>
 
         <motion.a
           href={isPast ? "#about" : "#rsvp"}
@@ -393,15 +394,15 @@ export default function EventExperience({ event, description, isPast }: Props) {
       </section>
 
       {/* ================= RIBBONS ================= */}
-      <div className="relative z-10 -my-4">
+      <div className="relative z-10">
         <Marquee
           words={[festive ? "Christmas pop-up" : "DAHRIOLA pop-up", "Shop the collection", "Celebrate with us", "Lagos"]}
-          className="-rotate-2 scale-105 bg-[#9E1B32] text-[#F7F2EA] shadow-2xl"
+          className="-rotate-1 scale-105 bg-[#9E1B32]/55 text-[#F7F2EA]/80"
         />
         <Marquee
           words={["DAHRIOLA", festive ? "The festive edit" : "The new edit", "Save the date", "See you there"]}
           reverse
-          className="rotate-1 scale-105 mt-3 bg-[#E8C77A] text-[#0F3D2E]"
+          className="rotate-[0.5deg] scale-105 mt-2 bg-[#E8C77A]/20 text-[#E8C77A]/80"
         />
       </div>
 
