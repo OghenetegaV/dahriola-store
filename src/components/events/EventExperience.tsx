@@ -10,10 +10,9 @@ import {
   type Variants,
 } from "framer-motion";
 import { PortableText, type PortableTextBlock } from "@portabletext/react";
-import { ArrowDown, CalendarDays, CalendarPlus, Clock, MapPin, Sparkles, Users } from "lucide-react";
+import { ArrowDown, CalendarDays, CalendarPlus, Clock, MapPin, Sparkles, Ticket, Users } from "lucide-react";
 import EventCountdown from "@/src/components/EventCountdown";
 import RsvpForm from "@/src/components/RsvpForm";
-import FestiveParticles from "./FestiveParticles";
 import {
   type EventSummary,
   eventDayCount,
@@ -38,57 +37,13 @@ const fadeUp: Variants = {
 
 /* ---------- decorative pieces ---------- */
 
-function Ornament({
-  left,
-  length,
-  mobileLength,
-  size,
-  color,
-  delay,
-  className = "",
-}: {
-  left: string;
-  length: number;
-  /** shorter string on phones so the bauble doesn't sit on the text */
-  mobileLength?: number;
-  size: number;
-  color: string;
-  delay: number;
-  className?: string;
-}) {
-  return (
-    <motion.div
-      aria-hidden="true"
-      className={`absolute top-0 z-[1] flex flex-col items-center origin-top ${className}`}
-      style={{ left }}
-      initial={{ y: -length - size * 2 }}
-      animate={{ y: 0, rotate: [-7, 7, -7] }}
-      transition={{
-        y: { duration: 1.4, delay: 0.4 + delay * 0.3, type: "spring", bounce: 0.45 },
-        rotate: { duration: 3.6 + delay, repeat: Infinity, ease: "easeInOut", delay },
-      }}
-    >
-      <div
-        className="w-px h-[var(--len-m)] md:h-[var(--len)] bg-gradient-to-b from-transparent to-[#E8C77A]"
-        style={{ "--len": `${length}px`, "--len-m": `${mobileLength ?? length}px` } as React.CSSProperties}
-      />
-      <svg width={size} height={size * 1.18} viewBox="0 0 40 47" className="drop-shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
-        <rect x="15" y="0" width="10" height="7" rx="1.5" fill="#E8C77A" />
-        <circle cx="20" cy="27" r="19" fill={color} />
-        <path d="M2.5 23 Q20 33 37.5 23" stroke="#E8C77A" strokeWidth="1.8" fill="none" opacity="0.85" />
-        <path d="M3 31 Q20 41 37 31" stroke="#E8C77A" strokeWidth="1" fill="none" opacity="0.5" strokeDasharray="2 3" />
-        <ellipse cx="12.5" cy="19" rx="4.5" ry="6" fill="#fff" opacity="0.28" transform="rotate(-25 12.5 19)" />
-      </svg>
-    </motion.div>
-  );
-}
-
 function GlowBlobs() {
   const reduce = useReducedMotion();
   const blobs = [
-    { c: "rgba(158,27,50,0.55)", s: "48vw", top: "-10%", left: "-12%", x: [0, 80, -30, 0], y: [0, 60, 120, 0], d: 18 },
-    { c: "rgba(232,199,122,0.28)", s: "38vw", top: "20%", left: "60%", x: [0, -90, 40, 0], y: [0, 80, -40, 0], d: 22 },
-    { c: "rgba(46,125,91,0.45)", s: "42vw", top: "55%", left: "10%", x: [0, 60, 120, 0], y: [0, -70, 20, 0], d: 26 },
+    // Soft brand washes: sage, beryl, laurel
+    { c: "rgba(178,172,136,0.32)", s: "48vw", top: "-10%", left: "-12%", x: [0, 80, -30, 0], y: [0, 60, 120, 0], d: 18 },
+    { c: "rgba(119,132,114,0.20)", s: "38vw", top: "20%", left: "60%", x: [0, -90, 40, 0], y: [0, 80, -40, 0], d: 22 },
+    { c: "rgba(169,186,157,0.30)", s: "42vw", top: "55%", left: "10%", x: [0, 60, 120, 0], y: [0, -70, 20, 0], d: 26 },
   ];
   return (
     <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
@@ -127,7 +82,7 @@ function TiltFlyer({ src, alt }: { src: string; alt: string }) {
       {/* halo */}
       <motion.div
         aria-hidden="true"
-        className="absolute -inset-6 rounded-[2rem] bg-[conic-gradient(from_0deg,#E8C77A,#9E1B32,#E8C77A,#2E7D5B,#E8C77A)] blur-2xl opacity-60"
+        className="absolute -inset-6 rounded-[2rem] bg-[conic-gradient(from_0deg,#B2AC88,#778472,#A9BA9D,#E8E4DA,#B2AC88)] blur-2xl opacity-50"
         animate={reduce ? undefined : { rotate: 360 }}
         transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
       />
@@ -147,7 +102,7 @@ function TiltFlyer({ src, alt }: { src: string; alt: string }) {
             my.set(0);
           }}
           style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-          className="relative overflow-hidden rounded-2xl border border-[#E8C77A]/40 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)]"
+          className="relative overflow-hidden rounded-2xl border border-white shadow-[0_40px_80px_-25px_rgba(30,30,25,0.35)]"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={alt} className="block w-full h-auto" />
@@ -194,17 +149,17 @@ function DateWreath({ event }: { event: EventSummary }) {
               cx={(100 + Math.cos(a) * r).toFixed(2)}
               cy={(100 + Math.sin(a) * r).toFixed(2)}
               r={i % 3 === 0 ? 5 : 3}
-              fill={i % 3 === 0 ? "#9E1B32" : i % 3 === 1 ? "#E8C77A" : "#2E7D5B"}
+              fill={i % 3 === 0 ? "#778472" : i % 3 === 1 ? "#B2AC88" : "#A9BA9D"}
             />
           );
         })}
-        <circle cx="100" cy="100" r="70" fill="none" stroke="#E8C77A" strokeWidth="0.6" strokeDasharray="2 4" />
+        <circle cx="100" cy="100" r="70" fill="none" stroke="#778472" strokeWidth="0.6" strokeDasharray="2 4" />
       </motion.svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         <span className={`font-display shimmer-text leading-none ${day.length > 2 ? "text-6xl sm:text-7xl" : "text-7xl sm:text-8xl"}`}>
           {day}
         </span>
-        <span className="mt-2 text-xs uppercase tracking-[0.5em] text-[#E8C77A]">{month}</span>
+        <span className="mt-2 text-xs uppercase tracking-[0.5em] text-brand-beryl">{month}</span>
       </div>
     </motion.div>
   );
@@ -248,7 +203,6 @@ export default function EventExperience({ event, description, isPast }: Props) {
   const directionsUrl =
     event.mapLink || `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
   const words = event.title.split(" ");
-  const festive = event.theme !== "default";
 
   const details = [
     { icon: CalendarDays, label: dayCount > 1 ? "Dates" : "Date", value: formatEventDateRange(event) },
@@ -260,20 +214,10 @@ export default function EventExperience({ event, description, isPast }: Props) {
   ].filter(Boolean) as { icon: typeof MapPin; label: string; value: string; href?: string }[];
 
   return (
-    <div className="theme-christmas event-experience relative overflow-hidden">
+    <div className="event-experience relative overflow-hidden">
       {/* ================= HERO ================= */}
       <section ref={heroRef} className="relative min-h-[100svh] pt-20 flex items-center">
         <GlowBlobs />
-        <FestiveParticles />
-
-        {festive && (
-          <>
-            <Ornament left="1.5%" length={170} size={40} color="#9E1B32" delay={0} className="hidden xl:flex" />
-            <Ornament left="53%" length={230} size={30} color="#E8C77A" delay={0.6} className="hidden lg:flex" />
-            <Ornament left="57%" length={150} size={34} color="#2E7D5B" delay={0.3} className="hidden lg:flex" />
-            <Ornament left="90%" length={150} mobileLength={105} size={50} color="#9E1B32" delay={0.9} />
-          </>
-        )}
 
         <div
           className="relative z-10 mx-auto grid w-full min-w-0 max-w-7xl grid-cols-1 items-center gap-14 px-6 py-16 lg:grid-cols-[1.15fr_1fr] lg:gap-12 lg:px-12 lg:py-10"
@@ -283,7 +227,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
               initial={{ opacity: 0, letterSpacing: "1em" }}
               animate={{ opacity: 1, letterSpacing: "0.45em" }}
               transition={{ duration: 1.4, ease: EASE }}
-              className="inline-flex items-center gap-3 rounded-full border border-[#E8C77A]/40 bg-white/5 px-4 py-2 text-[10px] uppercase text-[#E8C77A] backdrop-blur"
+              className="inline-flex items-center gap-3 rounded-full border border-neutral-300 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase text-brand-beryl backdrop-blur"
             >
               <motion.span
                 animate={reduce ? undefined : { rotate: [0, 180, 360], scale: [1, 1.3, 1] }}
@@ -292,10 +236,10 @@ export default function EventExperience({ event, description, isPast }: Props) {
               >
                 <Sparkles size={12} />
               </motion.span>
-              {festive ? "A DAHRIOLA Christmas" : "DAHRIOLA Events"}
+              {"DAHRIOLA Events"}
             </motion.span>
 
-            <h1 className="mt-7 font-display text-[2.6rem] leading-[1.05] sm:text-6xl lg:mt-5 lg:text-[3.6rem] lg:leading-[1.02] xl:text-[4.1rem]">
+            <h1 className="mt-7 font-display tracking-[-0.03em] text-[2.6rem] leading-[1.05] sm:text-6xl lg:mt-5 lg:text-[3.6rem] lg:leading-[1.02] xl:text-[4.1rem]">
               {words.map((w, i) => (
                 <Fragment key={i}>
                 <span className="inline-block max-w-full overflow-hidden pb-2 align-bottom">
@@ -318,7 +262,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
                 initial="hidden"
                 animate="show"
                 custom={words.length * 0.9 + 3}
-                className="mt-6 max-w-xl text-lg md:text-2xl lg:mt-3 lg:text-xl font-light text-[#F7F2EA]/90"
+                className="mt-6 max-w-xl text-lg md:text-2xl lg:mt-3 lg:text-xl font-light text-neutral-600"
               >
                 {event.tagline}
               </motion.p>
@@ -335,9 +279,9 @@ export default function EventExperience({ event, description, isPast }: Props) {
                   key={d.label}
                   variants={fadeUp}
                   whileHover={{ y: -4, scale: 1.04 }}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs sm:text-sm backdrop-blur-md"
+                  className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-700 shadow-sm sm:text-sm"
                 >
-                  <d.icon size={14} className="text-[#E8C77A]" />
+                  <d.icon size={14} className="text-brand-beryl" />
                   {d.icon === CalendarDays ? formatEventDateRange(event, { year: false }) : d.value}
                 </motion.span>
               ))}
@@ -355,7 +299,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
                   href="#rsvp"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.96 }}
-                  className="pulse-glow group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-[#9E1B32] px-8 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-white"
+                  className="pulse-glow group relative inline-flex h-12 items-center gap-3 overflow-hidden rounded-full bg-neutral-950 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white"
                 >
                   <span className="shine absolute inset-0" aria-hidden="true" />
                   <span className="relative">Reserve my spot</span>
@@ -369,7 +313,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.96 }}
-                  className="inline-flex items-center gap-3 rounded-full border border-[#E8C77A]/60 px-7 py-4 text-xs uppercase tracking-[0.25em] text-[#E8C77A] transition-colors hover:bg-[#E8C77A] hover:text-[#0F3D2E]"
+                  className="inline-flex h-12 items-center gap-3 rounded-full border border-neutral-300 bg-white/60 px-7 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-900 transition-colors hover:border-neutral-950 hover:bg-neutral-950 hover:text-white"
                 >
                   <CalendarPlus size={16} /> Add to calendar
                 </motion.a>
@@ -389,7 +333,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
         <motion.a
           href={isPast ? "#about" : "#rsvp"}
           aria-label="Scroll down"
-          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-[#E8C77A]"
+          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-brand-beryl"
           animate={reduce ? undefined : { y: [0, 10, 0] }}
           transition={{ duration: 1.8, repeat: Infinity }}
         >
@@ -400,27 +344,26 @@ export default function EventExperience({ event, description, isPast }: Props) {
       {/* ================= RIBBONS ================= */}
       <div className="relative z-10">
         <Marquee
-          words={[festive ? "Christmas pop-up" : "DAHRIOLA pop-up", "Shop the collection", "Celebrate with us", "Lagos"]}
-          className="-rotate-1 scale-105 bg-[#9E1B32]/55 text-[#F7F2EA]/80"
+          words={["DAHRIOLA pop-up", "Shop the collection", "Celebrate with us", "Lagos"]}
+          className="-rotate-1 scale-105 bg-neutral-950 text-white/85"
         />
         <Marquee
-          words={["DAHRIOLA", festive ? "The festive edit" : "The new edit", "Save the date", "See you there"]}
+          words={["DAHRIOLA", "Ready to wear", "Bespoke", "See you there"]}
           reverse
-          className="rotate-[0.5deg] scale-105 mt-2 bg-[#E8C77A]/20 text-[#E8C77A]/80"
+          className="rotate-[0.5deg] scale-105 mt-2 bg-brand-beryl/15 text-brand-beryl"
         />
       </div>
 
       {/* ================= ABOUT + DETAILS ================= */}
       <section id="about" className="relative py-28">
-        <FestiveParticles density={0.35} />
         <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-16 px-6 lg:grid-cols-2 lg:px-12">
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }} variants={fadeUp}>
-            <span className="text-[10px] uppercase tracking-[0.45em] text-[#E8C77A]">The occasion</span>
-            <h2 className="mt-5 font-display text-4xl md:text-6xl leading-tight">
+            <span className="text-[10px] uppercase tracking-[0.45em] text-brand-beryl">The occasion</span>
+            <h2 className="mt-5 font-display text-4xl tracking-[-0.03em] md:text-6xl leading-tight">
               Come for the fashion. <span className="italic shimmer-text">Stay for the magic.</span>
             </h2>
             {description && description.length > 0 && (
-              <div className="mt-8 space-y-4 text-base leading-relaxed text-[#F7F2EA]/85 md:text-lg">
+              <div className="mt-8 space-y-4 text-base leading-relaxed text-neutral-600 md:text-lg">
                 <PortableText value={description} />
               </div>
             )}
@@ -444,15 +387,15 @@ export default function EventExperience({ event, description, isPast }: Props) {
                   className="detail-card group relative h-full overflow-hidden rounded-3xl p-7"
                 >
                   <motion.div
-                    className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#9E1B32] text-[#E8C77A]"
+                    className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-beryl/10 text-brand-beryl"
                     whileHover={{ rotate: 15, scale: 1.1 }}
                   >
                     <d.icon size={22} />
                   </motion.div>
-                  <p className="text-[10px] uppercase tracking-[0.35em] text-[#E8C77A]">{d.label}</p>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-brand-beryl">{d.label}</p>
                   <p className="mt-3 font-display text-xl leading-snug">{d.value}</p>
                   {d.href && (
-                    <p className="mt-4 text-xs uppercase tracking-[0.25em] text-[#E8C77A] underline-offset-4 group-hover:underline">
+                    <p className="mt-4 text-xs uppercase tracking-[0.25em] text-brand-beryl underline-offset-4 group-hover:underline">
                       Get directions →
                     </p>
                   )}
@@ -482,11 +425,11 @@ export default function EventExperience({ event, description, isPast }: Props) {
               className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between"
             >
               <div>
-                <span className="text-[10px] uppercase tracking-[0.45em] text-[#E8C77A]">Find us</span>
+                <span className="text-[10px] uppercase tracking-[0.45em] text-brand-beryl">Find us</span>
                 <h2 className="mt-4 font-display text-3xl md:text-5xl">{event.venueName || "The venue"}</h2>
                 {event.venueAddress && (
-                  <p className="mt-3 flex items-start gap-2 text-sm md:text-base text-[#F7F2EA]/80">
-                    <MapPin size={16} className="mt-0.5 shrink-0 text-[#E8C77A]" />
+                  <p className="mt-3 flex items-start gap-2 text-sm md:text-base text-neutral-600">
+                    <MapPin size={16} className="mt-0.5 shrink-0 text-brand-beryl" />
                     {event.venueAddress}
                   </p>
                 )}
@@ -497,7 +440,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.96 }}
-                className="inline-flex shrink-0 items-center gap-3 self-start rounded-full bg-[#9E1B32] px-7 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-white md:self-auto"
+                className="inline-flex shrink-0 items-center gap-3 self-start rounded-full bg-neutral-950 px-7 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-white md:self-auto"
               >
                 <MapPin size={16} /> Get directions
               </motion.a>
@@ -508,7 +451,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 1, ease: EASE }}
-              className="mt-10 overflow-hidden rounded-3xl border border-[#E8C77A]/40 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)]"
+              className="mt-10 overflow-hidden rounded-3xl border border-neutral-200 shadow-[0_40px_80px_-40px_rgba(30,30,25,0.35)]"
             >
               <iframe
                 title={`Map to ${event.venueName || event.venueAddress}`}
@@ -536,21 +479,21 @@ export default function EventExperience({ event, description, isPast }: Props) {
           >
             <div className="text-center">
               <motion.div
-                className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#9E1B32] text-3xl"
-                animate={reduce ? undefined : { rotate: [-8, 8, -8], y: [0, -6, 0] }}
+                className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-950 text-white"
+                animate={reduce ? undefined : { rotate: [-6, 6, -6], y: [0, -5, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 aria-hidden="true"
               >
-                🎁
+                <Ticket size={26} strokeWidth={1.5} />
               </motion.div>
-              <span className="text-[10px] uppercase tracking-[0.45em] text-[#E8C77A]">
+              <span className="text-[10px] uppercase tracking-[0.45em] text-brand-beryl">
                 {isPast ? "That's a wrap" : "You're invited"}
               </span>
               <h2 className="mt-4 font-display text-4xl md:text-6xl">
                 {isPast ? "Thank you for coming" : <span className="shimmer-text">Reserve your spot</span>}
               </h2>
               {!isPast && (
-                <p className="mx-auto mt-4 max-w-md text-sm text-[#F7F2EA]/75">
+                <p className="mx-auto mt-4 max-w-md text-sm text-neutral-500">
                   RSVP in seconds. Your ticket, QR code and a calendar invite land straight in your inbox.
                 </p>
               )}
@@ -558,7 +501,7 @@ export default function EventExperience({ event, description, isPast }: Props) {
 
             <div className="mt-10">
               {isPast ? (
-                <p className="text-center text-sm uppercase tracking-[0.25em] text-[#F7F2EA]/80">
+                <p className="text-center text-sm uppercase tracking-[0.25em] text-neutral-600">
                   This event has ended. Thank you to everyone who came.
                 </p>
               ) : (

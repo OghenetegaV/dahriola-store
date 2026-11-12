@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Instagram, ArrowRight, ChevronDown } from "lucide-react";
 import { getCategories } from "@/src/app/actions/catalog";
+import { openCookieSettings } from "@/src/lib/consent";
 import PolicyModal from "./PolicyModal";
 import { openNewsletterPopup } from "./NewsletterPopup";
 import { POLICIES } from "@/src/constants/policies";
@@ -171,6 +172,9 @@ export default function Footer() {
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">The Studio</h5>
             <div className="flex flex-col gap-5">
               <Link href="/our-story" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
+              <Link href="/events" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Events</Link>
+              <Link href="/track" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Track Order</Link>
+              <button type="button" onClick={openCookieSettings} className="text-left text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Cookie Settings</button>
               <Link href="/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Appointments</Link>
               <button 
                 onClick={() => setActivePolicy('shipping')} 

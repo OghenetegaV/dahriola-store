@@ -189,3 +189,73 @@ export function buildIcs(event: EventSummary, attendee?: { name: string; email: 
   ];
   return lines.join("\r\n");
 }
+
+// ---- Recap (after the event) ----
+export type RecapImage = { url: string; width?: number; height?: number; lqip?: string; caption?: string };
+export type RecapVideoFile = { url: string; mimeType?: string; caption?: string };
+export type RecapProduct = { _id: string; name: string; slug: string; priceNGN?: number; image?: string };
+
+export type EventRecap = EventSummary & {
+  description?: unknown[];
+  recap?: unknown[];
+  gallery: RecapImage[];
+  videos: string[];
+  videoFiles: RecapVideoFile[];
+  featuredProducts: RecapProduct[];
+  attendeeCode?: string;
+};
+
+export const EVENT_RECAP_FIELDS = `
+  description,
+  recap,
+  attendeeCode,
+  "gallery": coalesce(gallery[]{
+    "url": asset->url,
+    "width": asset->metadata.dimensions.width,
+    "height": asset->metadata.dimensions.height,
+    "lqip": asset->metadata.lqip,
+    caption
+  }, []),
+  "videos": coalesce(videos, []),
+  "videoFiles": coalesce(videoFiles[]{ "url": asset->url, "mimeType": asset->mimeType, caption }, []),
+  "featuredProducts": coalesce(featuredProducts[]->{
+    _id, name, "slug": slug.current, priceNGN, "image": images[0].asset->url
+  }, [])
+`;
+
+/** All events for the /events page, newest first. */
+export const EVENTS_LIST_QUERY = `*[_type == "event" && defined(slug.current)] | order(startDate desc){
+  ${EVENT_SUMMARY_FIELDS},
+  "cover": coalesce(gallery[0].asset->url, flyer.asset->url),
+  "photoCount": count(gallery)
+}`;
+
+export function isEventPast(event: Pick<EventSummary, "endDate">, now = new Date()) {
+  return new Date(event.endDate) < now;
+}
+
+/** Turns a YouTube / Instagram / TikTok link into an embeddable player URL. */
+export function videoEmbed(url: string): { kind: "youtube" | "instagram" | "tiktok" | "link"; src: string; portrait: boolean } {
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.replace(/^www\.|^m\./, "");
+    if (host === "youtu.be" || host.endsWith("youtube.com")) {
+      const id =
+        host === "youtu.be"
+          ? u.pathname.slice(1)
+          : u.searchParams.get("v") || u.pathname.match(/\/(?:shorts|embed|live)\/([\w-]{6,})/)?.[1];
+      if (id) {
+        return { kind: "youtube", src: `https://www.youtube-nocookie.com/embed/${id}?rel=0`, portrait: u.pathname.includes("/shorts/") };
+      }
+    }
+    if (host.endsWith("instagram.com")) {
+      const m = u.pathname.match(/\/(p|reel|reels|tv)\/([\w-]+)/);
+      if (m) return { kind: "instagram", src: `https://www.instagram.com/${m[1] === "reels" ? "reel" : m[1]}/${m[2]}/embed`, portrait: true };
+    }
+    if (host.endsWith("tiktok.com")) {
+      const id = u.pathname.match(/\/video\/(\d+)/)?.[1];
+      if (id) return { kind: "tiktok", src: `https://www.tiktok.com/embed/v2/${id}`, portrait: true };
+    }
+  } catch {}
+  return { kind: "link", src: url, portrait: false };
+}

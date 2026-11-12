@@ -14,9 +14,13 @@ import {
   type DeliveryAddress,
   type RateInput,
 } from "@/src/lib/checkoutPricing";
-import { createOrderDoc, findOrderByReference, reducePrintStock } from "@/src/lib/orders";
+import { createOrderDoc, findOrderByReference, recordCouponUse, reducePrintStock } from "@/src/lib/orders";
 import { hasUsableAddress, loadListDoc, markItemsPurchased, type ListDoc } from "@/src/lib/sharedLists";
-import { sendGiftReceivedEmail } from "@/src/lib/mailer";
+import { sendGiftReceivedEmail, sendOrderReceiptEmail } from "@/src/lib/mailer";
+import { getMarketingSettings, syncCustomerToBrevo } from "@/src/lib/marketing";
+import { trackUrl } from "@/src/lib/orderStatus";
+import { markCartRecovered } from "@/src/lib/abandonedCarts";
+import { writeClient } from "@/src/lib/sanityWrite";
 import { randomId } from "@/src/lib/signing";
 
 const clean = (v: unknown, max = 200) => String(v ?? "").trim().slice(0, max);
@@ -216,7 +220,7 @@ export async function completeCheckout(input: CompleteInput) {
         }
       : undefined;
 
-    await createOrderDoc({
+    const orderDoc = await createOrderDoc({
       orderNumber: reference,
       customerName: customer.name,
       customerEmail: customer.email,
@@ -241,6 +245,45 @@ export async function completeCheckout(input: CompleteInput) {
     });
 
     await reducePrintStock(c.lines);
+    await markCartRecovered(customer.email);
+
+    if (verified) {
+      await recordCouponUse(c.discount > 0 ? c.couponCode : undefined);
+
+      // Thank-you receipt to the customer (the store already gets its own email)
+      try {
+        const settings = await getMarketingSettings();
+        if (settings.receiptsEnabled && customer.email) {
+          const sent = await sendOrderReceiptEmail({
+            to: customer.email,
+            name: customer.name,
+            reference,
+            items: c.lines,
+            subtotal: c.subtotal,
+            discount: c.discount,
+            discountCode: c.couponCode,
+            shipping: c.shipping,
+            shippingMethod: c.shippingMethod,
+            total: c.total,
+            // never show the gift recipient's private address to the buyer
+            deliverTo: deliverToOwner
+              ? `To ${gift?.ownerName.split(" ")[0] || "the recipient"}'s saved address`
+              : shippingAddress,
+            gift: gift ? { recipientFirstName: gift.ownerName.split(" ")[0] || "them", message: gift.message } : undefined,
+            trackUrl: trackUrl(reference),
+          });
+          if (sent) await writeClient.patch(orderDoc._id).set({ receiptSentAt: new Date().toISOString() }).commit();
+        }
+      } catch (err) {
+        console.error("Receipt email failed:", err);
+      }
+
+      try {
+        await syncCustomerToBrevo(customer.email);
+      } catch (err) {
+        console.error("Brevo sync failed:", err);
+      }
+    }
 
     try {
       await sendOrderNotification({

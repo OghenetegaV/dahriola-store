@@ -234,7 +234,7 @@ export default function ShareListModal({ open, onClose, kind, items, onSaved }: 
                 </form>
               ) : (
                 <div className="text-center">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf6e7] text-[#9E1B32]">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-beryl/10 text-brand-beryl">
                     <Gift size={24} />
                   </div>
                   <h2 className="font-display text-2xl">Your {label} is ready to share</h2>

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSheet } from "@/src/lib/googleSheets";
 import { sendNewsletterWelcome } from "@/src/app/actions/email";
+import { upsertContact } from "@/src/lib/brevo";
+import { optBackIn, parseBirthday } from "@/src/lib/marketing";
 
 const DISCOUNT_CODE = process.env.NEWSLETTER_DISCOUNT_CODE?.trim() || "WELCOME10";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -49,6 +51,21 @@ export async function POST(req: Request) {
 
     // Email failure shouldn't block the sign up — the code is shown on screen too
     await sendNewsletterWelcome({ name, email, code: DISCOUNT_CODE });
+
+    // Marketing: a new sign-up is an opt-in (even if they unsubscribed before)
+    try {
+      await optBackIn(email);
+      const { month, year } = parseBirthday(birthday);
+      const [first, ...rest] = name.split(/\s+/);
+      await upsertContact(
+        email,
+        { FIRSTNAME: first || undefined, LASTNAME: rest.join(" ") || undefined, BIRTH_MONTH: month, BIRTH_YEAR: year, SIGNUP_SOURCE: source || "Newsletter pop-up" },
+        ["NEWSLETTER"],
+        { resubscribe: true }
+      );
+    } catch (err) {
+      console.error("Newsletter marketing sync failed:", err);
+    }
 
     return NextResponse.json({ success: true, code: DISCOUNT_CODE });
   } catch (error: any) {

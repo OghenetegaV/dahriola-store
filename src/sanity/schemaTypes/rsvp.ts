@@ -20,6 +20,8 @@ export default {
     { name: 'reminder48SentAt', title: '2-day reminder sent', type: 'datetime', readOnly: true },
     { name: 'reminder24SentAt', title: '1-day reminder sent', type: 'datetime', readOnly: true },
     { name: 'followUpSentAt', title: 'Follow-up sent', type: 'datetime', readOnly: true },
+    { name: 'followUpType', title: 'Follow-up email', type: 'string', readOnly: true,
+      options: { list: [{ title: 'Thank you (attended)', value: 'attended' }, { title: 'We missed you', value: 'missed' }] } },
     { name: 'createdAt', title: 'Registered', type: 'datetime', readOnly: true },
   ],
 

@@ -18,7 +18,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }`
   );
 
+  const events: { slug: string; _updatedAt: string }[] = await client.fetch(
+    `*[_type == "event" && defined(slug.current)]{ "slug": slug.current, _updatedAt }`
+  );
+
   const staticPages: MetadataRoute.Sitemap = [
+    {
+      url: `${siteUrl}/events`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
     {
       url: siteUrl,
       lastModified: new Date(),
@@ -69,5 +79,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...categoryPages, ...productPages];
+  const eventPages: MetadataRoute.Sitemap = events.map((event) => ({
+    url: `${siteUrl}/events/${event.slug}`,
+    lastModified: new Date(event._updatedAt),
+    changeFrequency: "weekly",
+    priority: 0.6,
+  }));
+
+  return [...staticPages, ...categoryPages, ...productPages, ...eventPages];
 }

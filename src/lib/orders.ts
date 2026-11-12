@@ -79,6 +79,9 @@ export async function createOrderDoc(input: OrderDocInput) {
     emailOptIn: !!input.emailOptIn,
     textOptIn: !!input.textOptIn,
     delivered: false,
+    status: "received",
+    statusEmailedFor: "received",
+    statusHistory: [{ _key: "received", status: "received", at: new Date().toISOString() }],
     isGift: !!input.gift,
     giftListId: input.gift?.listId,
     giftRecipient: input.gift?.ownerName,
@@ -87,6 +90,7 @@ export async function createOrderDoc(input: OrderDocInput) {
     items: input.items.map((item, i) => ({
       _key: `${i}-${item._id}`.slice(0, 60),
       name: item.name,
+      product: item._id ? { _type: "reference", _ref: item._id, _weak: true } : undefined,
       price: item.price,
       quantity: item.quantity,
       size: item.size,
@@ -97,6 +101,17 @@ export async function createOrderDoc(input: OrderDocInput) {
     })),
     createdAt: new Date().toISOString(),
   });
+}
+
+/** Counts a coupon use once a paid order has been recorded. */
+export async function recordCouponUse(code?: string) {
+  if (!code) return;
+  try {
+    const id = await writeClient.fetch<string | null>(`*[_type == "coupon" && code == $code][0]._id`, { code });
+    if (id) await writeClient.patch(id).setIfMissing({ timesUsed: 0 }).inc({ timesUsed: 1 }).commit();
+  } catch (err) {
+    console.error("Coupon usage count failed:", err);
+  }
 }
 
 type PrintStock = { _id: string; name: string; stockQuantity?: number; lowStockThreshold?: number };

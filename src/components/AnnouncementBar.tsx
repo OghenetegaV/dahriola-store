@@ -18,7 +18,7 @@ const baseMessages: Message[] = [
 export default function AnnouncementBar({ event }: { event?: EventSummary | null }) {
   const [index, setIndex] = useState(0);
   const messages: Message[] = event
-    ? [{ text: "🎄 Lagos pop-up in", event }, ...baseMessages]
+    ? [{ text: "Lagos pop-up in", event }, ...baseMessages]
     : baseMessages;
 
   useEffect(() => {

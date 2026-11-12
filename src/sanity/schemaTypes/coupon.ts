@@ -53,5 +53,33 @@ export default {
       type: 'datetime',
       description: 'Optional: When should this code stop working?',
     },
+    {
+      name: 'assignedEmail',
+      title: 'Only For This Email',
+      type: 'string',
+      description: 'Optional: makes this a personal code that only works for this customer (birthday and anniversary codes are created this way automatically).',
+    },
+    {
+      name: 'usageLimit',
+      title: 'Usage Limit',
+      type: 'number',
+      description: 'Optional: how many paid orders can use this code in total. Leave empty for unlimited.',
+      validation: (Rule: any) => Rule.min(1).integer(),
+    },
+    {
+      name: 'timesUsed',
+      title: 'Times Used',
+      type: 'number',
+      readOnly: true,
+      initialValue: 0,
+      description: 'Counted automatically after each paid order.',
+    },
+    {
+      name: 'purpose',
+      title: 'Created For',
+      type: 'string',
+      readOnly: true,
+      description: 'Set on codes the website creates automatically (e.g. birthday, anniversary).',
+    },
   ],
 }

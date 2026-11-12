@@ -108,12 +108,12 @@ export default function SharedListClient({ list, focusKey, ownerToken }: Props) 
   const anyInCart = list.items.some((i) => inCart(i.key));
 
   return (
-    <main className="min-h-screen bg-[#f7f4ee] pt-28 pb-24">
+    <main className="min-h-screen bg-[#F7F6F5] pt-28 pb-24">
       <div className="max-w-6xl mx-auto px-4">
         {isOwner && (
           <div className="mb-8 rounded-2xl bg-black text-white p-5 flex flex-col md:flex-row md:items-center gap-4 justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#E8C77A]">Your {what}</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-brand-laurel">Your {what}</p>
               <p className="mt-1 text-[13px] text-white/80">
                 This is what people see when you share your link.
                 {list.keepSurprise && " Bought items are hidden from you, so it stays a surprise."}
@@ -143,7 +143,7 @@ export default function SharedListClient({ list, focusKey, ownerToken }: Props) 
           transition={{ duration: 0.7 }}
           className="text-center max-w-2xl mx-auto"
         >
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#9E1B32] text-[#E8C77A]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white">
             {list.kind === "cart" ? <Gift size={24} /> : <Heart size={24} />}
           </div>
           <p className="mt-5 text-[10px] uppercase tracking-[0.4em] text-neutral-500">DAHRIOLA</p>
@@ -203,7 +203,7 @@ export default function SharedListClient({ list, focusKey, ownerToken }: Props) 
                     <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
                   )}
                   {bought && (
-                    <span className="absolute left-3 top-3 rounded-full bg-[#9E1B32] text-white px-3 py-1 text-[10px] uppercase tracking-[0.2em]">
+                    <span className="absolute left-3 top-3 rounded-full bg-brand-beryl text-white px-3 py-1 text-[10px] uppercase tracking-[0.2em]">
                       Gifted ✓
                     </span>
                   )}
@@ -230,7 +230,7 @@ export default function SharedListClient({ list, focusKey, ownerToken }: Props) 
                     ) : added ? (
                       <Link
                         href="/checkout"
-                        className="w-full h-11 rounded-md bg-[#9E1B32] text-white text-[11px] uppercase tracking-[0.2em] inline-flex items-center justify-center gap-2"
+                        className="w-full h-11 rounded-md bg-brand-beryl text-white text-[11px] uppercase tracking-[0.2em] inline-flex items-center justify-center gap-2"
                       >
                         <Check size={14} /> In your cart · Checkout <ArrowRight size={14} />
                       </Link>

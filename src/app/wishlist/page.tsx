@@ -149,7 +149,7 @@ export default function WishlistPage() {
       </div>
 
       {shareUrl && (
-        <div className="mb-8 rounded-xl border border-[#E8C77A] bg-[#fdf9f0] px-4 py-3 text-[13px] flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+        <div className="mb-8 rounded-xl border border-brand-beryl/40 bg-brand-beryl/5 px-4 py-3 text-[13px] flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
           <span>
             Your wishlist is shared at{" "}
             <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="underline break-all">

@@ -5,6 +5,7 @@ import { trackViewItem } from "@/src/lib/analytics";
 import { PortableText } from "@portabletext/react";
 import { ChevronDown, X, Check } from "lucide-react";
 import AddToCartButton from "@/src/components/AddToCartButton";
+import BackInStockForm from "@/src/components/BackInStockForm";
 import SizeGuideModal from "@/src/components/SizeGuideModal";
 import LengthChartModal from "@/src/components/LengthChartModal";
 import { client } from "@/src/lib/sanity";
@@ -101,7 +102,7 @@ function getNeedsLength(product: any): boolean {
   return getCategorySlug(product) !== "jackets";
 }
 
-export default function ProductPageClient({ product }: { product: any }) {
+export default function ProductPageClient({ product, backInStock = false }: { product: any; backInStock?: boolean }) {
   const isDress = getIsDress(product);
   const needsLength = getNeedsLength(product);
   const sizes = isDress ? DRESS_SIZES : DEFAULT_SIZES;
@@ -286,6 +287,16 @@ export default function ProductPageClient({ product }: { product: any }) {
               );
             })}
           </div>
+
+          {backInStock && (
+            <BackInStockForm
+              productId={product._id}
+              prints={printOptions
+                .filter((p: any) => p.isOutOfStock && p._id)
+                .filter((p: any, i: number, all: any[]) => all.findIndex((x: any) => x._id === p._id) === i)
+                .map((p: any) => ({ _id: p._id, name: p.name }))}
+            />
+          )}
         </section>
       )}
 

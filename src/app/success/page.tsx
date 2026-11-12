@@ -39,17 +39,9 @@ function SuccessInner() {
     (async () => {
       try {
         const res = await verifyPayment(reference);
-        // Your verifyPayment returns { success, data }, where `data` is the
-        // Paystack transaction. The amount (in kobo) can sit at data.amount or
-        // data.data.amount depending on the action — handle both safely.
-        const d: any = res && "data" in res ? (res as any).data : undefined;
-        const kobo: number | undefined =
-          typeof d?.amount === "number"
-            ? d.amount
-            : typeof d?.data?.amount === "number"
-            ? d.data.amount
-            : undefined;
-        if (active && typeof kobo === "number") setAmount(formatNaira(kobo));
+        // verifyPayment returns the Paystack-confirmed amount in kobo
+        const kobo = res?.success ? res.amountKobo : undefined;
+        if (active && typeof kobo === "number" && kobo > 0) setAmount(formatNaira(kobo));
       } catch {
         // Non-blocking — the order is already placed; we just can't show the amount.
       } finally {
@@ -149,11 +141,11 @@ function SuccessInner() {
               Continue Shopping
             </Link>
             <Link
-              href="/"
+              href="/track"
               className="w-full sm:w-auto px-8 h-12 rounded-full border border-neutral-300 text-black text-[13px] font-semibold
                 flex items-center justify-center hover:border-black transition"
             >
-              Back to Home
+              Track your order
             </Link>
           </div>
         </div>

@@ -8,6 +8,7 @@ import AnnouncementBar from "../components/AnnouncementBar";
 import NewsletterPopup from "../components/NewsletterPopup";
 import EventPopup from "../components/EventPopup";
 import GoogleAnalytics from "../components/GoogleAnalytics";
+import CookieConsent from "../components/CookieConsent";
 import { client } from "../lib/sanity";
 import { ACTIVE_EVENT_QUERY, type EventSummary } from "../lib/events";
 
@@ -118,6 +119,7 @@ export default async function RootLayout({
         <NewsletterPopup autoOpen={!activeEvent} />
         <Footer />
         <GoogleAnalytics />
+        <CookieConsent />
       </body>
     </html>
   );

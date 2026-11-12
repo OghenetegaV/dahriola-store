@@ -3,6 +3,8 @@
 import { randomInt } from "crypto";
 import { writeClient } from "@/src/lib/sanityWrite";
 import { appendRow } from "@/src/lib/googleSheets";
+import { upsertContact } from "@/src/lib/brevo";
+import { optBackIn } from "@/src/lib/marketing";
 import { EVENT_SUMMARY_FIELDS, type EventSummary } from "@/src/lib/events";
 import { sendRsvpConfirmation } from "@/src/app/actions/email";
 
@@ -145,6 +147,21 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     });
 
     await sendRsvpConfirmation(event, { name, email, guests, ticketCode });
+
+    if (input.marketingOptIn) {
+      try {
+        await optBackIn(email);
+        const [first, ...rest] = name.split(/\s+/);
+        await upsertContact(
+          email,
+          { FIRSTNAME: first || undefined, LASTNAME: rest.join(" ") || undefined, LAST_EVENT: event.title, SIGNUP_SOURCE: `RSVP: ${event.title}` },
+          ["EVENTS"],
+          { resubscribe: true }
+        );
+      } catch (err) {
+        console.error("RSVP marketing sync failed:", err);
+      }
+    }
 
     return { success: true, ticketCode };
   } catch (error: any) {

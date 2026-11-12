@@ -13,7 +13,6 @@ const SNOOZE_MS = 2 * 24 * 60 * 60 * 1000; // don't auto-open again for 2 days a
 export default function EventPopup({ event }: { event: EventSummary }) {
   const [isOpen, setIsOpen] = useState(false);
   const closedKey = `dahriola-event-closed-${event._id}`;
-  const festive = event.theme !== "default";
 
   useEffect(() => {
     let closedAt = 0;
@@ -62,9 +61,8 @@ export default function EventPopup({ event }: { event: EventSummary }) {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className={`${festive ? "theme-christmas" : "bg-white text-black"} relative rounded-2xl w-full max-w-[950px] flex flex-col md:flex-row overflow-hidden`}
+              className="bg-white text-black relative rounded-2xl w-full max-w-[950px] flex flex-col md:flex-row overflow-hidden"
             >
-              {festive && <div className="snowfall" aria-hidden="true" />}
 
               <button
                 onClick={close}
@@ -75,7 +73,7 @@ export default function EventPopup({ event }: { event: EventSummary }) {
               </button>
 
               {event.flyerUrl && (
-                <div className="relative w-full md:w-1/2 bg-black/20 flex items-center justify-center">
+                <div className="relative w-full md:w-1/2 bg-neutral-100 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`${event.flyerUrl}?w=900&fit=max&auto=format`}
@@ -86,11 +84,11 @@ export default function EventPopup({ event }: { event: EventSummary }) {
               )}
 
               <div className={`relative w-full ${event.flyerUrl ? "md:w-1/2" : ""} p-6 md:p-12 flex flex-col justify-center`}>
-                <span className="text-[9px] tracking-[0.4em] uppercase festive-accent">
-                  {festive ? "A DAHRIOLA Christmas" : "DAHRIOLA Events"}
+                <span className="text-[9px] tracking-[0.4em] uppercase text-brand-beryl font-bold">
+                  DAHRIOLA Events
                 </span>
 
-                <h2 className="mt-5 font-display text-4xl leading-tight">
+                <h2 className="mt-5 font-display text-4xl leading-tight tracking-[-0.03em]">
                   {event.tagline || "Something exciting is coming to Lagos!"}
                 </h2>
 
@@ -106,7 +104,7 @@ export default function EventPopup({ event }: { event: EventSummary }) {
                     trackSelectPromotion(event._id, event.title);
                     close();
                   }}
-                  className="festive-btn mt-8 w-full py-4 flex justify-center items-center gap-3 text-xs uppercase tracking-[0.25em]"
+                  className="mt-8 w-full h-12 rounded-full bg-neutral-950 text-white flex justify-center items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-neutral-800 transition"
                 >
                   RSVP now <ArrowRight size={16} />
                 </Link>

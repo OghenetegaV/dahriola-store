@@ -20,8 +20,36 @@ export default {
 
   fields: [
     // ── Status ──
+    { name: 'status', title: 'Order Status', type: 'string', group: 'status', initialValue: 'received',
+      description: 'Changing this emails the customer an update (and shows on their tracking page).',
+      options: {
+        list: [
+          { title: 'Order received', value: 'received' },
+          { title: 'In production', value: 'in_production' },
+          { title: 'Ready to ship', value: 'ready' },
+          { title: 'Shipped', value: 'shipped' },
+          { title: 'Out for delivery', value: 'out_for_delivery' },
+          { title: 'Delivered', value: 'delivered' },
+          { title: 'Cancelled', value: 'cancelled' },
+        ],
+      } },
+    { name: 'courier', title: 'Courier', type: 'string', group: 'status',
+      description: 'e.g. DHL, GIG Logistics, UPS — shown to the customer when shipped.' },
+    { name: 'trackingNumber', title: 'Tracking Number', type: 'string', group: 'status' },
+    { name: 'trackingUrl', title: 'Tracking Link', type: 'url', group: 'status',
+      description: "Optional. For DHL, UPS and FedEx the link is created from the tracking number automatically. For other couriers, paste their tracking link." },
+    { name: 'statusNote', title: 'Note To Customer', type: 'text', rows: 2, group: 'status',
+      description: 'Optional. Included in the next status email, e.g. "Your outfit needs one extra day for finishing."' },
+    { name: 'statusEmailedFor', title: 'Last Status Emailed', type: 'string', readOnly: true, group: 'status' },
+    { name: 'statusHistory', title: 'Status History', type: 'array', readOnly: true, group: 'status',
+      of: [{ type: 'object', fields: [{ name: 'status', type: 'string' }, { name: 'at', type: 'datetime' }, { name: 'note', type: 'string' }],
+        preview: { select: { title: 'status', subtitle: 'at' } } }] },
     { name: 'delivered', title: 'Delivered', type: 'boolean', initialValue: false, group: 'status',
-      description: 'Tick once this order has been delivered to the customer.' },
+      description: 'Tick once this order has been delivered to the customer. A review request is emailed a few days later (if turned on in Marketing Settings).' },
+    { name: 'deliveredAt', title: 'Delivered On', type: 'datetime', readOnly: true, group: 'status',
+      description: 'Recorded automatically at the next daily run after you tick Delivered.' },
+    { name: 'reviewRequestSentAt', title: 'Review Request Sent', type: 'datetime', readOnly: true, group: 'status' },
+    { name: 'receiptSentAt', title: 'Customer Receipt Sent', type: 'datetime', readOnly: true, group: 'status' },
     { name: 'orderNumber', title: 'Order Number', type: 'string', readOnly: true, group: 'status' },
     { name: 'createdAt', title: 'Order Date', type: 'datetime', readOnly: true, group: 'status' },
 
@@ -46,6 +74,7 @@ export default {
           type: 'object',
           fields: [
             { name: 'name', title: 'Item Name', type: 'string' },
+            { name: 'product', title: 'Product', type: 'reference', to: [{ type: 'product' }], readOnly: true },
             { name: 'price', title: 'Price', type: 'number' },
             { name: 'quantity', title: 'Quantity', type: 'number' },
             { name: 'size', title: 'Size', type: 'string' },

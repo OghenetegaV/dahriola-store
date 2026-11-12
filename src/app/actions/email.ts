@@ -1,4 +1,7 @@
-"use server";
+// Server-only email helpers. This file is deliberately NOT a "use server"
+// actions file: as actions, anyone could call these directly to send emails
+// from the store's Gmail account. Only server code (checkout, RSVP, cron,
+// API routes) imports them.
 
 import nodemailer from "nodemailer";
 import QRCode from "qrcode";
@@ -471,17 +474,14 @@ function checkInUrl(ticketCode: string) {
   return `${SITE_URL}/events/check-in?code=${encodeURIComponent(ticketCode)}`;
 }
 
-// Festive wrapper shared by all event emails. `christmas` adds the red/green/gold treatment.
+// Wrapper shared by all event emails, in the main DAHRIOLA look.
 function eventEmailShell(event: EventSummary, inner: string) {
-  const festive = event.theme !== "default";
-  const accent = festive ? "#9E1B32" : "#111111";
-  const band = festive
-    ? `<div style="background:#0F3D2E;color:#E8C77A;text-align:center;padding:10px 0;font-size:12px;letter-spacing:6px;">&#10052; &nbsp; DAHRIOLA &nbsp; &#10052;</div>`
-    : `<div style="background:#111;color:#fff;text-align:center;padding:10px 0;font-size:12px;letter-spacing:6px;">DAHRIOLA</div>`;
+  const accent = "#111111";
+  const band = `<div style="background:#111;color:#fff;text-align:center;padding:12px 0;font-size:12px;letter-spacing:6px;">DAHRIOLA</div>`;
 
   return `
-    <div style="background:${festive ? "#F7F2EA" : "#FAFAFA"};padding:24px 0;">
-      <div style="font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid ${festive ? "#E8C77A" : "#e5e5e5"};">
+    <div style="background:#F6F4EF;padding:24px 0;">
+      <div style="font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e8e3d9;">
         ${band}
         ${event.flyerUrl ? `<img src="${event.flyerUrl}?w=1120&fit=max" alt="${escapeHtml(event.title)}" style="display:block;width:100%;height:auto;" />` : ""}
         <div style="padding:28px 28px 8px;">
@@ -507,7 +507,7 @@ async function eventAttachments(event: EventSummary, recipient: RsvpRecipient) {
   const qr = await QRCode.toBuffer(checkInUrl(recipient.ticketCode), { width: 360, margin: 1 });
   return {
     qrHtml: `
-      <div style="text-align:center;border:1px dashed #E8C77A;padding:18px;margin:20px 0;">
+      <div style="text-align:center;border:1px dashed #778472;padding:18px;margin:20px 0;">
         <p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#777;margin:0 0 10px;">YOUR TICKET</p>
         <img src="cid:ticket-qr" alt="Ticket QR code" width="180" height="180" style="display:inline-block;" />
         <p style="font-family:Arial,sans-serif;font-size:22px;letter-spacing:4px;font-weight:bold;margin:10px 0 0;">${escapeHtml(recipient.ticketCode)}</p>
@@ -531,7 +531,7 @@ export async function sendRsvpConfirmation(event: EventSummary, recipient: RsvpR
     const inner = `
       <h1 style="font-weight:normal;font-size:28px;margin:0 0 12px;">You're on the list${firstName ? `, ${escapeHtml(firstName)}` : ""}!</h1>
       <p style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;margin:0;">
-        Thank you for registering for <strong>${escapeHtml(event.title)}</strong>. We can't wait to celebrate the season with you.
+        Thank you for registering for <strong>${escapeHtml(event.title)}</strong>. We can't wait to see you there.
       </p>
       ${qrHtml}
     `;

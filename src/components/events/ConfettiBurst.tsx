@@ -10,7 +10,7 @@ function rand(seed: number) {
   return x - Math.floor(x);
 }
 
-const COLORS = ["#E8C77A", "#9E1B32", "#F7F2EA", "#C9A24E", "#D94A64", "#2E7D5B"];
+const COLORS = ["#778472", "#B2AC88", "#A9BA9D", "#1a1a1a", "#E8E4DA", "#5E6B5A"];
 
 export default function ConfettiBurst({ pieces = 70 }: { pieces?: number }) {
   const reduce = useReducedMotion();

@@ -87,14 +87,14 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
             href={googleCalendarUrl(event)}
             target="_blank"
             rel="noopener noreferrer"
-            className="festive-btn inline-flex items-center justify-center gap-2 px-5 py-3 text-xs uppercase tracking-[0.2em]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-neutral-950 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-white"
           >
             <CalendarPlus size={14} /> Google Calendar
           </a>
           <button
             type="button"
             onClick={downloadIcs}
-            className="festive-btn-outline inline-flex items-center justify-center gap-2 px-5 py-3 text-xs uppercase tracking-[0.2em]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-neutral-300 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-900 hover:border-neutral-950"
           >
             <Download size={14} /> Apple / Outlook
           </button>
@@ -138,7 +138,7 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
       <button
         type="submit"
         disabled={loading}
-        className="festive-btn w-full py-4 flex justify-center items-center gap-3 text-xs uppercase tracking-[0.25em] disabled:opacity-60"
+        className="w-full h-12 rounded-full bg-neutral-950 text-white flex justify-center items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-neutral-800 transition disabled:opacity-60"
       >
         {loading ? <Loader2 size={16} className="animate-spin" /> : <>Reserve my spot <ArrowRight size={16} /></>}
       </button>

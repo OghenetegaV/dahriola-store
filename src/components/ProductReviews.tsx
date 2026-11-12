@@ -177,7 +177,7 @@ export default function ProductReviews({
   };
 
   return (
-    <section className="mt-20 overflow-hidden rounded-[2rem] bg-[#11140f] text-white">
+    <section id="reviews" className="mt-20 scroll-mt-28 overflow-hidden rounded-[2rem] bg-[#11140f] text-white">
       <div className="grid lg:grid-cols-[0.85fr_1.15fr]">
         <div className="relative p-7 md:p-10 lg:p-12 bg-[#778472]">
           <div className="mt-8 rounded-2xl bg-white/10 backdrop-blur p-5 border border-white/15">

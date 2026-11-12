@@ -5,6 +5,7 @@ import RelatedProducts from "@/src/components/RelatedProducts";
 import PriceDisplay from "@/src/components/PriceDisplay";
 import WishlistButton from "@/src/components/WishlistButton";
 import ProductPageClient from "@/src/components/ProductPageClient";
+import { getMarketingSettings } from "@/src/lib/marketing";
 import { Metadata } from "next";
 import imageUrlBuilder from "@sanity/image-url";
 import Link from "next/link";
@@ -96,6 +97,7 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
   const product = await getProduct(slug);
+  const marketing = await getMarketingSettings().catch(() => ({ backInStockEnabled: false }));
 
   if (!product) notFound();
 
@@ -155,7 +157,7 @@ export default async function ProductPage({
               </section>
 
               {/* CLIENT INTERACTIVE SECTION */}
-              <ProductPageClient product={product} />
+              <ProductPageClient product={product} backInStock={marketing.backInStockEnabled} />
             </div>
           </div>
         </div>

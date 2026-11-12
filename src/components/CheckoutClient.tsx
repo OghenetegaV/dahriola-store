@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { urlFor } from "@/src/lib/sanity";
 import { getUpsellProducts } from "@/src/app/actions/catalog";
+import { restoreCheckout, saveCheckoutProgress } from "@/src/app/actions/abandonedCart";
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -136,6 +137,40 @@ export default function CheckoutClient() {
       giftListId: i.giftListId,
       giftItemKey: i.giftItemKey,
     }));
+
+  // Save the bag once an email is entered, so we can send one reminder if
+  // the shopper doesn't finish (see Marketing Settings in Studio).
+  useEffect(() => {
+    const email = formData.email.trim();
+    if (!hasHydrated || !cart.length || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    const timer = setTimeout(() => {
+      saveCheckoutProgress({ email, name: `${firstName} ${lastName}`.trim(), items: checkoutItems() }).catch(() => {});
+    }, 2500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, formData.email, firstName, lastName, cart]);
+
+  // "Complete my order" link from the reminder email: bring the saved bag back
+  useEffect(() => {
+    if (!hasHydrated) return;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("restore");
+    const token = params.get("t");
+    if (!id || !token) return;
+    window.history.replaceState(null, "", "/checkout");
+    restoreCheckout(id, token)
+      .then((saved) => {
+        if (!saved?.items.length) return;
+        clearCart();
+        saved.items.forEach((item) => addItem(item));
+        const [first, ...rest] = saved.name.split(/\s+/);
+        setFirstName(first || "");
+        setLastName(rest.join(" "));
+        setFormData((prev) => ({ ...prev, email: saved.email, name: saved.name }));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated]);
 
   const deliveryAddress = () => ({
     line1: formData.address,
@@ -584,6 +619,9 @@ export default function CheckoutClient() {
                   />
                   Email me with news and offers
                 </label>
+                <p className="mt-1.5 text-[11px] text-neutral-400">
+                  We&apos;ll save your bag. If you don&apos;t finish checking out, we may send you one reminder.
+                </p>
               </div>
 
               <div>
@@ -592,7 +630,7 @@ export default function CheckoutClient() {
                 </h2>
 
                 {giftActive && giftSummary && (
-                  <div className="mb-5 rounded-xl border border-[#E8C77A] bg-[#fdf9f0] p-4">
+                  <div className="mb-5 rounded-xl border border-brand-beryl/40 bg-brand-beryl/5 p-4">
                     <p className="flex items-center gap-2 text-[13px] font-semibold text-black">
                       <Gift size={15} /> You&apos;re sending a gift to {giftSummary.ownerFirstName}
                     </p>
@@ -905,7 +943,7 @@ export default function CheckoutClient() {
                         Size: {item.size} • Qty: {item.quantity}
                       </p>
                       {item.giftListId && (
-                        <p className="text-[11px] text-[#9E1B32] mt-0.5 inline-flex items-center gap-1">
+                        <p className="text-[11px] text-brand-beryl mt-0.5 inline-flex items-center gap-1">
                           <Gift size={11} /> Gift for {item.giftOwnerName || "someone special"}
                         </p>
                       )}
