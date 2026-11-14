@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CalendarPlus, Download, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { submitRsvp } from "@/src/app/actions/rsvp";
 import { trackRsvp } from "@/src/lib/analytics";
-import { motion } from "framer-motion";
-import ConfettiBurst from "./events/ConfettiBurst";
 import { type EventSummary, buildIcs, googleCalendarUrl } from "@/src/lib/events";
+
+const label = "block text-[9px] uppercase tracking-widest text-neutral-400 font-bold ml-1 mb-1.5";
+const input =
+  "w-full bg-neutral-50 border-none rounded-xl px-4 py-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:ring-1 focus:ring-neutral-300 transition-all";
 
 export default function RsvpForm({ event }: { event: EventSummary }) {
   const maxGuests = Math.max(0, event.maxGuests ?? 1);
@@ -56,91 +59,130 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
   }
 
   if (!event.rsvpOpen) {
-    return <p className="text-sm uppercase tracking-[0.25em]">RSVPs are closed for this event.</p>;
+    return (
+      <p className="rounded-xl bg-neutral-50 px-5 py-4 text-sm text-neutral-500">
+        RSVPs for this event are now closed.
+      </p>
+    );
   }
 
   if (result) {
     return (
-      <motion.div
-        className="relative text-center py-6"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
-      >
-        {!result.alreadyRegistered && <ConfettiBurst />}
-        <p className="text-[10px] uppercase tracking-[0.4em] opacity-70">
-          {result.alreadyRegistered ? "You're already registered" : "You're on the list"}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-beryl/10 text-brand-beryl">
+          <Check size={20} strokeWidth={2} />
+        </div>
+        <h3 className="mt-5 font-display text-3xl tracking-[-0.03em] text-black">
+          {result.alreadyRegistered ? "You're already on the list" : "You're on the list"}
+        </h3>
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-neutral-500">
+          {result.alreadyRegistered
+            ? "We've sent your ticket to your inbox again."
+            : "Your ticket is on its way to your inbox. Show the QR code at the door."}
         </p>
-        <motion.p
-          className="font-display text-5xl tracking-[0.12em] mt-4 shimmer-text"
-          initial={{ opacity: 0, y: 20, letterSpacing: "0.6em" }}
-          animate={{ opacity: 1, y: 0, letterSpacing: "0.12em" }}
-          transition={{ delay: 0.3, duration: 0.9 }}
-        >
-          {result.ticketCode}
-        </motion.p>
-        <p className="mt-3 text-sm opacity-80">
-          Your ticket and QR code are on their way to your inbox. Show it at the door.
-        </p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+
+        <div className="mx-auto mt-8 max-w-xs rounded-2xl border border-neutral-200 px-6 py-5">
+          <p className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold">Ticket code</p>
+          <p className="mt-2 font-display text-3xl tracking-[0.18em] text-black">{result.ticketCode}</p>
+        </div>
+
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <a
             href={googleCalendarUrl(event)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-neutral-950 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-white"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-black px-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800"
           >
-            <CalendarPlus size={14} /> Google Calendar
+            Add to Google Calendar
           </a>
           <button
             type="button"
             onClick={downloadIcs}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-neutral-300 px-6 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-900 hover:border-neutral-950"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 px-6 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-900 transition hover:border-black"
           >
-            <Download size={14} /> Apple / Outlook
+            Apple / Outlook
           </button>
         </div>
       </motion.div>
     );
   }
 
-  const field = "w-full bg-transparent border-b border-current/30 pb-3 text-sm focus:outline-none focus:border-current placeholder:opacity-60";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <input required placeholder="Full Name" value={form.name} onChange={(e) => update("name", e.target.value)} className={field} />
-      <input required type="email" placeholder="Email" value={form.email} onChange={(e) => update("email", e.target.value)} className={field} />
-      <input type="tel" placeholder="Phone (WhatsApp)" value={form.phone} onChange={(e) => update("phone", e.target.value)} className={field} />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div>
+          <label htmlFor="rsvp-name" className={label}>Full name</label>
+          <input id="rsvp-name" required value={form.name} onChange={(e) => update("name", e.target.value)} className={input} placeholder="e.g. Temi Adekoya" />
+        </div>
+        <div>
+          <label htmlFor="rsvp-phone" className={label}>Phone (WhatsApp)</label>
+          <input id="rsvp-phone" type="tel" value={form.phone} onChange={(e) => update("phone", e.target.value)} className={input} placeholder="Optional" />
+        </div>
+      </div>
 
-      {maxGuests > 0 && (
-        <select value={form.guests} onChange={(e) => update("guests", Number(e.target.value))} className={field}>
-          {Array.from({ length: maxGuests + 1 }, (_, n) => (
-            <option key={n} value={n} className="text-black">
-              {n === 0 ? "Just me" : `Me + ${n} guest${n > 1 ? "s" : ""}`}
-            </option>
-          ))}
-        </select>
-      )}
+      <div>
+        <label htmlFor="rsvp-email" className={label}>Email address</label>
+        <input id="rsvp-email" required type="email" value={form.email} onChange={(e) => update("email", e.target.value)} className={input} placeholder="Your ticket will be sent here" />
+      </div>
 
-      <select value={form.source} onChange={(e) => update("source", e.target.value)} className={field}>
-        <option value="" className="text-black">How did you hear about it?</option>
-        {["Instagram", "TikTok", "WhatsApp", "Friend", "Email", "Other"].map((s) => (
-          <option key={s} className="text-black">{s}</option>
-        ))}
-      </select>
+      <div className={`grid grid-cols-1 gap-5 ${maxGuests > 0 ? "md:grid-cols-2" : ""}`}>
+        {maxGuests > 0 && (
+          <div>
+            <label htmlFor="rsvp-guests" className={label}>Guests</label>
+            <select
+              id="rsvp-guests"
+              value={form.guests}
+              onChange={(e) => update("guests", Number(e.target.value))}
+              className={`${input} cursor-pointer appearance-none`}
+            >
+              {Array.from({ length: maxGuests + 1 }, (_, n) => (
+                <option key={n} value={n}>
+                  {n === 0 ? "Just me" : `Me + ${n} guest${n > 1 ? "s" : ""}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label htmlFor="rsvp-source" className={label}>How did you hear about it?</label>
+          <select
+            id="rsvp-source"
+            value={form.source}
+            onChange={(e) => update("source", e.target.value)}
+            className={`${input} cursor-pointer appearance-none ${form.source ? "" : "text-neutral-400"}`}
+          >
+            <option value="">Select one</option>
+            {["Instagram", "TikTok", "WhatsApp", "A friend", "Email", "Other"].map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-      <label className="flex items-start gap-3 text-xs opacity-80">
-        <input type="checkbox" checked={form.marketingOptIn} onChange={(e) => update("marketingOptIn", e.target.checked)} className="mt-0.5" />
+      <label className="flex cursor-pointer items-start gap-3 pt-1 text-[13px] leading-5 text-neutral-500">
+        <input
+          type="checkbox"
+          checked={form.marketingOptIn}
+          onChange={(e) => update("marketingOptIn", e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-black"
+        />
         Keep me updated on DAHRIOLA events, launches and offers.
       </label>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full h-12 rounded-full bg-neutral-950 text-white flex justify-center items-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-neutral-800 transition disabled:opacity-60"
+        className="group flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-[11px] font-bold uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800 disabled:opacity-60"
       >
-        {loading ? <Loader2 size={16} className="animate-spin" /> : <>Reserve my spot <ArrowRight size={16} /></>}
+        {loading ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <>
+            Reserve my place <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+          </>
+        )}
       </button>
     </form>
   );

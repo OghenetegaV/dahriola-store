@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 type Props = {
   target: string; // ISO date
-  variant?: "boxes" | "inline" | "flip";
+  variant?: "boxes" | "inline" | "flip" | "minimal";
   className?: string;
 };
 
@@ -39,7 +39,7 @@ export default function EventCountdown({ target, variant = "boxes", className = 
       <div
         className={className}
         aria-hidden="true"
-        style={{ minHeight: variant === "flip" ? 110 : variant === "boxes" ? 64 : 16 }}
+        style={{ minHeight: variant === "flip" ? 110 : variant === "minimal" ? 58 : variant === "boxes" ? 64 : 16 }}
       />
     );
   }
@@ -53,6 +53,32 @@ export default function EventCountdown({ target, variant = "boxes", className = 
       <span className={className}>
         {time.days}d {String(time.hours).padStart(2, "0")}h {String(time.minutes).padStart(2, "0")}m
       </span>
+    );
+  }
+
+  // Quiet, typographic: serif numbers separated by hairlines
+  if (variant === "minimal") {
+    const units = [
+      { label: "Days", value: time.days },
+      { label: "Hours", value: time.hours },
+      { label: "Min", value: time.minutes },
+      { label: "Sec", value: time.seconds },
+    ];
+    return (
+      <div
+        className={`flex divide-x divide-neutral-200 ${className}`}
+        role="timer"
+        aria-label={`${time.days} days ${time.hours} hours ${time.minutes} minutes to go`}
+      >
+        {units.map((u) => (
+          <div key={u.label} className="flex-1 px-3 text-center first:pl-0 last:pr-0">
+            <div className="font-display text-3xl leading-none tracking-[-0.02em] text-black tabular-nums">
+              {String(u.value).padStart(2, "0")}
+            </div>
+            <div className="mt-2 text-[9px] font-bold uppercase tracking-widest text-neutral-400">{u.label}</div>
+          </div>
+        ))}
+      </div>
     );
   }
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { PortableTextBlock } from "@portabletext/react";
 import { notFound } from "next/navigation";
 import { client } from "@/src/lib/sanity";
-import EventExperience from "@/src/components/events/EventExperience";
+import UpcomingEvent from "@/src/components/events/EventPage";
 import EventRecap from "@/src/components/events/EventRecap";
 import {
   EVENT_RECAP_FIELDS,
@@ -49,5 +49,5 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // Once the event is over, the page becomes its recap
   if (isEventPast(event)) return <EventRecap event={event} />;
 
-  return <EventExperience event={event} description={event.description as PortableTextBlock[] | undefined} isPast={false} />;
+  return <UpcomingEvent event={event} description={event.description as PortableTextBlock[] | undefined} />;
 }

@@ -79,7 +79,7 @@ export default async function EventsPage() {
                         </p>
                       )}
                     </div>
-                    <EventCountdown target={event.startDate} variant="flip" className="mt-7 max-w-md" />
+                    <EventCountdown target={event.startDate} variant="minimal" className="mt-8 max-w-sm" />
                     <span className="mt-8 inline-flex h-12 items-center gap-2 self-start rounded-full bg-neutral-950 px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white">
                       {event.rsvpOpen ? "RSVP now" : "View event"}
                       <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
