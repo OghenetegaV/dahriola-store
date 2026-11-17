@@ -299,7 +299,7 @@ async function main() {
 
   // 4. Pop-up announcement — DRAFT campaign (never sent by this script)
   if (event) {
-    const name = `DRAFT · Pop-up announcement · ${event.title}`;
+    const name = "DRAFT · Pop-up announcement";
     const html = brandEmail({
       preheader: `${formatEventDateRange(event, { weekday: false })} · ${event.venueAddress || "Lagos"}. RSVP now.`,
       eyebrow: "YOU'RE INVITED",
@@ -323,7 +323,7 @@ async function main() {
       replyTo: REPLY_TO,
       htmlContent: html,
       recipients: { listIds: lists },
-      tag: "popup-announcement",
+      // Campaign tags need a paid Brevo plan; links already carry utm_campaign=popup-announcement
     };
     const drafts = await brevo("GET", "/emailCampaigns?status=draft&limit=100");
     const found = (drafts.data?.campaigns || []).find((c: any) => c.name === name);
