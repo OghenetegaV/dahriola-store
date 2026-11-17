@@ -2,7 +2,7 @@
 //   npx tsx scripts/brevo-setup.ts
 // Creates (or updates, matched by name) the branded email templates used by
 // Brevo journeys and campaigns, refreshes contact attributes, and creates the
-// pop-up announcement as a DRAFT campaign. Nothing is ever sent by this script.
+// campaign calendar as DRAFT campaigns. Nothing is ever sent by this script.
 import fs from "fs";
 
 for (const line of fs.readFileSync(".env.local", "utf8").split(/\r?\n/)) {
@@ -297,40 +297,159 @@ async function main() {
     console.log(`${res.ok ? "✓" : "✗"} template ${found ? "updated" : "created"}: ${t.name}${res.ok ? "" : ` (${res.status} ${JSON.stringify(res.data)})`}`);
   }
 
-  // 4. Pop-up announcement — DRAFT campaign (never sent by this script)
-  if (event) {
-    const name = "DRAFT · Pop-up announcement";
-    const html = brandEmail({
-      preheader: `${formatEventDateRange(event, { weekday: false })} · ${event.venueAddress || "Lagos"}. RSVP now.`,
-      eyebrow: "YOU'RE INVITED",
-      title: "A weekend with DAHRIOLA",
-      image: event.flyerUrl ? `${event.flyerUrl}?w=1120&fit=max&auto=format` : undefined,
-      body: `${hi}${p(`We're opening our doors in Lagos for a weekend pop-up, and we'd love you to be there. See the collection up close, try on your favourite pieces and meet the team behind DAHRIOLA.`)}
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0;border-top:1px solid #ECE9E4;border-bottom:1px solid #ECE9E4;">
-          <tr><td style="padding:12px 0;font-size:10px;font-weight:bold;letter-spacing:2px;color:#9a958d;width:90px;">DATES</td><td style="padding:12px 0;font-size:14px;color:#111;">${formatEventDateRange(event)}</td></tr>
+  // 4. Campaign calendar — all created as DRAFTS (never sent or scheduled by this script).
+  // The send date is in each name; open the draft in Brevo, send yourself a test, then send/schedule.
+  const L = (k: string) => Number(process.env[k]) || 0;
+  const NEWS = L("BREVO_LIST_NEWSLETTER") || 3;
+  const CUST = L("BREVO_LIST_CUSTOMERS") || 4;
+  const RSVP = L("BREVO_LIST_EVENTS") || 5;
+  const everyone = [NEWS, CUST, RSVP];
+  const flyer = event?.flyerUrl ? `${event.flyerUrl}?w=1120&fit=max&auto=format` : undefined;
+  const eventPath = event?.slug ? `/events/${event.slug}` : "/events";
+  const dates = event ? formatEventDateRange(event) : "";
+  const shortDates = event ? formatEventDateRange(event, { weekday: false }) : "";
+  const venue = event?.venueAddress || "Lagos";
+  const factsTable = event
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0;border-top:1px solid #ECE9E4;border-bottom:1px solid #ECE9E4;">
+          <tr><td style="padding:12px 0;font-size:10px;font-weight:bold;letter-spacing:2px;color:#9a958d;width:90px;">DATES</td><td style="padding:12px 0;font-size:14px;color:#111;">${dates}</td></tr>
           <tr><td style="padding:12px 0;font-size:10px;font-weight:bold;letter-spacing:2px;color:#9a958d;border-top:1px solid #ECE9E4;">HOURS</td><td style="padding:12px 0;font-size:14px;color:#111;border-top:1px solid #ECE9E4;">${formatEventHours(event)}</td></tr>
-          <tr><td style="padding:12px 0;font-size:10px;font-weight:bold;letter-spacing:2px;color:#9a958d;border-top:1px solid #ECE9E4;">VENUE</td><td style="padding:12px 0;font-size:14px;color:#111;border-top:1px solid #ECE9E4;">${event.venueAddress || "Lagos"}</td></tr>
-        </table>
-        ${p("Entry is by RSVP, so reserve your place below and we'll email your ticket.")}
-        ${button(link("/rsvp", "popup-announcement"), "Reserve my place")}`,
-    });
-    const lists = ["BREVO_LIST_NEWSLETTER", "BREVO_LIST_CUSTOMERS", "BREVO_LIST_EVENTS"].map((k) => Number(process.env[k])).filter(Boolean);
-    const payload = {
-      name,
+          <tr><td style="padding:12px 0;font-size:10px;font-weight:bold;letter-spacing:2px;color:#9a958d;border-top:1px solid #ECE9E4;">VENUE</td><td style="padding:12px 0;font-size:14px;color:#111;border-top:1px solid #ECE9E4;">${venue}</td></tr>
+        </table>`
+    : "";
+  const softLink = (href: string, label: string) =>
+    `<p style="margin:6px 0 0;text-align:center;font-size:12px;"><a href="${href}" style="color:#3d3a36;">${label}</a></p>`;
+  const panel = (heading: string, text: string) =>
+    `<div style="margin:30px 0 0;padding:22px 24px;background:#F7F6F5;border-radius:16px;">
+       <p style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:19px;color:#111;">${heading}</p>
+       <p style="margin:0;font-size:14px;">${text}</p>
+     </div>`;
+
+  type Campaign = { name: string; oldNames?: string[]; subject: string; preview: string; lists: number[]; exclude?: number[]; html: string; needsEvent?: boolean };
+  const C: Campaign[] = [
+    {
+      name: "1 · Thu 19 Nov · Pop-up announcement",
+      oldNames: ["DRAFT · Pop-up announcement"],
+      needsEvent: true,
       subject: "You're invited: a weekend with DAHRIOLA in Lagos",
-      previewText: `${formatEventDateRange(event, { weekday: false })} · RSVP now`,
+      preview: `${shortDates} · RSVP now`,
+      lists: everyone,
+      html: brandEmail({
+        preheader: `${shortDates} · ${venue}. RSVP now.`,
+        eyebrow: "YOU'RE INVITED",
+        title: "A weekend with DAHRIOLA",
+        image: flyer,
+        body: `${hi}${p("We're opening our doors in Lagos for a weekend pop-up, and we'd love you to be there. See the collection up close, try on your favourite pieces and meet the team behind DAHRIOLA.")}
+          ${factsTable}
+          ${p("Entry is by RSVP, so reserve your place below and we'll email your ticket.")}
+          ${button(link("/rsvp", "popup-announcement"), "Reserve my place")}`,
+      }),
+    },
+    {
+      name: "2 · Thu 3 Dec · A first look at the pop-up",
+      needsEvent: true,
+      subject: "A first look at what's coming to Lagos",
+      preview: "The pieces you can try on at the pop-up",
+      lists: everyone,
+      html: brandEmail({
+        preheader: "The pieces you can try on at the pop-up.",
+        eyebrow: "TWO WEEKS TO GO",
+        title: "A first look",
+        body: `${hi}${p("In just over two weeks we'll be in Lagos, and these are some of the pieces you'll be able to see, touch and try on. Every one is made to order, so at the pop-up you can also talk to us about fit, length and prints.")}
+          ${productGrid(newest, "popup-first-look")}
+          ${p(`<span style="display:block;margin-top:22px;text-align:center;">${dates} · ${venue}</span>`)}
+          ${button(link("/rsvp", "popup-first-look"), "Reserve my place")}
+          ${softLink(link("/category/all", "popup-first-look"), "Or shop online now")}`,
+      }),
+    },
+    {
+      name: "3 · Tue 8 Dec · Gift guide",
+      subject: "Gifts they'll actually wear",
+      preview: "Plus: share your wishlist so they get it right",
+      lists: everyone,
+      html: brandEmail({
+        preheader: "Plus: share your wishlist so they get it right.",
+        eyebrow: "THE GIFT EDIT",
+        title: "Gifts they'll actually wear",
+        body: `${hi}${p("It's gifting season, and nothing says &ldquo;I thought of you&rdquo; like a piece made just for them. A few of our favourites to give (or to keep):")}
+          ${productGrid(newest, "gift-guide")}
+          ${more === newest ? "" : productGrid(more, "gift-guide")}
+          ${panel("Hoping someone gets you something?", "Save the pieces you love with your size, print and fit, then share your wishlist. Whoever buys it pays online and we deliver straight to you. We can even keep it a surprise.")}
+          ${button(link("/wishlist", "gift-guide"), "Share my wishlist")}
+          ${softLink(link("/category/all", "gift-guide"), "Shop all gifts")}`,
+      }),
+    },
+    {
+      name: "4 · Wed 16 Dec · Last call to RSVP (not sent to people who RSVP'd)",
+      needsEvent: true,
+      subject: "Last call: the DAHRIOLA pop-up is this weekend",
+      preview: "There's still time to reserve your place",
+      lists: [NEWS, CUST],
+      exclude: [RSVP],
+      html: brandEmail({
+        preheader: "There's still time to reserve your place.",
+        eyebrow: "THIS WEEKEND",
+        title: "We'd love to see you there",
+        image: flyer,
+        body: `${hi}${p("Our Lagos pop-up opens this weekend and we haven't got your RSVP yet. It only takes a minute, and we'll email your ticket straight away.")}
+          ${factsTable}
+          ${button(link("/rsvp", "popup-last-call"), "Reserve my place")}`,
+      }),
+    },
+    {
+      name: "5 · Tue 22 Dec · Missed the pop-up? (not sent to people who RSVP'd)",
+      needsEvent: true,
+      subject: "Missed the pop-up? Here's what you missed",
+      preview: "Everything from the weekend is online",
+      lists: [NEWS, CUST],
+      exclude: [RSVP],
+      html: brandEmail({
+        preheader: "Everything from the weekend is online.",
+        eyebrow: "THANK YOU, LAGOS",
+        title: "What a weekend",
+        body: `${hi}${p("Thank you to everyone who came out to our Lagos pop-up. If you couldn't make it, you can see the photos from the weekend and shop every piece online.")}
+          ${productGrid(newest, "popup-missed")}
+          ${button(link(eventPath, "popup-missed"), "See the weekend")}
+          ${softLink(link("/category/all", "popup-missed"), "Shop online")}`,
+      }),
+    },
+    {
+      name: "6 · Sat 2 Jan · New year, made for you",
+      subject: "Start the year in something made for you",
+      preview: "New pieces, and bespoke made to your measurements",
+      lists: everyone,
+      html: brandEmail({
+        preheader: "New pieces, and bespoke made to your measurements.",
+        eyebrow: "HAPPY NEW YEAR",
+        title: "Made for you, this year",
+        body: `${hi}${p("Thank you for being part of DAHRIOLA last year. If this is the year you treat yourself to something that fits just right, here's where to start.")}
+          ${productGrid(newest, "new-year")}
+          ${panel("Something only you have", "Tell us what you have in mind and we'll make it to your measurements, in the print you choose.")}
+          ${button(link("/bespoke", "new-year"), "Start a bespoke piece")}
+          ${softLink(link("/category/all", "new-year"), "Shop the collection")}`,
+      }),
+    },
+  ];
+
+  const drafts = await brevo("GET", "/emailCampaigns?status=draft&limit=100");
+  const draftList: any[] = drafts.data?.campaigns || [];
+  for (const c of C) {
+    if (c.needsEvent && !event) {
+      console.log(`- skipped (no upcoming event): ${c.name}`);
+      continue;
+    }
+    const payload = {
+      name: c.name,
+      subject: c.subject,
+      previewText: c.preview,
       sender: SENDER,
       replyTo: REPLY_TO,
-      htmlContent: html,
-      recipients: { listIds: lists },
-      // Campaign tags need a paid Brevo plan; links already carry utm_campaign=popup-announcement
+      htmlContent: c.html,
+      recipients: { listIds: c.lists, ...(c.exclude ? { exclusionListIds: c.exclude } : {}) },
+      // Campaign tags need a paid Brevo plan; every link carries utm_campaign instead
     };
-    const drafts = await brevo("GET", "/emailCampaigns?status=draft&limit=100");
-    const found = (drafts.data?.campaigns || []).find((c: any) => c.name === name);
+    const found = draftList.find((d) => d.name === c.name || c.oldNames?.includes(d.name));
     const res = found ? await brevo("PUT", `/emailCampaigns/${found.id}`, payload) : await brevo("POST", "/emailCampaigns", { ...payload, type: "classic" });
-    console.log(`${res.ok ? "✓" : "✗"} draft campaign ${found ? "updated" : "created"}: ${name}${res.ok ? "" : ` (${res.status} ${JSON.stringify(res.data)})`}`);
-  } else {
-    console.log("no upcoming event found — skipped the pop-up announcement draft");
+    console.log(`${res.ok ? "✓" : "✗"} draft campaign ${found ? "updated" : "created"}: ${c.name}${res.ok ? "" : ` (${res.status} ${JSON.stringify(res.data)})`}`);
   }
 }
 
