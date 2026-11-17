@@ -20,6 +20,7 @@ import { sendGiftReceivedEmail, sendOrderReceiptEmail } from "@/src/lib/mailer";
 import { getMarketingSettings, syncCustomerToBrevo } from "@/src/lib/marketing";
 import { trackUrl } from "@/src/lib/orderStatus";
 import { markCartRecovered } from "@/src/lib/abandonedCarts";
+import { trackBrevoEvent } from "@/src/lib/brevo";
 import { writeClient } from "@/src/lib/sanityWrite";
 import { randomId } from "@/src/lib/signing";
 
@@ -280,6 +281,18 @@ export async function completeCheckout(input: CompleteInput) {
 
       try {
         await syncCustomerToBrevo(customer.email);
+        await trackBrevoEvent(customer.email, "order_completed", {
+          order_id: reference,
+          value: c.total,
+          subtotal: c.subtotal,
+          shipping: c.shipping,
+          discount: c.discount,
+          coupon: c.couponCode,
+          currency: "NGN",
+          item_count: c.lines.reduce((n, l) => n + l.quantity, 0),
+          items: c.lines.map((l) => ({ name: l.name, price: l.price, quantity: l.quantity, size: l.size })),
+          is_gift: !!gift,
+        });
       } catch (err) {
         console.error("Brevo sync failed:", err);
       }

@@ -3,8 +3,8 @@
 // from the store's Gmail account. Only server code (checkout, RSVP, cron,
 // API routes) imports them.
 
-import nodemailer from "nodemailer";
-import QRCode from "qrcode";
+import { deliverEmail } from "@/src/lib/emailDelivery";
+import { ticketQrToken } from "@/src/lib/signing";
 import {
   type EventSummary,
   buildIcs,
@@ -15,37 +15,10 @@ import {
   SITE_URL,
 } from "@/src/lib/events";
 
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-
-  if (!value) {
-    throw new Error(`${name} is missing from environment variables.`);
-  }
-
-  return value;
-}
-
-function getTransporter() {
-  const gmailUser = requireEnv("GMAIL_USER");
-  const gmailPass = requireEnv("GMAIL_PASS");
-
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: gmailUser,
-      pass: gmailPass,
-    },
-  });
-}
-
 function getStoreEmail() {
   return (
     process.env.STORE_NOTIFICATION_EMAIL?.trim() || "info.dahriola@gmail.com"
   );
-}
-
-function getSenderEmail() {
-  return requireEnv("GMAIL_USER");
 }
 
 function escapeHtml(value: any) {
@@ -83,11 +56,7 @@ export async function sendOrderNotification(orderData: {
   textOptIn?: boolean;           // NEW — marketing consent (SMS/text)
 }) {
   try {
-    const transporter = getTransporter();
-    const senderEmail = getSenderEmail();
     const storeEmail = getStoreEmail();
-
-    await transporter.verify();
 
     const currency = orderData.currency || "NGN";
 
@@ -201,7 +170,7 @@ export async function sendOrderNotification(orderData: {
       .join("");
 
     const mailOptions = {
-      from: `"Dahriola Store" <${senderEmail}>`,
+      fromName: "DAHRIOLA Store",
       to: storeEmail,
       replyTo: orderData.customerEmail,
       subject: `New Order — ${escapeHtml(orderData.customerName)} · ${fmtMoney(
@@ -310,12 +279,8 @@ export async function sendOrderNotification(orderData: {
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("Order email sent:", {
-      messageId: info.messageId,
-      to: storeEmail,
-    });
+    const result = await deliverEmail({ ...mailOptions, tag: "store-new-order", replyTo: orderData.customerEmail || undefined, noUtm: true });
+    if (!result.ok) throw new Error(result.error || "Order email failed");
 
     return { success: true };
   } catch (error: any) {
@@ -345,11 +310,7 @@ export async function sendLowStockNotification({
   threshold: number;
 }) {
   try {
-    const transporter = getTransporter();
-    const senderEmail = getSenderEmail();
     const storeEmail = getStoreEmail();
-
-    await transporter.verify();
 
     const isOutOfStock = remainingStock <= 0;
 
@@ -358,7 +319,7 @@ export async function sendLowStockNotification({
       : `Low Stock Alert: ${printName}`;
 
     const mailOptions = {
-      from: `"Dahriola Store" <${senderEmail}>`,
+      fromName: "DAHRIOLA Store",
       to: storeEmail,
       subject,
       html: `
@@ -380,12 +341,8 @@ export async function sendLowStockNotification({
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("Low stock email sent:", {
-      messageId: info.messageId,
-      to: storeEmail,
-    });
+    const result = await deliverEmail({ ...mailOptions, tag: "store-low-stock", noUtm: true });
+    if (!result.ok) throw new Error(result.error || "Low stock email failed");
 
     return { success: true };
   } catch (error: any) {
@@ -415,13 +372,12 @@ export async function sendNewsletterWelcome({
   code: string;
 }) {
   try {
-    const transporter = getTransporter();
-    const senderEmail = getSenderEmail();
     const firstName = String(name || "").trim().split(" ")[0];
 
-    const info = await transporter.sendMail({
-      from: `"Dahriola" <${senderEmail}>`,
+    const result = await deliverEmail({
+      tag: "newsletter-welcome",
       to: email,
+      toName: name || undefined,
       subject: "Welcome to Dahriola — your 10% off code",
       html: `
         <div style="font-family: Arial, sans-serif; color: #111; max-width: 520px; margin: 0 auto;">
@@ -440,10 +396,7 @@ export async function sendNewsletterWelcome({
       `,
     });
 
-    console.log("Newsletter welcome email sent:", {
-      messageId: info.messageId,
-      to: email,
-    });
+    if (!result.ok) throw new Error(result.error || "Welcome email failed");
 
     return { success: true };
   } catch (error: any) {
@@ -470,10 +423,6 @@ type RsvpRecipient = {
   ticketCode: string;
 };
 
-function checkInUrl(ticketCode: string) {
-  return `${SITE_URL}/events/check-in?code=${encodeURIComponent(ticketCode)}`;
-}
-
 // Wrapper shared by all event emails, in the main DAHRIOLA look.
 function eventEmailShell(event: EventSummary, inner: string) {
   const accent = "#111111";
@@ -496,37 +445,40 @@ function eventEmailShell(event: EventSummary, inner: string) {
             <a href="${googleCalendarUrl(event)}" style="display:inline-block;background:${accent};color:#fff;text-decoration:none;padding:12px 18px;margin:0 8px 8px 0;">Add to Google Calendar</a>
             <a href="${eventUrl(event.slug)}" style="display:inline-block;border:1px solid ${accent};color:${accent};text-decoration:none;padding:11px 18px;margin:0 0 8px;">Event page</a>
           </p>
-          <p style="font-family:Arial,sans-serif;font-size:12px;color:#777;margin:8px 0 0;">Using Apple Calendar or Outlook? Open the attached invite (.ics).</p>
+          <p style="font-family:Arial,sans-serif;font-size:12px;color:#777;margin:8px 0 0;">Using Apple Calendar or Outlook? Open the attached invite (dahriola-event.ics).</p>
         </div>
       </div>
     </div>
   `;
 }
 
+function ticketQrUrl(code: string) {
+  return `${SITE_URL}/api/ticket-qr?code=${encodeURIComponent(code)}&t=${ticketQrToken(code)}`;
+}
+
 async function eventAttachments(event: EventSummary, recipient: RsvpRecipient) {
-  const qr = await QRCode.toBuffer(checkInUrl(recipient.ticketCode), { width: 360, margin: 1 });
   return {
     qrHtml: `
       <div style="text-align:center;border:1px dashed #778472;padding:18px;margin:20px 0;">
         <p style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:3px;color:#777;margin:0 0 10px;">YOUR TICKET</p>
-        <img src="cid:ticket-qr" alt="Ticket QR code" width="180" height="180" style="display:inline-block;" />
+        <img src="${ticketQrUrl(recipient.ticketCode)}" alt="Ticket QR code" width="180" height="180" style="display:inline-block;" />
         <p style="font-family:Arial,sans-serif;font-size:22px;letter-spacing:4px;font-weight:bold;margin:10px 0 0;">${escapeHtml(recipient.ticketCode)}</p>
         <p style="font-family:Arial,sans-serif;font-size:12px;color:#777;margin:6px 0 0;">Show this at the door${recipient.guests ? ` &middot; admits you + ${Number(recipient.guests)}` : ""}</p>
       </div>`,
-    attachments: [{ filename: "ticket.png", content: qr, cid: "ticket-qr" }],
-    icalEvent: {
-      filename: "dahriola-event.ics",
-      method: "PUBLISH",
-      content: buildIcs(event, { name: recipient.name, email: recipient.email }),
-    },
+    attachments: [
+      {
+        filename: "dahriola-event.ics",
+        content: Buffer.from(buildIcs(event, { name: recipient.name, email: recipient.email }), "utf-8"),
+        contentType: "text/calendar",
+      },
+    ],
   };
 }
 
 export async function sendRsvpConfirmation(event: EventSummary, recipient: RsvpRecipient) {
   try {
-    const transporter = getTransporter();
     const firstName = String(recipient.name || "").trim().split(" ")[0];
-    const { qrHtml, attachments, icalEvent } = await eventAttachments(event, recipient);
+    const { qrHtml, attachments } = await eventAttachments(event, recipient);
 
     const inner = `
       <h1 style="font-weight:normal;font-size:28px;margin:0 0 12px;">You're on the list${firstName ? `, ${escapeHtml(firstName)}` : ""}!</h1>
@@ -536,14 +488,15 @@ export async function sendRsvpConfirmation(event: EventSummary, recipient: RsvpR
       ${qrHtml}
     `;
 
-    await transporter.sendMail({
-      from: `"Dahriola" <${getSenderEmail()}>`,
+    const result = await deliverEmail({
+      tag: "rsvp-confirmation",
       to: recipient.email,
+      toName: recipient.name,
       subject: `You're registered: ${event.title}`,
       html: eventEmailShell(event, inner),
       attachments,
-      icalEvent,
     });
+    if (!result.ok) throw new Error(result.error || "RSVP email failed");
 
     return { success: true };
   } catch (error: any) {
@@ -558,9 +511,8 @@ export async function sendEventReminder(
   kind: "48h" | "24h"
 ) {
   try {
-    const transporter = getTransporter();
     const firstName = String(recipient.name || "").trim().split(" ")[0];
-    const { qrHtml, attachments, icalEvent } = await eventAttachments(event, recipient);
+    const { qrHtml, attachments } = await eventAttachments(event, recipient);
     const headline = kind === "48h" ? "Two days to go!" : "See you tomorrow!";
 
     const inner = `
@@ -571,14 +523,15 @@ export async function sendEventReminder(
       ${qrHtml}
     `;
 
-    await transporter.sendMail({
-      from: `"Dahriola" <${getSenderEmail()}>`,
+    const result = await deliverEmail({
+      tag: kind === "48h" ? "event-reminder-2-days" : "event-reminder-1-day",
       to: recipient.email,
+      toName: recipient.name,
       subject: `${headline} ${event.title}`,
       html: eventEmailShell(event, inner),
       attachments,
-      icalEvent,
     });
+    if (!result.ok) throw new Error(result.error || "Reminder email failed");
 
     return { success: true };
   } catch (error: any) {

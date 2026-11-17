@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { trackNewsletterSignUp } from "@/src/lib/analytics";
+import { setIdentity } from "@/src/lib/identityClient";
 
 const DEFAULT_CODE = "WELCOME10";
 const RETIRED_CODES = ["true", "THESOUND", "WELCOME@10"]; // values saved by older versions of the popup
@@ -124,6 +125,7 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
       if (response.ok && data.success) {
         const code = data.code || DEFAULT_CODE;
         if (!data.existing) trackNewsletterSignUp(formData.source);
+        setIdentity(data.did);
         setSubmitted(true);
         setDiscountCode(code);
         try {

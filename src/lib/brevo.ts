@@ -9,6 +9,8 @@
 //   BREVO_LIST_CUSTOMERS
 //   BREVO_LIST_EVENTS
 
+import { identityToken } from "@/src/lib/identity";
+
 const API = "https://api.brevo.com/v3";
 
 export function brevoConfigured() {
@@ -55,6 +57,8 @@ export type BrevoAttributes = Partial<{
   VIP: boolean;
   LAST_EVENT: string;
   HAS_WISHLIST: boolean;
+  /** Signed visitor ID, used in Brevo email links (?did={{ contact.VISITOR_ID }}) */
+  VISITOR_ID: string;
 }>;
 
 const ATTRIBUTE_TYPES: Record<keyof BrevoAttributes, "text" | "float" | "date" | "boolean"> = {
@@ -70,6 +74,7 @@ const ATTRIBUTE_TYPES: Record<keyof BrevoAttributes, "text" | "float" | "date" |
   VIP: "boolean",
   LAST_EVENT: "text",
   HAS_WISHLIST: "boolean",
+  VISITOR_ID: "text",
 };
 
 let attributesEnsured = false;
@@ -93,7 +98,9 @@ export async function upsertContact(
   if (!brevoConfigured() || !email) return false;
   try {
     await ensureBrevoAttributes();
-    const clean = Object.fromEntries(Object.entries(attributes).filter(([, v]) => v !== undefined && v !== ""));
+    const clean = Object.fromEntries(
+      Object.entries({ VISITOR_ID: identityToken(email), ...attributes }).filter(([, v]) => v !== undefined && v !== "")
+    );
     const listIds = lists.map(listId).filter((n): n is number => n !== null);
     const res = await call("POST", "/contacts", {
       email: email.trim().toLowerCase(),
@@ -121,22 +128,31 @@ export async function blacklistContact(email: string) {
   return res.ok;
 }
 
-/** Sends one email through Brevo. Returns false if Brevo isn't set up or fails. */
-export async function sendBrevoEmail(opts: { to: string; name?: string; subject: string; html: string; tags?: string[] }) {
-  const sender = process.env.BREVO_SENDER_EMAIL;
-  if (!brevoConfigured() || !sender) return false;
+/**
+ * Records something a contact did on the site (e.g. "order_completed") so Brevo
+ * automations can start from it. Never throws — tracking must not break the site.
+ */
+export async function trackBrevoEvent(
+  email: string,
+  eventName: string,
+  eventProperties: Record<string, unknown> = {},
+  contactProperties: BrevoAttributes = {}
+) {
+  if (!brevoConfigured() || !email) return false;
   try {
-    const res = await call("POST", "/smtp/email", {
-      sender: { email: sender, name: "DAHRIOLA" },
-      to: [{ email: opts.to, name: opts.name || undefined }],
-      subject: opts.subject,
-      htmlContent: opts.html,
-      tags: opts.tags,
+    const props = Object.fromEntries(Object.entries(eventProperties).filter(([, v]) => v !== undefined && v !== null && v !== ""));
+    const contact = Object.fromEntries(Object.entries(contactProperties).filter(([, v]) => v !== undefined && v !== ""));
+    const res = await call("POST", "/events", {
+      event_name: eventName,
+      event_date: new Date().toISOString(),
+      identifiers: { email_id: email.trim().toLowerCase() },
+      ...(Object.keys(contact).length ? { contact_properties: contact } : {}),
+      ...(Object.keys(props).length ? { event_properties: props } : {}),
     });
-    if (!res.ok) console.error("Brevo send failed:", res.status, res.data);
+    if (!res.ok) console.error(`Brevo event ${eventName} failed:`, res.status, res.data);
     return res.ok;
   } catch (err) {
-    console.error("Brevo send error:", err);
+    console.error(`Brevo event ${eventName} error:`, err);
     return false;
   }
 }

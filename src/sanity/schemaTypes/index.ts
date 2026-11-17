@@ -9,5 +9,6 @@ import rsvp from './rsvp';
 import sharedList from './sharedList';
 import { marketingLog, marketingOptOut, marketingSettings, stockAlert } from './marketing';
 import abandonedCart from './abandonedCart';
+import browseActivity from './browseActivity';
 
-export const schemaTypes = [product, category, print, coupon, review, order, event, rsvp, sharedList, marketingSettings, stockAlert, marketingLog, marketingOptOut, abandonedCart];
+export const schemaTypes = [product, category, print, coupon, review, order, event, rsvp, sharedList, marketingSettings, stockAlert, marketingLog, marketingOptOut, abandonedCart, browseActivity];

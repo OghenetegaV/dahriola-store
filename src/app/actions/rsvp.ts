@@ -3,7 +3,8 @@
 import { randomInt } from "crypto";
 import { writeClient } from "@/src/lib/sanityWrite";
 import { appendRow } from "@/src/lib/googleSheets";
-import { upsertContact } from "@/src/lib/brevo";
+import { trackBrevoEvent, upsertContact } from "@/src/lib/brevo";
+import { identityToken } from "@/src/lib/identity";
 import { optBackIn } from "@/src/lib/marketing";
 import { EVENT_SUMMARY_FIELDS, type EventSummary } from "@/src/lib/events";
 import { sendRsvpConfirmation } from "@/src/app/actions/email";
@@ -39,7 +40,7 @@ export type RsvpInput = {
 };
 
 export type RsvpResult =
-  | { success: true; ticketCode: string; alreadyRegistered?: boolean }
+  | { success: true; ticketCode: string; alreadyRegistered?: boolean; did?: string }
   | { success: false; message: string };
 
 export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
@@ -82,7 +83,7 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
         guests: existing.guests,
         ticketCode: existing.ticketCode,
       });
-      return { success: true, ticketCode: existing.ticketCode, alreadyRegistered: true };
+      return { success: true, ticketCode: existing.ticketCode, alreadyRegistered: true, did: identityToken(email) };
     }
 
     if (event.capacity) {
@@ -147,6 +148,13 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     });
 
     await sendRsvpConfirmation(event, { name, email, guests, ticketCode });
+    await trackBrevoEvent(email, "rsvp_registered", {
+      event_title: event.title,
+      event_date: event.startDate,
+      guests,
+      source,
+      marketing_opt_in: !!input.marketingOptIn,
+    });
 
     if (input.marketingOptIn) {
       try {
@@ -163,7 +171,7 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
       }
     }
 
-    return { success: true, ticketCode };
+    return { success: true, ticketCode, did: identityToken(email) };
   } catch (error: any) {
     console.error("submitRsvp error:", error?.message || error);
     return { success: false, message: "Something went wrong. Please try again." };
@@ -239,6 +247,10 @@ export async function checkInTicket(code: string, passcode: string): Promise<Tic
 
   const checkedInAt = new Date().toISOString();
   await writeClient.patch(found.ticket._id).set({ checkedIn: true, checkedInAt }).commit();
+  await trackBrevoEvent(found.ticket.email, "event_attended", {
+    event_title: found.ticket.eventTitle,
+    guests: found.ticket.guests,
+  });
 
   return lookupTicket(code, passcode);
 }

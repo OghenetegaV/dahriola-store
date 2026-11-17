@@ -259,7 +259,7 @@ export async function runBackInStock(settings: MarketingSettings, budget: Budget
           <p style="font-size:11px;color:#9a9284;margin-top:20px;">You asked us to let you know when this print was back. This is a one-off email.</p>
         </td></tr>
       </table></td></tr></table></body></html>`;
-    const ok = await sendMail({ to: alert.email, subject: `Back in stock: ${alert.printName || "your print"}${p ? ` · ${p.name}` : ""}`, html });
+    const ok = await sendMail({ tag: "back-in-stock", to: alert.email, subject: `Back in stock: ${alert.printName || "your print"}${p ? ` · ${p.name}` : ""}`, html });
     if (ok) {
       await writeClient.patch(alert._id).set({ notifiedAt: new Date().toISOString() }).commit();
       stats.sent++;

@@ -4,6 +4,7 @@ import { writeClient } from "@/src/lib/sanityWrite";
 import { randomId, safeEqual, sha256 } from "@/src/lib/signing";
 import { SITE_URL } from "@/src/lib/events";
 import { sendListCreatedEmail } from "@/src/lib/mailer";
+import { trackBrevoEvent } from "@/src/lib/brevo";
 import { hasUsableAddress, loadListDoc, type ListAddress, type ListItemDoc } from "@/src/lib/sharedLists";
 
 export type ShareItemInput = {
@@ -155,6 +156,12 @@ export async function saveSharedList(input: SaveListInput): Promise<
 
     const shareUrl = `${SITE_URL}/list/${publicId}`;
     if (ownerEmail) {
+      await trackBrevoEvent(ownerEmail, kind === "cart" ? "cart_shared" : "wishlist_shared", {
+        list_url: shareUrl,
+        item_count: newItems.length,
+        items: newItems.map((i) => i.productName).filter(Boolean),
+        has_delivery_address: !!address,
+      });
       await sendListCreatedEmail({
         to: ownerEmail,
         ownerName,

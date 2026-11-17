@@ -2,7 +2,7 @@
 export const CONSENT_KEY = "dahriola_cookie_consent";
 export const OPEN_CONSENT_EVENT = "dahriola:open-cookie-settings";
 
-export type ConsentChoice = { analytics: boolean; decidedAt: string };
+export type ConsentChoice = { analytics: boolean; marketing?: boolean; decidedAt: string };
 
 export function readConsent(): ConsentChoice | null {
   try {
@@ -13,8 +13,8 @@ export function readConsent(): ConsentChoice | null {
   }
 }
 
-export function saveConsent(analytics: boolean) {
-  const choice: ConsentChoice = { analytics, decidedAt: new Date().toISOString() };
+export function saveConsent(analytics: boolean, marketing = analytics) {
+  const choice: ConsentChoice = { analytics, marketing, decidedAt: new Date().toISOString() };
   try {
     localStorage.setItem(CONSENT_KEY, JSON.stringify(choice));
   } catch {}

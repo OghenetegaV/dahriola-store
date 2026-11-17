@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { trackViewItem } from "@/src/lib/analytics";
+import { recordProductView } from "@/src/app/actions/browse";
+import { getIdentity, personalisationAllowed } from "@/src/lib/identityClient";
 import { PortableText } from "@portabletext/react";
 import { ChevronDown, X, Check } from "lucide-react";
 import AddToCartButton from "@/src/components/AddToCartButton";
@@ -115,6 +117,14 @@ export default function ProductPageClient({ product, backInStock = false }: { pr
       category: product.categoryName,
     });
   }, [product._id, product.name, product.priceNGN, product.categoryName]);
+
+  // Personalised emails: remember what a known contact looks at (with consent)
+  useEffect(() => {
+    const visitorId = getIdentity();
+    if (!visitorId || !personalisationAllowed()) return;
+    const timer = setTimeout(() => recordProductView(visitorId, product._id).catch(() => {}), 4000);
+    return () => clearTimeout(timer);
+  }, [product._id]);
 
   const [selectedSize, setSelectedSize] = useState("XS");
   const [selectedPrint, setSelectedPrint] = useState<any | null>(null);

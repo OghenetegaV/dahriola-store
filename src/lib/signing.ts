@@ -73,3 +73,8 @@ export function verifyRate(
   const signatureOk = safeEqual(rate.sig, hmac(ratePayload(rate, addrKey)));
   return { valid: signatureOk && rate.exp > Date.now(), expired: signatureOk && rate.exp <= Date.now(), signatureOk };
 }
+
+// ---- RSVP ticket QR images (served by /api/ticket-qr) ----
+export function ticketQrToken(code: string) {
+  return hmac(`ticket-qr|${String(code).toUpperCase()}`).slice(0, 20);
+}

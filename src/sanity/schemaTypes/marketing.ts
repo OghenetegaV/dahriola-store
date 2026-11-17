@@ -33,6 +33,12 @@ export const marketingSettings = {
     { name: 'shippingEmailsEnabled', title: 'Order status emails', type: 'boolean', initialValue: true,
       description: 'Emails the customer when you change an order\'s status (in production, shipped, delivered…).' },
 
+    { name: 'browseEnabled', title: 'Browse follow-up emails', type: 'boolean', initialValue: true,
+      description: 'For known contacts who allowed personalised emails: the pieces they looked at, then styling, similar items, the brand story and new arrivals over 30 days. Stops when they buy.' },
+    { name: 'browseDiscount', title: 'Browse follow-up discount at day 30 (%)', type: 'number', initialValue: 10,
+      description: '0 = no code. Above 0, the last email includes a personal one-use code.',
+      validation: (Rule: any) => Rule.min(0).max(50) },
+
     { name: 'abandonedCartEnabled', title: 'Abandoned-checkout reminders', type: 'boolean', initialValue: true,
       description: 'One reminder to people who entered their email at checkout but did not pay (sent the next morning).' },
     { name: 'abandonedCartDiscount', title: 'Reminder discount (%)', type: 'number', initialValue: 0,

@@ -9,6 +9,7 @@ export default function CookieConsent() {
   const [open, setOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [analytics, setAnalytics] = useState(true);
+  const [marketing, setMarketing] = useState(true);
 
   useEffect(() => {
     const saved = readConsent();
@@ -16,6 +17,7 @@ export default function CookieConsent() {
     const timer = saved ? undefined : setTimeout(() => setOpen(true), 1500);
     const reopen = () => {
       setAnalytics(readConsent()?.analytics ?? true);
+      setMarketing(readConsent()?.marketing ?? true);
       setShowDetails(true);
       setOpen(true);
     };
@@ -26,8 +28,8 @@ export default function CookieConsent() {
     };
   }, []);
 
-  const decide = (allowAnalytics: boolean) => {
-    saveConsent(allowAnalytics);
+  const decide = (allowAnalytics: boolean, allowMarketing: boolean) => {
+    saveConsent(allowAnalytics, allowMarketing);
     setOpen(false);
   };
 
@@ -45,7 +47,7 @@ export default function CookieConsent() {
         >
           <div className="relative rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.25)]">
             <button
-              onClick={() => decide(false)}
+              onClick={() => decide(false, false)}
               aria-label="Close and decline optional cookies"
               className="absolute right-3 top-3 rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-black"
             >
@@ -60,8 +62,8 @@ export default function CookieConsent() {
             </div>
 
             <p className="mt-3 pr-4 text-[13px] leading-relaxed text-neutral-600">
-              We use essential cookies to keep your bag and wishlist working. With your permission, we&apos;d also like to use
-              analytics cookies to understand how the site is used, so we can improve it.
+              We use essential cookies to keep your bag and wishlist working. With your permission, we&apos;d also like to understand
+              how the site is used and, if you&apos;re subscribed, tailor our emails to the pieces you love.
             </p>
 
             {showDetails && (
@@ -85,13 +87,25 @@ export default function CookieConsent() {
                     className="mt-1 h-4 w-4 shrink-0 accent-[#778472]"
                   />
                 </label>
+                <label className="flex cursor-pointer items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-neutral-900">Personalised emails</p>
+                    <p className="text-neutral-500">If you&apos;re on our list, we&apos;ll use the pieces you view to make our emails more relevant.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={marketing}
+                    onChange={(e) => setMarketing(e.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0 accent-[#778472]"
+                  />
+                </label>
               </div>
             )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {showDetails ? (
                 <button
-                  onClick={() => decide(analytics)}
+                  onClick={() => decide(analytics, marketing)}
                   className="h-10 flex-1 rounded-full bg-neutral-950 px-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white"
                 >
                   Save choices
@@ -99,13 +113,13 @@ export default function CookieConsent() {
               ) : (
                 <>
                   <button
-                    onClick={() => decide(true)}
+                    onClick={() => decide(true, true)}
                     className="h-10 flex-1 rounded-full bg-neutral-950 px-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white"
                   >
                     Accept
                   </button>
                   <button
-                    onClick={() => decide(false)}
+                    onClick={() => decide(false, false)}
                     className="h-10 flex-1 rounded-full border border-neutral-300 px-5 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-900 hover:border-neutral-950"
                   >
                     Decline

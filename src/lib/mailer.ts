@@ -1,6 +1,6 @@
 // Server-only email helpers for gifting. Kept out of the "use server" actions
 // file so they can't be called directly from a browser to send emails.
-import nodemailer from "nodemailer";
+import { deliverEmail, type EmailAttachment } from "@/src/lib/emailDelivery";
 import { type EventRecap, SITE_URL, eventUrl, formatEventDateRange } from "@/src/lib/events";
 
 export function esc(value: unknown) {
@@ -12,21 +12,18 @@ export function esc(value: unknown) {
     .replaceAll("'", "&#039;");
 }
 
-export async function sendMail(opts: { to: string; subject: string; html: string; replyTo?: string }) {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_PASS;
-  if (!user || !pass) {
-    console.error("sendMail: GMAIL_USER / GMAIL_PASS not set");
-    return false;
-  }
-  try {
-    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
-    await transporter.sendMail({ from: `"DAHRIOLA" <${user}>`, ...opts });
-    return true;
-  } catch (err) {
-    console.error("sendMail failed:", err);
-    return false;
-  }
+/** Every email goes through Brevo (see emailDelivery.ts); `tag` names the email type in Brevo's reports. */
+export async function sendMail(opts: {
+  to: string;
+  subject: string;
+  html: string;
+  tag: string;
+  toName?: string;
+  replyTo?: string;
+  attachments?: EmailAttachment[];
+}) {
+  const result = await deliverEmail(opts);
+  return result.ok;
 }
 
 function shell(title: string, body: string) {
@@ -63,7 +60,7 @@ export async function sendListCreatedEmail(p: {
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
     <p style="font-size:13px;color:#555;"><strong>Keep this email.</strong> To edit your ${what}, change your delivery address or switch the link off, use your private link below. Don't share it.</p>
     <p style="text-align:center;margin:18px 0;">${button(p.manageUrl, `Manage my ${what}`)}</p>`;
-  return sendMail({ to: p.to, subject: `Your DAHRIOLA ${what} is ready to share`, html: shell(`Your ${what} is ready to share`, body) });
+  return sendMail({ tag: "shared-list-created", to: p.to, toName: p.ownerName, subject: `Your DAHRIOLA ${what} is ready to share`, html: shell(`Your ${what} is ready to share`, body) });
 }
 
 export async function sendGiftReceivedEmail(p: {
@@ -87,7 +84,7 @@ export async function sendGiftReceivedEmail(p: {
     ? `<p>It's being made and will be delivered to the address you saved. We'll be in touch about delivery.</p>`
     : `<p>${from} is arranging delivery.</p>`;
   const body = `<p>Hi ${first},</p><p><strong>${from}</strong> just sent you a gift from your DAHRIOLA list! 🎁</p>${items}${message}${delivery}`;
-  return sendMail({ to: p.to, subject: `🎁 ${from} sent you a gift from DAHRIOLA`, html: shell("You've received a gift", body) });
+  return sendMail({ tag: "gift-received", to: p.to, toName: p.ownerName, subject: `🎁 ${from} sent you a gift from DAHRIOLA`, html: shell("You've received a gift", body) });
 }
 
 // ---- Event follow-ups (sent by the daily cron once the owner switches them on) ----
@@ -172,7 +169,7 @@ export async function sendEventFollowUpEmail(
   kind: "attended" | "missed"
 ) {
   const { subject, html } = buildEventFollowUpEmail(event, recipient, kind);
-  return sendMail({ to: recipient.email, subject, html });
+  return sendMail({ tag: kind === "attended" ? "event-followup-attended" : "event-followup-missed", to: recipient.email, toName: recipient.name, subject, html });
 }
 
 // ---- Customer receipt (transactional — always sent via the store Gmail) ----
@@ -227,7 +224,9 @@ export async function sendOrderReceiptEmail(p: {
     ${p.trackUrl ? `<p style="text-align:center;margin:24px 0 6px;"><a href="${esc(p.trackUrl)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:13px 24px;font-size:12px;letter-spacing:2px;">TRACK YOUR ORDER</a></p>` : ""}`;
 
   return sendMail({
+    tag: "order-receipt",
     to: p.to,
+    toName: p.name,
     subject: `Thank you for your order — ${p.reference.toUpperCase()}`,
     html: shell(p.gift ? "Thank you for your gift" : "Thank you for your order", body),
   });
@@ -302,5 +301,5 @@ export async function sendOrderStatusEmail(p: {
     ${items}
     <p style="font-size:12px;color:#8a8170;margin-top:18px;">Order ${esc(p.reference.toUpperCase())}</p>`;
 
-  return sendMail({ to: p.to, subject: `${copy.title} — ${p.reference.toUpperCase()}`, html: shell(copy.title, body) });
+  return sendMail({ tag: `order-status-${p.status.replace(/_/g, "-")}`, to: p.to, toName: p.name, subject: `${copy.title} — ${p.reference.toUpperCase()}`, html: shell(copy.title, body) });
 }

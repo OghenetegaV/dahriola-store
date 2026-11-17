@@ -14,6 +14,7 @@ import { sendEventFollowUpEmail } from "@/src/lib/mailer";
 import { getMarketingSettings } from "@/src/lib/marketing";
 import { Budget, runAnniversaries, runBackInStock, runBirthdays, runReviewRequests } from "@/src/lib/automations";
 import { runAbandonedCarts } from "@/src/lib/abandonedCarts";
+import { runBrowseSequences } from "@/src/lib/browseSequences";
 import { processOrderStatusUpdates } from "@/src/lib/orderStatus";
 
 // Gmail allows ~500 emails a day (Brevo's free plan 300); leave room for
@@ -153,6 +154,7 @@ export async function GET(req: Request) {
     const tasks = {
       backInStock: () => runBackInStock(settings, budget), // people asked for these — first
       abandonedCarts: () => runAbandonedCarts(settings, budget),
+      browseFollowUps: () => runBrowseSequences(settings, budget),
       reviewRequests: () => runReviewRequests(settings, budget),
       birthdays: () => runBirthdays(settings, budget),
       anniversaries: () => runAnniversaries(settings, budget),

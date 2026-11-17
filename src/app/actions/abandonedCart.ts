@@ -6,6 +6,8 @@ import { cartDocId, verifyRestoreToken, type SavedCartItem } from "@/src/lib/aba
 import { normEmail } from "@/src/lib/marketing";
 import { randomId } from "@/src/lib/signing";
 import { urlFor } from "@/src/lib/sanity";
+import { trackBrevoEvent } from "@/src/lib/brevo";
+import { identityToken } from "@/src/lib/identity";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,7 +53,17 @@ export async function saveCheckoutProgress(input: { email: string; name?: string
       patch = patch.unset(["reminderSentAt", "recoveredAt"]).set({ createdAt: now });
     }
     await patch.commit();
-    return { ok: true };
+
+    // Tell Brevo once per shopping session, not on every keystroke
+    if (!existing || existing.recoveredAt || existing.reminderSentAt) {
+      await trackBrevoEvent(email, "checkout_started", {
+        value: priced.subtotal,
+        currency: "NGN",
+        item_count: items.reduce((n, i) => n + i.quantity, 0),
+        items: items.map((i) => ({ name: i.name, quantity: i.quantity, size: i.size })),
+      });
+    }
+    return { ok: true, did: identityToken(email) };
   } catch (err) {
     console.error("saveCheckoutProgress failed:", err);
     return { ok: false };

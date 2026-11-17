@@ -4,7 +4,7 @@ import { writeClient } from "@/src/lib/sanityWrite";
 import { hmac, randomId, safeEqual } from "@/src/lib/signing";
 import { SITE_URL } from "@/src/lib/events";
 import { esc, sendMail } from "@/src/lib/mailer";
-import { blacklistContact, sendBrevoEmail, upsertContact } from "@/src/lib/brevo";
+import { blacklistContact, upsertContact } from "@/src/lib/brevo";
 
 export type MarketingSettings = {
   birthdayEnabled: boolean;
@@ -19,6 +19,8 @@ export type MarketingSettings = {
   shippingEmailsEnabled: boolean;
   abandonedCartEnabled: boolean;
   abandonedCartDiscount: number;
+  browseEnabled: boolean;
+  browseDiscount: number;
 };
 
 const DEFAULTS: MarketingSettings = {
@@ -34,6 +36,8 @@ const DEFAULTS: MarketingSettings = {
   shippingEmailsEnabled: true,
   abandonedCartEnabled: true,
   abandonedCartDiscount: 0,
+  browseEnabled: true,
+  browseDiscount: 10,
 };
 
 export async function getMarketingSettings(): Promise<MarketingSettings> {
@@ -201,9 +205,7 @@ export async function sendMarketingEmail(opts: {
   if (await isOptedOut(email)) return { sent: false, reason: "unsubscribed" };
   if (opts.key && (await alreadySent(email, opts.key))) return { sent: false, reason: "already sent" };
 
-  const ok =
-    (await sendBrevoEmail({ to: email, name: opts.name, subject: opts.subject, html: opts.html, tags: [opts.kind] })) ||
-    (await sendMail({ to: email, subject: opts.subject, html: opts.html }));
+  const ok = await sendMail({ tag: opts.kind, to: email, toName: opts.name, subject: opts.subject, html: opts.html });
   if (ok) await logSent(email, opts.kind, opts.key, opts.couponCode);
   return { sent: ok, reason: ok ? undefined : "send failed" };
 }

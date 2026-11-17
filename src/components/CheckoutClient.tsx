@@ -34,6 +34,7 @@ import Link from "next/link";
 import { urlFor } from "@/src/lib/sanity";
 import { getUpsellProducts } from "@/src/app/actions/catalog";
 import { restoreCheckout, saveCheckoutProgress } from "@/src/app/actions/abandonedCart";
+import { setIdentity } from "@/src/lib/identityClient";
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -144,7 +145,9 @@ export default function CheckoutClient() {
     const email = formData.email.trim();
     if (!hasHydrated || !cart.length || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
     const timer = setTimeout(() => {
-      saveCheckoutProgress({ email, name: `${firstName} ${lastName}`.trim(), items: checkoutItems() }).catch(() => {});
+      saveCheckoutProgress({ email, name: `${firstName} ${lastName}`.trim(), items: checkoutItems() })
+        .then((res) => setIdentity(res?.did))
+        .catch(() => {});
     }, 2500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

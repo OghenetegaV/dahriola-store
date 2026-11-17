@@ -5,23 +5,8 @@
 
 "use server";
 
-import nodemailer from "nodemailer";
+import { deliverEmail } from "@/src/lib/emailDelivery";
 
-function requireEnv(name: string) {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is missing from environment variables.`);
-  return value;
-}
-
-function getTransporter() {
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: requireEnv("GMAIL_USER"),
-      pass: requireEnv("GMAIL_PASS"),
-    },
-  });
-}
 
 function getStoreEmail() {
   return process.env.STORE_NOTIFICATION_EMAIL?.trim() || "info.dahriola@gmail.com";
@@ -55,11 +40,7 @@ export async function sendBespokeEnquiry(
   input: BespokeEnquiryInput,
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const transporter = getTransporter();
-    const senderEmail = requireEnv("GMAIL_USER");
     const storeEmail = getStoreEmail();
-
-    await transporter.verify();
 
     const now = new Date().toLocaleString("en-NG", {
       dateStyle: "medium",
@@ -107,9 +88,9 @@ export async function sendBespokeEnquiry(
       : `<div style="font-size:13px;color:#999;margin-top:14px;">No inspiration image was uploaded.</div>`;
 
     const mailOptions = {
-      from: `"Dahriola Bespoke" <${senderEmail}>`,
+      fromName: "DAHRIOLA Bespoke",
       to: storeEmail,
-      replyTo: input.email || senderEmail, // reply goes straight to the customer
+      replyTo: input.email || undefined, // reply goes straight to the customer
       subject: `New Bespoke Enquiry — ${escapeHtml(input.clientName)}${input.isBulk ? " (Bulk)" : ""}`,
       attachments,
       html: `
@@ -136,8 +117,8 @@ export async function sendBespokeEnquiry(
       </div>`,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Bespoke enquiry email sent:", { messageId: info.messageId, to: storeEmail });
+    const result = await deliverEmail({ ...mailOptions, tag: "store-bespoke-enquiry", noUtm: true });
+    if (!result.ok) throw new Error(result.error || "Bespoke email failed");
     return { success: true };
   } catch (error: any) {
     console.error("Bespoke Enquiry Email Error:", {

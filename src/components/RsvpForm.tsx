@@ -5,6 +5,7 @@ import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { submitRsvp } from "@/src/app/actions/rsvp";
 import { trackRsvp } from "@/src/lib/analytics";
+import { setIdentity } from "@/src/lib/identityClient";
 import { type EventSummary, buildIcs, googleCalendarUrl } from "@/src/lib/events";
 
 const label = "block text-[9px] uppercase tracking-widest text-neutral-400 font-bold ml-1 mb-1.5";
@@ -38,6 +39,7 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
       if (res.success) {
         setResult({ ticketCode: res.ticketCode, alreadyRegistered: res.alreadyRegistered });
         if (!res.alreadyRegistered) trackRsvp(event.title, form.guests);
+        setIdentity(res.did);
       } else {
         setError(res.message);
       }

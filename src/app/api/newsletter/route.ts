@@ -3,6 +3,8 @@ import { getSheet } from "@/src/lib/googleSheets";
 import { sendNewsletterWelcome } from "@/src/app/actions/email";
 import { upsertContact } from "@/src/lib/brevo";
 import { optBackIn, parseBirthday } from "@/src/lib/marketing";
+import { trackBrevoEvent } from "@/src/lib/brevo";
+import { identityToken } from "@/src/lib/identity";
 
 const DISCOUNT_CODE = process.env.NEWSLETTER_DISCOUNT_CODE?.trim() || "WELCOME10";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
     );
 
     if (alreadyExists) {
-      return NextResponse.json({ success: true, code: DISCOUNT_CODE, existing: true });
+      return NextResponse.json({ success: true, code: DISCOUNT_CODE, existing: true, did: identityToken(email) });
     }
 
     await sheet.addRow({
@@ -63,11 +65,12 @@ export async function POST(req: Request) {
         ["NEWSLETTER"],
         { resubscribe: true }
       );
+      await trackBrevoEvent(email, "newsletter_signup", { source: source || "Newsletter pop-up", discount_code: DISCOUNT_CODE });
     } catch (err) {
       console.error("Newsletter marketing sync failed:", err);
     }
 
-    return NextResponse.json({ success: true, code: DISCOUNT_CODE });
+    return NextResponse.json({ success: true, code: DISCOUNT_CODE, did: identityToken(email) });
   } catch (error: any) {
     console.error("❌ NEWSLETTER ERROR:", error?.message || error);
     return NextResponse.json(

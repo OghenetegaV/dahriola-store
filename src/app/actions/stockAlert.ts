@@ -2,6 +2,7 @@
 
 import { writeClient } from "@/src/lib/sanityWrite";
 import { getMarketingSettings, normEmail } from "@/src/lib/marketing";
+import { trackBrevoEvent } from "@/src/lib/brevo";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -41,6 +42,7 @@ export async function requestStockAlert(input: { email: string; productId: strin
       print: { _type: "reference", _ref: input.printId, _weak: true },
       createdAt: new Date().toISOString(),
     });
+    await trackBrevoEvent(email, "back_in_stock_requested", { product_id: input.productId, print_id: input.printId });
     return { success: true, message: "We'll email you as soon as it's back." };
   } catch (err) {
     console.error("requestStockAlert failed:", err);
