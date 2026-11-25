@@ -8,7 +8,7 @@ import { trackBrevoEvent, upsertContact } from "@/src/lib/brevo";
 import { identityToken } from "@/src/lib/identity";
 import { optBackIn } from "@/src/lib/marketing";
 import type { EventSummary } from "@/src/lib/events";
-import { sendRsvpConfirmation } from "@/src/app/actions/email";
+import { sendRsvpConfirmation, sendStoreAlert } from "@/src/app/actions/email";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TICKET_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
@@ -155,6 +155,20 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     });
 
     await sendRsvpConfirmation(event, { name, email, guests, ticketCode });
+    await sendStoreAlert({
+      subject: `New RSVP: ${name} for ${event.title}`,
+      heading: "Someone new is coming",
+      rows: [
+        ["Event", event.title],
+        ["Name", name],
+        ["Email", email],
+        ["Phone", phone || "Not given"],
+        ["Bringing", guests ? `${guests} guest${guests === 1 ? "" : "s"}` : "No guests"],
+      ],
+      linkPath: `/admin/events/${event._id}/rsvps`,
+      linkLabel: "See all RSVPs",
+      tag: "store-new-rsvp",
+    });
     await trackBrevoEvent(email, "rsvp_registered", {
       event_title: event.title,
       event_date: event.startDate,

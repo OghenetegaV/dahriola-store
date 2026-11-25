@@ -13,7 +13,6 @@ export const metadata = { title: "Emails & marketing" };
 
 // Where newsletters and campaigns are written. The website itself sends through Brevo.
 const EMAIL_TOOLS = [
-  { name: "Mailchimp", href: "https://login.mailchimp.com/" },
   { name: "Brevo", href: "https://app.brevo.com/" },
 ];
 

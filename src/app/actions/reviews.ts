@@ -1,6 +1,7 @@
 "use server";
 
-import { COUNT, countRows, db, unwrap } from "@/src/lib/supabase/admin";
+import { db, unwrap } from "@/src/lib/supabase/admin";
+import { sendStoreAlert } from "@/src/app/actions/email";
 
 const clean = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 
@@ -23,20 +24,36 @@ export async function submitReview(data: {
 
   try {
     // Only real products can be reviewed
-    const exists = await countRows(db().from("products").select("*", COUNT).eq("id", productId));
-    if (!exists) return { success: false, message: "Unable to submit review right now." };
+    const product = unwrap(await db().from("products").select("name").eq("id", productId).maybeSingle(), "Checking the product") as { name: string } | null;
+    if (!product) return { success: false, message: "Unable to submit review right now." };
 
+    const rating = Math.min(5, Math.max(1, Math.round(Number(data.rating) || 5)));
     unwrap(
       await db().from("reviews").insert({
         product_id: productId,
         name,
-        rating: Math.min(5, Math.max(1, Math.round(Number(data.rating) || 5))),
+        rating,
         title: clean(data.title, 120) || "Customer Review",
         comment,
         approved: false,
       }),
       "Saving the review"
     );
+
+    // Tell the store there's a review to approve (it stays hidden until then)
+    await sendStoreAlert({
+      subject: `New review to approve: ${product.name}`,
+      heading: "A new review is waiting for your approval",
+      rows: [
+        ["Product", product.name],
+        ["From", name],
+        ["Rating", `${rating} out of 5`],
+      ],
+      quote: comment,
+      linkPath: "/admin/reviews",
+      linkLabel: "Review and approve",
+      tag: "store-new-review",
+    });
 
     return {
       success: true,

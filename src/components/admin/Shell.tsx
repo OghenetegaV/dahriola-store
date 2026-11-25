@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { signOut } from "@/src/app/admin/actions/auth";
 import { ToastProvider, cx } from "@/src/components/admin/ui";
+import NotificationBell from "@/src/components/admin/NotificationBell";
+import type { ActivityItem } from "@/src/lib/admin/activity";
 
 export type NavCounts = { orders?: number; reviews?: number; lowStock?: number };
 
@@ -137,7 +139,19 @@ function Footer({ name, email }: { name: string; email: string }) {
   );
 }
 
-export default function Shell({ children, counts, name, email }: { children: ReactNode; counts: NavCounts; name: string; email: string }) {
+export default function Shell({
+  children,
+  counts,
+  name,
+  email,
+  activity,
+}: {
+  children: ReactNode;
+  counts: NavCounts;
+  name: string;
+  email: string;
+  activity: ActivityItem[];
+}) {
   const [open, setOpen] = useState(false);
 
   const brand = (
@@ -150,7 +164,10 @@ export default function Shell({ children, counts, name, email }: { children: Rea
     <ToastProvider>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-neutral-200 bg-white lg:flex">
-        <div className="flex h-16 items-center border-b border-neutral-200 px-6">{brand}</div>
+        <div className="flex h-16 items-center justify-between border-b border-neutral-200 pl-6 pr-3">
+          {brand}
+          <NotificationBell initial={activity} />
+        </div>
         <Nav counts={counts} />
         <Footer name={name} email={email} />
       </aside>
@@ -158,9 +175,12 @@ export default function Shell({ children, counts, name, email }: { children: Rea
       {/* Phone top bar */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 lg:hidden">
         {brand}
-        <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="rounded-lg p-2 text-neutral-700 hover:bg-neutral-100">
-          <Menu size={22} />
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell initial={activity} align="right" />
+          <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="rounded-lg p-2 text-neutral-700 hover:bg-neutral-100">
+            <Menu size={22} />
+          </button>
+        </div>
       </header>
 
       {/* Phone menu */}

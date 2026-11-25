@@ -52,8 +52,8 @@ export default function WishlistButton({
       title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
       className={`shrink-0 w-9 h-9 rounded-md flex items-center justify-center transition ${
         wishlisted
-          ? "border border-black bg-black text-white"
-          : "border border-[#ebebeb] bg-white text-black hover:border-black"
+          ? "border border-brand-beryl bg-brand-beryl text-white"
+          : "border border-[#ebebeb] bg-white text-black hover:border-brand-beryl hover:text-brand-beryl"
       }`}
     >
       <Heart

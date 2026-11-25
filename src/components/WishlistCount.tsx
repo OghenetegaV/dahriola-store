@@ -23,7 +23,7 @@ export default function WishlistCount() {
   }, []);
 
   return (
-    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-[11px] rounded-full bg-black text-white">
+    <span className="inline-flex items-center justify-center min-w-5 h-5 px-1 text-[11px] rounded-full bg-brand-beryl text-white">
       {count}
     </span>
   );

@@ -119,30 +119,36 @@ export default function WishlistPage() {
   if (!rows.length) {
     return (
       <main className="px-4 pt-36 pb-24 max-w-xl mx-auto text-center">
-        <Heart className="mx-auto text-neutral-300" size={40} />
+        <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-beryl/10">
+          <Heart className="text-brand-beryl" size={34} strokeWidth={1.5} />
+        </span>
         <h1 className="mt-4 font-display text-3xl">Your wishlist is empty</h1>
         <p className="mt-2 text-sm text-neutral-500">Tap the heart on any piece to save it here, then share your list so someone can gift it to you.</p>
-        <Link href="/category/all" className="mt-6 inline-block bg-black text-white px-6 py-3 text-xs uppercase tracking-[0.2em]">
+        <Link href="/category/all" className="mt-6 inline-block bg-brand-beryl text-white px-6 py-3 text-xs uppercase tracking-[0.2em] transition-colors hover:bg-black">
           Browse the collection
         </Link>
       </main>
     );
   }
 
-  const field = "w-full border border-neutral-200 rounded-md px-2.5 py-2 text-[12px] bg-white focus:outline-none focus:border-black";
+  const field = "w-full border border-neutral-200 rounded-md px-2.5 py-2 text-[12px] bg-white focus:outline-none focus:border-brand-beryl focus:ring-1 focus:ring-brand-beryl/30";
 
   return (
     <main className="max-w-6xl mx-auto px-4 pt-32 pb-20">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
         <div>
+          <p className="mb-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-brand-beryl">
+            <Heart size={13} className="fill-current" /> {rows.length} saved {rows.length === 1 ? "piece" : "pieces"}
+          </p>
           <h1 className="font-display text-3xl md:text-4xl">Wishlist</h1>
+          <span className="mt-3 block h-[3px] w-12 rounded-full bg-brand-beryl" aria-hidden="true" />
           <p className="mt-2 text-sm text-neutral-500 max-w-xl">
             Choose your size and options, then share your wishlist. Whoever opens the link can buy pieces for you, exactly as you want them.
           </p>
         </div>
         <button
           onClick={() => setShareOpen(true)}
-          className="inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-3 text-xs uppercase tracking-[0.2em] self-start md:self-auto"
+          className="inline-flex items-center justify-center gap-2 bg-brand-beryl text-white px-6 py-3 text-xs uppercase tracking-[0.2em] self-start md:self-auto transition-colors hover:bg-black"
         >
           <Gift size={15} /> {shareUrl ? "Update share link" : "Share my wishlist"}
         </button>
@@ -172,7 +178,7 @@ export default function WishlistPage() {
             .filter((p, i, all) => all.findIndex((x) => x._id === p._id) === i);
 
           return (
-            <div key={product._id} className="border border-neutral-200 rounded-2xl overflow-hidden bg-white flex flex-col">
+            <div key={product._id} className="border border-neutral-200 rounded-2xl overflow-hidden bg-white flex flex-col transition-colors hover:border-brand-beryl/60">
               <Link href={`/product/${product.slug}`} className="block aspect-[4/5] bg-[#f5f5f5] overflow-hidden">
                 {product.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -186,10 +192,10 @@ export default function WishlistPage() {
 
               <div className="p-4 flex-1 flex flex-col">
                 <div className="flex items-start justify-between gap-3">
-                  <Link href={`/product/${product.slug}`} className="text-[15px] font-medium leading-snug hover:underline">
+                  <Link href={`/product/${product.slug}`} className="text-[15px] font-medium leading-snug hover:text-brand-beryl">
                     {product.name}
                   </Link>
-                  <span className="text-[14px] whitespace-nowrap">{money(product.priceNGN)}</span>
+                  <span className="text-[14px] font-medium whitespace-nowrap text-brand-beryl">{money(product.priceNGN)}</span>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -258,7 +264,7 @@ export default function WishlistPage() {
                 <div className="mt-auto pt-4 flex items-center gap-2">
                   <button
                     onClick={() => addToCart(row)}
-                    className="flex-1 h-10 rounded-md bg-black text-white text-[11px] uppercase tracking-[0.15em] inline-flex items-center justify-center gap-2"
+                    className={`flex-1 h-10 rounded-md text-white text-[11px] uppercase tracking-[0.15em] inline-flex items-center justify-center gap-2 transition-colors ${added === product._id ? "bg-brand-beryl" : "bg-black hover:bg-brand-beryl"}`}
                   >
                     {added === product._id ? <Check size={14} /> : <ShoppingBag size={14} />}
                     {added === product._id ? "Added" : "Add to cart"}
@@ -267,7 +273,7 @@ export default function WishlistPage() {
                     <button
                       onClick={() => copyItemLink(product._id)}
                       title="Copy a link to just this item"
-                      className="h-10 px-3 rounded-md border border-neutral-200 text-[11px] inline-flex items-center gap-1 hover:border-black"
+                      className="h-10 px-3 rounded-md border border-neutral-200 text-[11px] inline-flex items-center gap-1 hover:border-brand-beryl hover:text-brand-beryl"
                     >
                       {copiedKey === product._id ? <Check size={14} /> : <Link2 size={14} />}
                     </button>
@@ -288,7 +294,7 @@ export default function WishlistPage() {
       </div>
 
       <div className="mt-10 text-center">
-        <button onClick={() => setShareOpen(true)} className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] underline underline-offset-4">
+        <button onClick={() => setShareOpen(true)} className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.2em] text-brand-beryl underline underline-offset-4 hover:text-black">
           <Share2 size={14} /> Share this wishlist
         </button>
       </div>

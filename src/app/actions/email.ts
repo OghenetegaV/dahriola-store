@@ -301,6 +301,36 @@ export async function sendOrderNotification(orderData: {
   }
 }
 
+/**
+ * A short "something new in the dashboard" email to the store's own inbox
+ * (new review to approve, new RSVP). Never throws: a failed alert must not
+ * fail the customer's action.
+ */
+export async function sendStoreAlert(p: { subject: string; heading: string; rows: [string, unknown][]; quote?: string; linkPath: string; linkLabel: string; tag: string }) {
+  try {
+    const result = await deliverEmail({
+      fromName: "DAHRIOLA Store",
+      to: getStoreEmail(),
+      subject: p.subject,
+      tag: p.tag,
+      noUtm: true,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; color: #333; line-height: 1.5;">
+          <h2 style="border-bottom: 2px solid #000; padding-bottom: 10px;">${escapeHtml(p.heading)}</h2>
+          ${p.rows.map(([label, value]) => `<p style="margin: 6px 0;"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`).join("")}
+          ${p.quote ? `<p style="margin: 16px 0; padding: 12px 16px; background: #f6f6f4; border-left: 3px solid #778472; white-space: pre-line;">${escapeHtml(p.quote)}</p>` : ""}
+          <p style="margin-top: 24px;">
+            <a href="${SITE_URL}${p.linkPath}" style="display: inline-block; background: #000; color: #fff; padding: 12px 22px; text-decoration: none; font-size: 13px;">${escapeHtml(p.linkLabel)}</a>
+          </p>
+        </div>
+      `,
+    });
+    if (!result.ok) console.error(`Store alert failed [${p.tag}]:`, result.error);
+  } catch (error) {
+    console.error(`Store alert failed [${p.tag}]:`, error);
+  }
+}
+
 export async function sendLowStockNotification({
   printName,
   remainingStock,
