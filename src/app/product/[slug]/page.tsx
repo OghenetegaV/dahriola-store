@@ -1,6 +1,6 @@
 import { getProductBySlug } from "@/src/lib/catalog";
 import { imageUrl } from "@/src/lib/images";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import ProductGallery from "@/src/components/ProductGallery";
 import RelatedProducts from "@/src/components/RelatedProducts";
 import PriceDisplay from "@/src/components/PriceDisplay";
@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const product = (await getProduct(slug)) || (await getProduct(slug.toLowerCase()));
 
   if (!product) {
     return { title: "Product Not Found" };
@@ -45,7 +45,15 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  let product = await getProduct(slug);
+
+  // Old links used capitals (e.g. /product/Nia). Links are lowercase now, so
+  // send those visitors (and Google) to the current address.
+  if (!product && slug !== slug.toLowerCase()) {
+    product = await getProduct(slug.toLowerCase());
+    if (product) permanentRedirect(`/product/${slug.toLowerCase()}`);
+  }
+
   const marketing = await getMarketingSettings().catch(() => ({ backInStockEnabled: false }));
 
   if (!product) notFound();

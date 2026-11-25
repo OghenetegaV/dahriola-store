@@ -26,6 +26,9 @@ import { randomId } from "@/src/lib/signing";
 
 const clean = (v: unknown, max = 200) => String(v ?? "").trim().slice(0, max);
 
+/** A customer's name with single spaces only, so it reads cleanly in the dashboard and emails. */
+const tidyName = (v: unknown) => clean(v, 300).split(/\s+/).filter(Boolean).join(" ").slice(0, 100);
+
 function giftListIdOf(items: CheckoutItemInput[]) {
   return items.map((i) => clean(i.giftListId, 40)).find(Boolean);
 }
@@ -164,7 +167,7 @@ export async function completeCheckout(input: CompleteInput) {
     const c = await computeCheckout({ ...input, shipTo }, { strictRate: false });
 
     const customer = {
-      name: clean(input.customer?.name, 100),
+      name: tidyName(input.customer?.name),
       email: clean(input.customer?.email, 120).toLowerCase(),
       phone: clean(input.customer?.phone, 40),
     };

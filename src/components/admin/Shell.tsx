@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   CalendarDays,
   ExternalLink,
   Gift,
@@ -36,6 +37,7 @@ const GROUPS: { title?: string; items: Item[] }[] = [
       { href: "/admin", label: "Home", icon: LayoutDashboard },
       { href: "/admin/orders", label: "Orders", icon: ShoppingBag, badge: "orders" },
       { href: "/admin/customers", label: "Customers", icon: Users },
+      { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
   {

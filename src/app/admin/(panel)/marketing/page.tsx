@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { db, unwrap } from "@/src/lib/supabase/admin";
 import { getMarketingSettings } from "@/src/lib/marketing";
 import type { SavedCartItem } from "@/src/lib/abandonedCarts";
@@ -9,6 +10,12 @@ import ResubscribeButton from "./ResubscribeButton";
 import { requireAdmin } from "@/src/lib/admin/auth";
 
 export const metadata = { title: "Emails & marketing" };
+
+// Where newsletters and campaigns are written. The website itself sends through Brevo.
+const EMAIL_TOOLS = [
+  { name: "Mailchimp", href: "https://login.mailchimp.com/" },
+  { name: "Brevo", href: "https://app.brevo.com/" },
+];
 
 const TABS = [
   { value: "settings", label: "Automatic emails" },
@@ -38,7 +45,25 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHeader title="Emails & marketing" description="Choose which emails the website sends by itself, and see what has gone out." />
+      <PageHeader
+        title="Emails & marketing"
+        description="Choose which emails the website sends by itself, and see what has gone out. Newsletters and campaigns are written and sent in your email tool."
+        action={
+          <>
+            {EMAIL_TOOLS.map((tool) => (
+              <a
+                key={tool.name}
+                href={tool.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-500"
+              >
+                Open {tool.name} <ExternalLink size={15} />
+              </a>
+            ))}
+          </>
+        }
+      />
       <div className="mb-5">
         <FilterTabs tabs={TABS} current={tab} hrefFor={(v) => (v === "settings" ? "/admin/marketing" : `/admin/marketing?tab=${v}`)} />
       </div>
