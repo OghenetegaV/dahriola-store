@@ -1,4 +1,4 @@
-import { client } from "@/src/lib/sanity";
+import { listProducts } from "@/src/lib/catalog";
 import ProductCard from "./ProductCard";
 import Link from "next/link";
 
@@ -11,18 +11,7 @@ interface RelatedProps {
 async function getRelatedProducts(categoryId: string, currentProductId: string) {
   // If categoryId is missing, return empty array immediately
   if (!categoryId) return [];
-
-  const query = `*[_type == "product" && category._ref == $categoryId && _id != $currentProductId] | order(_createdAt desc) [0...3] {
-    _id,
-    name,
-    "slug": slug.current,
-    productType,
-    priceNGN,
-    images,
-    "categoryName": category->title
-  }`;
-  
-  return await client.fetch(query, { categoryId, currentProductId });
+  return listProducts({ categoryId, excludeIds: [currentProductId], limit: 3 });
 }
 
 export default async function RelatedProducts({ categoryId, currentProductId, categoryName }: RelatedProps) {
@@ -46,9 +35,9 @@ export default async function RelatedProducts({ categoryId, currentProductId, ca
           Browse All
         </Link>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-20">
-        {products.map((item: any) => (
+        {products.map((item) => (
           <ProductCard key={item._id} product={item} />
         ))}
       </div>

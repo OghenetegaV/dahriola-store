@@ -4,7 +4,7 @@
 // it follows the Our Story / Bespoke pages — stone background, large serif
 // title, a framed image beside a white content card, and one gentle fade-in.
 import { motion, type HTMLMotionProps } from "framer-motion";
-import { PortableText, type PortableTextBlock } from "@portabletext/react";
+import RichText, { hasRichText } from "@/src/components/RichText";
 import { ArrowUpRight } from "lucide-react";
 import EventCountdown from "@/src/components/EventCountdown";
 import RsvpForm from "@/src/components/RsvpForm";
@@ -15,6 +15,7 @@ import {
   formatEventHours,
   googleCalendarUrl,
 } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -30,7 +31,7 @@ const Diamond = () => <span aria-hidden="true" className="hidden h-1 w-1 rotate-
 const card = "rounded-[2rem] border border-neutral-100 bg-white shadow-[0_30px_90px_-70px_rgba(0,0,0,0.5)]";
 const eyebrow = "text-[10px] font-bold uppercase tracking-[0.35em] text-brand-beryl";
 
-export default function EventPage({ event, description }: { event: EventSummary; description?: PortableTextBlock[] }) {
+export default function EventPage({ event, description }: { event: EventSummary; description?: string | null }) {
   const multiDay = eventDayCount(event) > 1;
   const area = (event.venueAddress || "").split(",").slice(-2).join(",").trim() || "Lagos";
   const mapQuery = event.venueAddress || event.venueName || "";
@@ -106,7 +107,7 @@ export default function EventPage({ event, description }: { event: EventSummary;
               {event.flyerUrl ? (
                 <div className="overflow-hidden rounded-[2rem] bg-neutral-100 shadow-[0_35px_90px_-50px_rgba(0,0,0,0.55)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`${event.flyerUrl}?w=1100&fit=max&auto=format`} alt={`${event.title} flyer`} className="block h-auto w-full" />
+                  <img src={imageUrl(event.flyerUrl, { width: 1100 })} alt={`${event.title} flyer`} className="block h-auto w-full" />
                 </div>
               ) : (
                 <div className="flex aspect-[4/5] flex-col items-center justify-center rounded-[2rem] bg-[#F2F0ED] text-center">
@@ -148,10 +149,10 @@ export default function EventPage({ event, description }: { event: EventSummary;
                 ))}
               </dl>
 
-              {description && description.length > 0 && (
+              {hasRichText(description) && (
                 <div className="mt-10 border-t border-neutral-100 pt-10">
                   <div className="space-y-6 text-[15px] leading-8 text-neutral-700 md:text-[16px]">
-                    <PortableText value={description} />
+                    <RichText value={description} />
                   </div>
                 </div>
               )}

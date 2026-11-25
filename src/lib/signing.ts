@@ -6,7 +6,8 @@ function secret() {
   const s =
     process.env.CHECKOUT_SIGNING_SECRET ||
     process.env.PAYSTACK_SECRET_KEY ||
-    process.env.SANITY_API_WRITE_TOKEN;
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!s) throw new Error("No signing secret configured");
   return s;
 }

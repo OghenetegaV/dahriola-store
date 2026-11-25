@@ -1,6 +1,7 @@
 // Server-only marketing helpers: settings, unsubscribes, a send log so nobody
 // gets the same email twice, personal one-off codes and Brevo contact sync.
-import { writeClient } from "@/src/lib/sanityWrite";
+import { COUNT, countRows, db, lc, isSupabaseConfigured, unwrap } from "@/src/lib/supabase/admin";
+import { imageUrl } from "@/src/lib/images";
 import { hmac, randomId, safeEqual } from "@/src/lib/signing";
 import { SITE_URL } from "@/src/lib/events";
 import { esc, sendMail } from "@/src/lib/mailer";
@@ -23,7 +24,7 @@ export type MarketingSettings = {
   browseDiscount: number;
 };
 
-const DEFAULTS: MarketingSettings = {
+export const MARKETING_DEFAULTS: MarketingSettings = {
   birthdayEnabled: true,
   birthdayDiscount: 15,
   anniversaryEnabled: true,
@@ -41,9 +42,14 @@ const DEFAULTS: MarketingSettings = {
 };
 
 export async function getMarketingSettings(): Promise<MarketingSettings> {
-  const doc = await writeClient.fetch<Partial<MarketingSettings> | null>(`*[_type == "marketingSettings"][0]`);
-  const merged = { ...DEFAULTS };
-  for (const key of Object.keys(DEFAULTS) as (keyof MarketingSettings)[]) {
+  const merged = { ...MARKETING_DEFAULTS };
+  if (!isSupabaseConfigured()) return merged;
+  const row = unwrap(
+    await db().from("marketing_settings").select("settings").eq("id", 1).maybeSingle(),
+    "Loading marketing settings"
+  ) as { settings: Partial<MarketingSettings> | null } | null;
+  const doc = row?.settings;
+  for (const key of Object.keys(MARKETING_DEFAULTS) as (keyof MarketingSettings)[]) {
     const v = doc?.[key];
     if (v !== undefined && v !== null) (merged as Record<string, unknown>)[key] = v;
   }
@@ -64,26 +70,23 @@ export function verifyUnsubscribeToken(email: string, token: string) {
 }
 
 export async function isOptedOut(email: string) {
-  return (await writeClient.fetch<number>(`count(*[_type == "marketingOptOut" && email == $email])`, { email: normEmail(email) })) > 0;
+  return (await countRows(db().from("marketing_opt_outs").select("*", COUNT).eq("email", normEmail(email)))) > 0;
 }
 
 export async function optOut(email: string) {
   const e = normEmail(email);
-  if (!(await isOptedOut(e))) {
-    await writeClient.create({ _type: "marketingOptOut", email: e, createdAt: new Date().toISOString() });
+  if (e) {
+    unwrap(
+      await db().from("marketing_opt_outs").upsert({ email: e }, { onConflict: "email", ignoreDuplicates: true }),
+      "Saving the unsubscribe"
+    );
   }
   await blacklistContact(e);
 }
 
 /** Someone signing up again is a fresh opt-in. */
 export async function optBackIn(email: string) {
-  const e = normEmail(email);
-  const ids = await writeClient.fetch<string[]>(`*[_type == "marketingOptOut" && email == $email]._id`, { email: e });
-  if (ids.length) {
-    const tx = writeClient.transaction();
-    ids.forEach((id) => tx.delete(id));
-    await tx.commit();
-  }
+  unwrap(await db().from("marketing_opt_outs").delete().eq("email", normEmail(email)), "Removing the unsubscribe");
 }
 
 /** "YYYY-MM" or "--MM" (month only) → { month, year } */
@@ -97,40 +100,45 @@ export function parseBirthday(value?: string) {
 
 // ---- Send log ----
 export async function alreadySent(email: string, key: string) {
-  return (
-    (await writeClient.fetch<number>(`count(*[_type == "marketingLog" && email == $email && key == $key])`, {
-      email: normEmail(email),
-      key,
-    })) > 0
+  return (await countRows(db().from("marketing_log").select("*", COUNT).eq("email", normEmail(email)).eq("key", key))) > 0;
+}
+
+/** How many marketing emails this person has been sent since `since`. */
+export async function sentSince(email: string, since: Date) {
+  return countRows(
+    db().from("marketing_log").select("*", COUNT).eq("email", normEmail(email)).gt("sent_at", since.toISOString())
   );
 }
 
 async function logSent(email: string, kind: string, key: string | undefined, couponCode?: string) {
-  await writeClient.create({
-    _type: "marketingLog",
-    email: normEmail(email),
-    kind,
-    key: key || `${kind}-${Date.now()}`,
-    couponCode,
-    sentAt: new Date().toISOString(),
-  });
+  unwrap(
+    await db().from("marketing_log").insert({
+      email: normEmail(email),
+      kind,
+      key: key || `${kind}-${Date.now()}`,
+      coupon_code: couponCode || null,
+    }),
+    "Logging the email"
+  );
 }
 
 // ---- Personal codes ----
 export async function createPersonalCoupon(opts: { email: string; percent: number; days: number; prefix: string; purpose: string }) {
   const code = `${opts.prefix}-${randomId(6).toUpperCase()}`;
-  await writeClient.create({
-    _type: "coupon",
-    code,
-    discountType: "percentage",
-    discountValue: opts.percent,
-    isActive: true,
-    assignedEmail: normEmail(opts.email),
-    usageLimit: 1,
-    timesUsed: 0,
-    expiryDate: new Date(Date.now() + opts.days * 86_400_000).toISOString(),
-    purpose: opts.purpose,
-  });
+  unwrap(
+    await db().from("coupons").insert({
+      code,
+      discount_type: "percentage",
+      discount_value: opts.percent,
+      is_active: true,
+      assigned_email: normEmail(opts.email),
+      usage_limit: 1,
+      times_used: 0,
+      expiry_date: new Date(Date.now() + opts.days * 86_400_000).toISOString(),
+      purpose: opts.purpose,
+    }),
+    "Creating a personal code"
+  );
   return code;
 }
 
@@ -148,7 +156,7 @@ export function productCardsHtml(products: EmailProduct[], heading?: string) {
       .map(
         (p) => `<td width="${width}%" style="padding:4px;vertical-align:top;text-align:center;">
           <a href="${esc(p.slug ? `${SITE_URL}/product/${p.slug}` : SITE_URL)}" style="text-decoration:none;color:#1a1a1a;">
-            ${p.image ? `<img src="${esc(p.image)}?w=240&h=300&fit=crop&auto=format" width="120" alt="${esc(p.name)}" style="display:block;width:100%;height:auto;border:0;">` : ""}
+            ${p.image ? `<img src="${esc(imageUrl(p.image, { width: 240, height: 300 }))}" width="120" alt="${esc(p.name)}" style="display:block;width:100%;height:auto;border:0;">` : ""}
             <span style="display:block;font-size:12px;margin-top:6px;">${esc(p.name)}</span>
             ${p.note ? `<span style="display:block;font-size:11px;color:#8a8170;">${esc(p.note)}</span>` : ""}
           </a></td>`
@@ -173,7 +181,7 @@ export function marketingShell(opts: { title: string; body: string; email: strin
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px;"><tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border:1px solid #e8e3d9;">
       <tr><td style="padding:22px 32px 0;text-align:center;font-size:11px;letter-spacing:5px;color:#8a8170;">DAHRIOLA</td></tr>
-      ${opts.image ? `<tr><td style="padding-top:18px;"><img src="${esc(opts.image)}?w=1120&h=640&fit=crop&auto=format" width="560" alt="" style="display:block;width:100%;height:auto;border:0;"></td></tr>` : ""}
+      ${opts.image ? `<tr><td style="padding-top:18px;"><img src="${esc(imageUrl(opts.image, { width: 1120, height: 640 }))}" width="560" alt="" style="display:block;width:100%;height:auto;border:0;"></td></tr>` : ""}
       <tr><td style="padding:26px 32px 8px;">
         <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:26px;margin:0 0 16px;text-align:center;">${esc(opts.title)}</h1>
         <div style="font-size:15px;line-height:1.65;">${opts.body}</div>
@@ -217,10 +225,15 @@ type OrderStat = { createdAt?: string; totalAmount?: number; emailOptIn?: boolea
 export async function syncCustomerToBrevo(email: string) {
   const e = normEmail(email);
   if (!e) return;
-  const orders = await writeClient.fetch<OrderStat[]>(
-    `*[_type == "order" && lower(customerEmail) == $email && paymentVerified == true] | order(createdAt asc){ createdAt, totalAmount, emailOptIn, customerName }`,
-    { email: e }
-  );
+  const orders = unwrap(
+    await db()
+      .from("orders")
+      .select("createdAt:created_at, totalAmount:total_amount, emailOptIn:email_opt_in, customerName:customer_name")
+      .eq("customer_email_lc", lc(e))
+      .eq("payment_verified", true)
+      .order("created_at", { ascending: true }),
+    "Loading customer orders"
+  ) as OrderStat[];
   if (!orders.some((o) => o.emailOptIn) || (await isOptedOut(e))) return;
 
   const total = orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);

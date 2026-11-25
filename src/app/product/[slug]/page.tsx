@@ -1,4 +1,5 @@
-import { client } from "@/src/lib/sanity";
+import { getProductBySlug } from "@/src/lib/catalog";
+import { imageUrl } from "@/src/lib/images";
 import { notFound } from "next/navigation";
 import ProductGallery from "@/src/components/ProductGallery";
 import RelatedProducts from "@/src/components/RelatedProducts";
@@ -7,63 +8,11 @@ import WishlistButton from "@/src/components/WishlistButton";
 import ProductPageClient from "@/src/components/ProductPageClient";
 import { getMarketingSettings } from "@/src/lib/marketing";
 import { Metadata } from "next";
-import imageUrlBuilder from "@sanity/image-url";
 import Link from "next/link";
 import ProductReviews from "@/src/components/ProductReviews";
 
-const builder = imageUrlBuilder(client);
-
-function urlFor(source: any) {
-  return builder.image(source);
-}
-
 async function getProduct(slug: string) {
-  const query = `*[_type == "product" && slug.current == $slug][0] {
-    _id,
-    name,
-    briefDescription,
-    description,
-    productionTime,
-    priceNGN,
-    compareAtPrice,
-    productType,
-    images,
-
-    category->{
-      _id,
-      title,
-      slug,
-      compositionCare,
-      sizeFit
-    },
-
-    "categoryName": category->title,
-    "categoryId": category->_id,
-    "slug": slug.current,
-
-    "prints": prints[]->{
-      _id,
-      name,
-      image,
-      stockQuantity,
-      lowStockThreshold,
-      isActive
-    },
-
-    "reviews": *[
-      _type == "review" &&
-      product._ref == ^._id &&
-      approved == true
-    ] | order(_createdAt desc) {
-      _id,
-      name,
-      rating,
-      title,
-      comment
-    }
-  }`;
-
-  return await client.fetch(query, { slug });
+  return getProductBySlug(slug);
 }
 
 export async function generateMetadata({
@@ -79,7 +28,7 @@ export async function generateMetadata({
   }
 
   const ogImage = product.images?.[0]
-    ? urlFor(product.images[0]).width(1200).height(630).url()
+    ? imageUrl(product.images[0], { width: 1200, height: 630 })
     : "";
 
   return {
@@ -144,14 +93,14 @@ export default async function ProductPage({
                 </div>
 
                 <div className="mt-3 flex items-center gap-3">
-                  {product.compareAtPrice && (
+                  {!!product.compareAtPrice && (
                     <span className="line-through text-neutral-400">
                       <PriceDisplay priceNGN={product.compareAtPrice} />
                     </span>
                   )}
 
                   <span className="text-xl font-semibold">
-                    <PriceDisplay priceNGN={product.priceNGN} />
+                    <PriceDisplay priceNGN={product.priceNGN ?? 0} />
                   </span>
                 </div>
               </section>
@@ -165,9 +114,9 @@ export default async function ProductPage({
         {/* RELATED */}
         <section className="mt-16">
           <RelatedProducts
-            categoryId={product.categoryId}
+            categoryId={product.categoryId || ""}
             currentProductId={product._id}
-            categoryName={product.categoryName}
+            categoryName={product.categoryName || ""}
           />
         </section>
 

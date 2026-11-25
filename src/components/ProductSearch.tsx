@@ -4,18 +4,9 @@ import { useState, useMemo, useEffect } from "react";
 import { trackSearch } from "@/src/lib/analytics";
 import { Search, X, ChevronDown } from "lucide-react";
 import ProductCard from "./ProductCard";
+import { richTextToPlain } from "./RichText";
 import { useStore } from "@/src/store/useStore";
 
-function portableTextToPlainText(value: any) {
-  if (!Array.isArray(value)) return "";
-
-  return value
-    .map((block) => {
-      if (!block?.children) return "";
-      return block.children.map((child: any) => child.text || "").join(" ");
-    })
-    .join(" ");
-}
 
 export default function ProductSearch({
   products,
@@ -71,7 +62,7 @@ export default function ProductSearch({
         const briefDescription = product.briefDescription || "";
         const categoryName = product.categoryName || "";
         const productType = product.productType || "";
-        const descriptionText = portableTextToPlainText(product.description);
+        const descriptionText = richTextToPlain(product.description);
 
         const searchableText = [
           name,

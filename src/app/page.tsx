@@ -1,4 +1,4 @@
-import { client } from "../lib/sanity";
+import { listProducts } from "../lib/catalog";
 import Hero from "../components/Hero";
 import CategorySlider from "../components/CategorySlider";
 import AnnouncementBar from "../components/AnnouncementBar";
@@ -7,27 +7,16 @@ import ServicesGrid from "../components/ServicesGrid";
 import FeaturedProducts from "../components/FeaturedProducts"; 
 import ClientShowcase from "../components/ClientShowcase";
 import CollectionTurntable from "../components/CollectionTurntable";
-import { ACTIVE_EVENT_QUERY } from "../lib/events";
+import { getActiveEvent } from "../lib/eventsData";
 
 async function getProducts() {
-  const query = `*[_type == "product" && defined(images)] | order(_createdAt desc) [0...6] {
-    _id,
-    name,
-    "slug": slug.current,
-    productType,
-    priceNGN,
-    images,
-    "categoryName": category->title
-  }`;
-
-  const data = await client.fetch(query);
-  return data;
+  return listProducts({ withImagesOnly: true, limit: 6 });
 }
 
 export default async function HomePage() {
   const [products, activeEvent] = await Promise.all([
     getProducts(),
-    client.fetch(ACTIVE_EVENT_QUERY).catch(() => null),
+    getActiveEvent().catch(() => null),
   ]);
 
   return (

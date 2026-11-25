@@ -7,6 +7,7 @@ import { X, ArrowRight } from "lucide-react";
 import EventCountdown from "./EventCountdown";
 import { trackSelectPromotion, trackViewPromotion } from "@/src/lib/analytics";
 import { type EventSummary, formatEventDateRange, formatEventHours } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 const SNOOZE_MS = 2 * 24 * 60 * 60 * 1000; // don't auto-open again for 2 days after closing
 
@@ -76,7 +77,7 @@ export default function EventPopup({ event }: { event: EventSummary }) {
                 <div className="relative w-full md:w-1/2 bg-neutral-100 flex items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`${event.flyerUrl}?w=900&fit=max&auto=format`}
+                    src={imageUrl(event.flyerUrl, { width: 900 })}
                     alt={`${event.title} flyer`}
                     className="w-full h-auto object-contain"
                   />

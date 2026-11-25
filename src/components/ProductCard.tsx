@@ -3,11 +3,10 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { urlFor } from "@/src/lib/sanity";
 import PriceDisplay from "./PriceDisplay";
 
-function hasValidSanityImage(image: any) {
-  return Boolean(image?.asset?._ref || image?.asset?._id);
+function isImageUrl(image: unknown): image is string {
+  return typeof image === "string" && image.length > 0;
 }
 
 export default function ProductCard({
@@ -21,7 +20,7 @@ export default function ProductCard({
   const touchStartX = useRef(0);
   const [touchIndex, setTouchIndex] = useState(0);
 
-  const validImages = product.images?.filter(hasValidSanityImage) || [];
+  const validImages: string[] = product.images?.filter(isImageUrl) || [];
   const hasImages = validImages.length > 0;
   const hasSecondary = validImages.length > 1;
 
@@ -58,7 +57,7 @@ export default function ProductCard({
     >
       {hasSecondary && (
         <Image
-          src={urlFor(validImages[1]).url()}
+          src={validImages[1]}
           alt={product.name}
           fill
           sizes="(max-width: 768px) 50vw, 33vw"
@@ -74,7 +73,7 @@ export default function ProductCard({
         }`}
       >
         <Image
-          src={urlFor(validImages[0]).url()}
+          src={validImages[0]}
           alt={product.name}
           fill
           sizes="(max-width: 768px) 50vw, 33vw"

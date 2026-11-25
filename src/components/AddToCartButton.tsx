@@ -2,7 +2,6 @@
 
 import { useStore } from "@/src/store/useStore";
 import { ArrowRight, Check, Plus, Minus } from "lucide-react";
-import { urlFor } from "@/src/lib/sanity";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -34,7 +33,7 @@ export default function AddToCartButton({
       : "";
 
     // For dresses, the height/length collected on the product page rides along
-    // in the same notes chain, so it flows to checkout and into the Sanity order.
+    // in the same notes chain, so it flows to checkout and into the saved order.
     const heightLength = sizeNote?.trim() || "";
     const genderVal = gender?.trim() || "";
 
@@ -48,7 +47,7 @@ export default function AddToCartButton({
       _id: product._id,
       name: product.name,
       price: product.priceNGN,
-      image: product.images?.[0] ? urlFor(product.images[0]).url() : "",
+      image: product.images?.[0] || "",
       quantity,
       size: selectedSize,
       notes: finalNotes,

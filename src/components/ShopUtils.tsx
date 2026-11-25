@@ -57,7 +57,7 @@ export default function Navbar() {
         const data: Category[] = await getCategories();
         setCategories(data);
       } catch (error) {
-        console.error("Sanity fetch error:", error);
+        console.error("Category fetch error:", error);
       }
     };
 

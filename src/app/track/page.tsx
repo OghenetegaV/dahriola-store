@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Check, ExternalLink, Gift, Package, Truck, X } from "lucide-react";
 import { ORDER_STEPS, getTrackedOrder, statusLabel, verifyTrackToken } from "@/src/lib/orderStatus";
 import TrackForm from "./TrackForm";
+import { imageUrl } from "@/src/lib/images";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Track your order", robots: { index: false, follow: false } };
@@ -126,7 +127,7 @@ function OrderView({ order }: { order: NonNullable<Awaited<ReturnType<typeof get
                 <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                   {item.image && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`${item.image}?w=160&h=200&fit=crop&auto=format`} alt={item.name} className="h-full w-full object-cover" />
+                    <img src={imageUrl(item.image, { width: 160, height: 200 })} alt={item.name} className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="text-sm">

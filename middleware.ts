@@ -1,6 +1,8 @@
 // middleware.ts   (place at the PROJECT ROOT, next to package.json — not inside src/)
 // ─────────────────────────────────────────────────────────────────────────────
-// Maintenance mode toggle.
+// 1. Store dashboard (/admin): keeps the signed-in session fresh.
+//
+// 2. Maintenance mode toggle.
 //
 // Turn the store OFF (show maintenance page):  set  MAINTENANCE_MODE=on   in Vercel
 // Turn the store back ON (normal site):        set  MAINTENANCE_MODE=off  (or remove it)
@@ -8,6 +10,7 @@
 //
 // While ON, every visitor is rewritten to /maintenance EXCEPT:
 //   • the /maintenance page itself
+//   • the store dashboard (/admin), so orders can still be managed
 //   • Next.js internals and static assets
 //   • the Paystack payment callback / API routes (so in-flight orders can still
 //     complete and you can keep testing checkout privately)
@@ -18,14 +21,46 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 const BYPASS_COOKIE = "mnt_bypass";
 
-export function middleware(request: NextRequest) {
+/** Refreshes the dashboard sign-in cookies when they are close to expiring. */
+async function refreshAdminSession(request: NextRequest) {
+  let response = NextResponse.next({ request });
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return response;
+
+  try {
+    const supabase = createServerClient(url, key, {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (list) => {
+          list.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          list.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
+      },
+    });
+    await supabase.auth.getUser();
+  } catch {
+    // Supabase unreachable: carry on, the page itself will ask them to sign in
+  }
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return refreshAdminSession(request);
+  }
+
   const isOn = process.env.MAINTENANCE_MODE === "on";
   if (!isOn) return NextResponse.next();
-
-  const { pathname, searchParams } = request.nextUrl;
 
   // Always allow: the maintenance page, Next internals, static files, favicon,
   // and API/payment routes so orders & webhooks aren't blocked.

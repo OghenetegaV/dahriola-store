@@ -8,7 +8,8 @@
 // Stops when they buy; waits while an abandoned-checkout reminder is pending;
 // at most one marketing email a day and three a week; stops after 60 days
 // without any browsing or email clicks.
-import { writeClient } from "@/src/lib/sanityWrite";
+import { COUNT, countRows, db, lc, unwrap } from "@/src/lib/supabase/admin";
+import { listProducts, productsByIds as catalogProductsByIds, toCardInfo } from "@/src/lib/catalog";
 import { sha256 } from "@/src/lib/signing";
 import { SITE_URL } from "@/src/lib/events";
 import { esc } from "@/src/lib/mailer";
@@ -24,6 +25,7 @@ import {
   normEmail,
   productCardsHtml,
   sendMarketingEmail,
+  sentSince,
 } from "@/src/lib/marketing";
 
 export function browseDocId(email: string) {
@@ -44,24 +46,35 @@ type Doc = {
   step?: number;
 };
 
-type Product = EmailProduct & { _id: string; category?: string; images?: string[]; description?: string };
+type Product = EmailProduct & { _id: string; category?: string; images?: string[] };
 
 async function productsByIds(ids: string[]): Promise<Product[]> {
   if (!ids.length) return [];
-  const rows = await writeClient.fetch<Product[]>(
-    `*[_type == "product" && _id in $ids]{ _id, name, "slug": slug.current, priceNGN, "image": images[0].asset->url,
-       "images": images[].asset->url, "category": category->title, briefDescription }`,
-    { ids }
-  );
-  return ids.map((id) => rows.find((r) => r._id === id)).filter(Boolean) as Product[];
+  return (await catalogProductsByIds(ids)).map(toCardInfo);
+}
+
+/** Up to four newest pieces they haven't looked at, preferring the given categories. */
+async function freshPicks(viewedIds: string[], categories: string[], mode: "only" | "prefer"): Promise<EmailProduct[]> {
+  const pool = (await listProducts({ excludeIds: viewedIds, limit: 60 })).filter((p) => p.slug).map(toCardInfo);
+  const inCats = pool.filter((p) => p.category && categories.includes(p.category));
+  if (mode === "only") return inCats.slice(0, 4);
+  return [...inCats, ...pool.filter((p) => !inCats.includes(p))].slice(0, 4);
 }
 
 const firstName = (email: string, name?: string) => esc(String(name || "").trim().split(/\s+/)[0] || "there");
 
 async function contactName(email: string) {
-  return writeClient.fetch<string | null>(
-    `coalesce(*[_type == "order" && lower(customerEmail) == $email][0].customerName, *[_type == "rsvp" && lower(email) == $email][0].name, *[_type == "abandonedCart" && email == $email][0].name)`,
-    { email }
+  const first = async (table: string, column: string, nameColumn: string) => {
+    const row = unwrap(
+      await db().from(table).select(`name:${nameColumn}`).eq(column, lc(email)).not(nameColumn, "is", null).limit(1).maybeSingle(),
+      "Looking up the contact"
+    ) as { name: string | null } | null;
+    return row?.name || null;
+  };
+  return (
+    (await first("orders", "customer_email_lc", "customer_name")) ||
+    (await first("rsvps", "email_lc", "name")) ||
+    (await first("abandoned_carts", "email", "name"))
   );
 }
 
@@ -90,10 +103,18 @@ async function buildStep(step: number, doc: Doc, settings: MarketingSettings) {
   }
 
   if (step === 1) {
-    const review = await writeClient.fetch<{ name?: string; rating?: number; comment?: string } | null>(
-      `*[_type == "review" && approved == true && product._ref == $id] | order(rating desc, _createdAt desc)[0]{ name, rating, comment }`,
-      { id: top._id }
-    );
+    const review = unwrap(
+      await db()
+        .from("reviews")
+        .select("name, rating, comment")
+        .eq("approved", true)
+        .eq("product_id", top._id)
+        .order("rating", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      "Loading a review"
+    ) as { name?: string; rating?: number; comment?: string } | null;
     const gallery = (top.images || []).slice(1, 4).map((img) => ({ name: top.name, slug: top.slug, image: img }));
     return {
       subject: `How to wear ${top.name}`,
@@ -108,16 +129,9 @@ async function buildStep(step: number, doc: Doc, settings: MarketingSettings) {
   }
 
   if (step === 2) {
-    const categories = [...new Set(viewed.map((p) => p.category).filter(Boolean))];
-    const similar = await writeClient.fetch<EmailProduct[]>(
-      `*[_type == "product" && defined(slug.current) && !(_id in $viewed) && category->title in $cats] | order(_createdAt desc)[0...4]{
-        name, "slug": slug.current, "image": images[0].asset->url }`,
-      { viewed: viewedIds, cats: categories }
-    );
-    const picks = similar.length >= 2 ? similar : await writeClient.fetch<EmailProduct[]>(
-      `*[_type == "product" && defined(slug.current) && !(_id in $viewed)] | order(_createdAt desc)[0...4]{ name, "slug": slug.current, "image": images[0].asset->url }`,
-      { viewed: viewedIds }
-    );
+    const categories = [...new Set(viewed.map((p) => p.category).filter(Boolean))] as string[];
+    const similar = await freshPicks(viewedIds, categories, "only");
+    const picks = similar.length >= 2 ? similar : await freshPicks(viewedIds, [], "prefer");
     return {
       subject: "You might also love these",
       title: "You might also love",
@@ -142,12 +156,8 @@ async function buildStep(step: number, doc: Doc, settings: MarketingSettings) {
   }
 
   // step 4
-  const categories = [...new Set(viewed.map((p) => p.category).filter(Boolean))];
-  const fresh = await writeClient.fetch<EmailProduct[]>(
-    `*[_type == "product" && defined(slug.current) && !(_id in $viewed)] | order(category->title in $cats desc, _createdAt desc)[0...4]{
-      name, "slug": slug.current, "image": images[0].asset->url }`,
-    { viewed: viewedIds, cats: categories }
-  );
+  const categories = [...new Set(viewed.map((p) => p.category).filter(Boolean))] as string[];
+  const fresh = await freshPicks(viewedIds, categories, "prefer");
   let code: string | undefined;
   if (settings.browseDiscount > 0) {
     code = await createPersonalCoupon({ email: doc.email, percent: settings.browseDiscount, days: 14, prefix: "PICK", purpose: "Browse follow-up (day 30)" });
@@ -169,29 +179,41 @@ export async function runBrowseSequences(settings: MarketingSettings, budget: Bu
   if (!settings.browseEnabled) return { ...stats, note: "off" };
   const now = Date.now();
 
-  const docs = await writeClient.fetch<Doc[]>(
-    `*[_type == "browseActivity" && coalesce(step, 0) < 5 && !defined(convertedAt) && count(views) > 0] | order(lastViewedAt desc)[0...200]{
-      _id, email, views, lastViewedAt, lastEngagedAt, sequenceStartedAt, step }`
-  );
+  const rows = unwrap(
+    await db()
+      .from("browse_activity")
+      .select(
+        "_id:id, email, views, lastViewedAt:last_viewed_at, lastEngagedAt:last_engaged_at, sequenceStartedAt:sequence_started_at, step"
+      )
+      .lt("step", 5)
+      .is("converted_at", null)
+      .order("last_viewed_at", { ascending: false })
+      .limit(200),
+    "Loading browsing activity"
+  ) as Doc[];
+  const docs = rows.filter((d) => Array.isArray(d.views) && d.views.length && d.sequenceStartedAt);
+
+  const patch = async (id: string, values: Record<string, unknown>) =>
+    unwrap(await db().from("browse_activity").update(values).eq("id", id), "Updating browsing activity");
 
   for (const doc of docs) {
     if (budget.left <= 0) break;
     const step = doc.step || 0;
     const started = new Date(doc.sequenceStartedAt).getTime();
+    const startedDay = new Date(doc.sequenceStartedAt).toISOString().slice(0, 10);
     if (now < started + STEP_DUE[step]) {
       stats.waiting++;
       continue;
     }
     const email = normEmail(doc.email);
-    const stop = () => writeClient.patch(doc._id).set({ step: 5 }).commit();
+    const stop = () => patch(doc._id, { step: 5 });
 
     // Bought since the sequence started? Hand over to the post-purchase emails.
-    const bought = await writeClient.fetch<number>(
-      `count(*[_type == "order" && lower(customerEmail) == $email && dateTime(createdAt) > dateTime($since)])`,
-      { email, since: doc.sequenceStartedAt }
+    const bought = await countRows(
+      db().from("orders").select("*", COUNT).eq("customer_email_lc", lc(email)).gt("created_at", doc.sequenceStartedAt)
     );
     if (bought > 0) {
-      await writeClient.patch(doc._id).set({ convertedAt: new Date().toISOString() }).commit();
+      await patch(doc._id, { converted_at: new Date().toISOString() });
       stats.converted++;
       continue;
     }
@@ -205,20 +227,18 @@ export async function runBrowseSequences(settings: MarketingSettings, budget: Bu
     }
 
     // One journey at a time: an abandoned checkout reminder takes priority
-    const cartPending = await writeClient.fetch<number>(
-      `count(*[_type == "abandonedCart" && email == $email && !defined(recoveredAt) && dateTime(updatedAt) > dateTime($since)
-         && (!defined(reminderSentAt) || dateTime(reminderSentAt) > dateTime($recent))])`,
-      { email, since: new Date(now - 7 * DAY).toISOString(), recent: new Date(now - 2 * DAY).toISOString() }
+    const cartPending = await countRows(
+      db()
+        .from("abandoned_carts")
+        .select("*", COUNT)
+        .eq("email", email)
+        .is("recovered_at", null)
+        .gt("updated_at", new Date(now - 7 * DAY).toISOString())
+        .or(`reminder_sent_at.is.null,reminder_sent_at.gt."${new Date(now - 2 * DAY).toISOString()}"`)
     );
     // Frequency caps across all marketing emails
-    const sentDay = await writeClient.fetch<number>(`count(*[_type == "marketingLog" && email == $email && dateTime(sentAt) > dateTime($since)])`, {
-      email,
-      since: new Date(now - 20 * 3600_000).toISOString(),
-    });
-    const sentWeek = await writeClient.fetch<number>(`count(*[_type == "marketingLog" && email == $email && dateTime(sentAt) > dateTime($since)])`, {
-      email,
-      since: new Date(now - 7 * DAY).toISOString(),
-    });
+    const sentDay = await sentSince(email, new Date(now - 20 * 3600_000));
+    const sentWeek = await sentSince(email, new Date(now - 7 * DAY));
     if (cartPending > 0 || sentDay >= 1 || sentWeek >= 3) {
       stats.waiting++;
       continue;
@@ -243,11 +263,11 @@ export async function runBrowseSequences(settings: MarketingSettings, budget: Bu
         reason: "You're receiving this because you're on the DAHRIOLA list and allowed personalised emails on our website.",
       }),
       kind: `browse-${step + 1}-${["viewed", "how-to-wear", "also-love", "brand-story", "new-in"][step]}`,
-      key: `${doc._id}-${doc.sequenceStartedAt.slice(0, 10)}-${step}`,
+      key: `${doc._id}-${startedDay}-${step}`,
       couponCode: "code" in content ? content.code : undefined,
     });
     if (res.sent || res.reason === "already sent") {
-      await writeClient.patch(doc._id).set({ step: step + 1, lastStepAt: new Date().toISOString() }).commit();
+      await patch(doc._id, { step: step + 1, last_step_at: new Date().toISOString() });
       stats.sent += res.sent ? 1 : 0;
     } else if (res.reason === "unsubscribed") {
       await stop();

@@ -10,8 +10,9 @@ import EventPopup from "../components/EventPopup";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import CookieConsent from "../components/CookieConsent";
 import VisitorTracker from "../components/VisitorTracker";
-import { client } from "../lib/sanity";
-import { ACTIVE_EVENT_QUERY, type EventSummary } from "../lib/events";
+import SiteChrome from "../components/SiteChrome";
+import type { EventSummary } from "../lib/events";
+import { getActiveEvent as loadActiveEvent } from "../lib/eventsData";
 
 const ptSerif = PT_Serif({
   subsets: ["latin"],
@@ -87,13 +88,13 @@ export const metadata: Metadata = {
   },
 };
 
-// Re-check Sanity at most once a minute so turning an event pop-up on/off
+// Re-check the database at most once a minute so turning an event pop-up on/off
 // shows up without a redeploy
 export const revalidate = 60;
 
 async function getActiveEvent(): Promise<EventSummary | null> {
   try {
-    return await client.fetch(ACTIVE_EVENT_QUERY);
+    return await loadActiveEvent();
   } catch {
     return null;
   }
@@ -111,17 +112,22 @@ export default async function RootLayout({
       <body
         className={`${ptSerif.variable} ${inter.variable} font-sans bg-brand-white text-neutral-900 antialiased`}
       >
-        <Navbar />
+        {/* The dashboard at /admin has its own layout: no shop header, footer or pop-ups */}
+        <SiteChrome>
+          <Navbar />
+        </SiteChrome>
         <main>{children}</main>
-        <Concierge />
-        {/* While an event is promoted, its pop-up replaces the newsletter auto-popup.
-            The newsletter popup stays mounted so the footer/announcement triggers still work. */}
-        {activeEvent && <EventPopup event={activeEvent} />}
-        <NewsletterPopup autoOpen={!activeEvent} />
-        <Footer />
-        <GoogleAnalytics />
-        <CookieConsent />
-        <VisitorTracker />
+        <SiteChrome>
+          <Concierge />
+          {/* While an event is promoted, its pop-up replaces the newsletter auto-popup.
+              The newsletter popup stays mounted so the footer/announcement triggers still work. */}
+          {activeEvent && <EventPopup event={activeEvent} />}
+          <NewsletterPopup autoOpen={!activeEvent} />
+          <Footer />
+          <GoogleAnalytics />
+          <CookieConsent />
+          <VisitorTracker />
+        </SiteChrome>
       </body>
     </html>
   );

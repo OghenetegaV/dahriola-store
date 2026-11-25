@@ -31,7 +31,6 @@ import {
 import TerminalLocationSelect from "@/src/components/TerminalLocationSelect";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { urlFor } from "@/src/lib/sanity";
 import { getUpsellProducts } from "@/src/app/actions/catalog";
 import { restoreCheckout, saveCheckoutProgress } from "@/src/app/actions/abandonedCart";
 import { setIdentity } from "@/src/lib/identityClient";
@@ -333,8 +332,8 @@ export default function CheckoutClient() {
       if (result.success) {
         const savings =
           result.discountType === "percentage"
-            ? convertedSubtotal * (result.discountValue / 100)
-            : result.discountValue * (exchangeRates[currency] || 1);
+            ? convertedSubtotal * (Number(result.discountValue || 0) / 100)
+            : Number(result.discountValue || 0) * (exchangeRates[currency] || 1);
 
         setDiscountAmount(savings);
       } else {
@@ -516,7 +515,7 @@ export default function CheckoutClient() {
       name: selectedUpsell.name,
       price: selectedUpsell.priceNGN,
       image: selectedUpsell.images?.[0]
-        ? urlFor(selectedUpsell.images[0]).url()
+        ? selectedUpsell.images[0]
         : "",
       quantity: upsellQuantity,
       size: upsellSize,
@@ -1038,7 +1037,7 @@ export default function CheckoutClient() {
                         <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-neutral-100 mb-3">
                           {product.images?.[0] && (
                             <Image
-                              src={urlFor(product.images[0]).url()}
+                              src={product.images[0]}
                               alt={product.name}
                               fill
                               className="object-cover"
@@ -1295,7 +1294,7 @@ export default function CheckoutClient() {
               <div className="relative w-24 h-32 rounded-xl overflow-hidden bg-neutral-100 shrink-0">
                 {selectedUpsell.images?.[0] && (
                   <Image
-                    src={urlFor(selectedUpsell.images[0]).url()}
+                    src={selectedUpsell.images[0]}
                     alt={selectedUpsell.name}
                     fill
                     className="object-cover"

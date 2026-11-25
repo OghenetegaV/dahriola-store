@@ -14,6 +14,7 @@ import {
   googleCalendarUrl,
   SITE_URL,
 } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 function getStoreEmail() {
   return (
@@ -335,7 +336,7 @@ export async function sendLowStockNotification({
           <p><strong>Low stock threshold:</strong> ${Number(threshold)}</p>
 
           <p style="margin-top: 20px;">
-            Please update this print/material stock quantity in Sanity if more fabric is available.
+            Please update this print/material stock quantity in the store dashboard (Prints &amp; Stock) if more fabric is available.
           </p>
         </div>
       `,
@@ -432,7 +433,7 @@ function eventEmailShell(event: EventSummary, inner: string) {
     <div style="background:#F6F4EF;padding:24px 0;">
       <div style="font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e8e3d9;">
         ${band}
-        ${event.flyerUrl ? `<img src="${event.flyerUrl}?w=1120&fit=max" alt="${escapeHtml(event.title)}" style="display:block;width:100%;height:auto;" />` : ""}
+        ${event.flyerUrl ? `<img src="${imageUrl(event.flyerUrl, { width: 1120 })}" alt="${escapeHtml(event.title)}" style="display:block;width:100%;height:auto;" />` : ""}
         <div style="padding:28px 28px 8px;">
           ${inner}
         </div>

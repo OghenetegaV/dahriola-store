@@ -1,11 +1,10 @@
 "use server";
 
-import { writeClient } from "@/src/lib/sanityWrite";
+import { db, unwrap } from "@/src/lib/supabase/admin";
+import { productsByIds } from "@/src/lib/catalog";
 import { priceItems, type CheckoutItemInput } from "@/src/lib/checkoutPricing";
 import { cartDocId, verifyRestoreToken, type SavedCartItem } from "@/src/lib/abandonedCarts";
 import { normEmail } from "@/src/lib/marketing";
-import { randomId } from "@/src/lib/signing";
-import { urlFor } from "@/src/lib/sanity";
 import { trackBrevoEvent } from "@/src/lib/brevo";
 import { identityToken } from "@/src/lib/identity";
 
@@ -20,10 +19,9 @@ export async function saveCheckoutProgress(input: { email: string; name?: string
     const priced = await priceItems(input.items.slice(0, 30));
     if ("error" in priced) return { ok: false };
 
-    const _id = cartDocId(email);
+    const id = cartDocId(email);
     const now = new Date().toISOString();
     const items: SavedCartItem[] = priced.lines.map((l) => ({
-      _key: randomId(8),
       productId: l._id,
       name: l.name,
       quantity: l.quantity,
@@ -35,27 +33,34 @@ export async function saveCheckoutProgress(input: { email: string; name?: string
       notes: l.notes,
     }));
 
-    const existing = await writeClient.fetch<{ reminderSentAt?: string; recoveredAt?: string } | null>(
-      `*[_id == $id][0]{ reminderSentAt, recoveredAt }`,
-      { id: _id }
-    );
-    await writeClient.createIfNotExists({ _id, _type: "abandonedCart", email, createdAt: now });
+    const existing = unwrap(
+      await db().from("abandoned_carts").select("reminder_sent_at, recovered_at").eq("id", id).maybeSingle(),
+      "Loading the saved checkout"
+    ) as { reminder_sent_at: string | null; recovered_at: string | null } | null;
 
-    let patch = writeClient.patch(_id).set({
-      email,
-      name: String(input.name || "").trim().slice(0, 100),
-      items,
-      subtotal: priced.subtotal,
-      updatedAt: now,
-    });
     // A new shopping session after an old reminder or a finished order starts fresh
-    if (existing?.recoveredAt || existing?.reminderSentAt) {
-      patch = patch.unset(["reminderSentAt", "recoveredAt"]).set({ createdAt: now });
-    }
-    await patch.commit();
+    const startsFresh = !existing || !!existing.recovered_at || !!existing.reminder_sent_at;
+
+    unwrap(
+      await db()
+        .from("abandoned_carts")
+        .upsert(
+          {
+            id,
+            email,
+            name: String(input.name || "").trim().slice(0, 100),
+            items,
+            subtotal: priced.subtotal,
+            updated_at: now,
+            ...(startsFresh ? { created_at: now, reminder_sent_at: null, recovered_at: null } : {}),
+          },
+          { onConflict: "id" }
+        ),
+      "Saving the checkout"
+    );
 
     // Tell Brevo once per shopping session, not on every keystroke
-    if (!existing || existing.recoveredAt || existing.reminderSentAt) {
+    if (startsFresh) {
       await trackBrevoEvent(email, "checkout_started", {
         value: priced.subtotal,
         currency: "NGN",
@@ -75,16 +80,13 @@ export async function restoreCheckout(id: string, token: string) {
   const docId = String(id || "");
   if (!/^abandonedCart-[a-f0-9]{24}$/.test(docId) || !verifyRestoreToken(docId, token)) return null;
 
-  const cart = await writeClient.fetch<{ email: string; name?: string; items?: SavedCartItem[] } | null>(
-    `*[_id == $id][0]{ email, name, items }`,
-    { id: docId }
-  );
+  const cart = unwrap(
+    await db().from("abandoned_carts").select("email, name, items").eq("id", docId).maybeSingle(),
+    "Loading the saved checkout"
+  ) as { email: string; name?: string | null; items?: SavedCartItem[] | null } | null;
   if (!cart?.items?.length) return null;
 
-  const products = await writeClient.fetch<{ _id: string; name: string; priceNGN?: number; images?: unknown[] }[]>(
-    `*[_type == "product" && _id in $ids]{ _id, name, priceNGN, images }`,
-    { ids: cart.items.map((i) => i.productId) }
-  );
+  const products = await productsByIds(cart.items.map((i) => i.productId));
   const byId = new Map(products.map((p) => [p._id, p]));
 
   return {
@@ -98,7 +100,7 @@ export async function restoreCheckout(id: string, token: string) {
           _id: p._id,
           name: p.name,
           price: p.priceNGN as number,
-          image: p.images?.[0] ? urlFor(p.images[0]).url() : "",
+          image: p.images[0] || "",
           quantity: i.quantity,
           size: i.size || "M",
           notes: i.notes || "",

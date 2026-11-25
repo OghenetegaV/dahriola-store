@@ -104,8 +104,12 @@ const p = (t: string) => `<p style="margin:0 0 16px;">${t}</p>`;
 // ---------------------------------------------------------------------------
 async function main() {
   if (!KEY || !SENDER.email) throw new Error("BREVO_API_KEY / BREVO_SENDER_EMAIL missing in .env.local");
-  const { writeClient } = await import("../src/lib/sanityWrite");
-  const { EVENT_SUMMARY_FIELDS, formatEventDateRange, formatEventHours } = await import("../src/lib/events");
+  const { createClient } = await import("@supabase/supabase-js");
+  const { formatEventDateRange, formatEventHours } = await import("../src/lib/events");
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const supabaseKey = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (!supabaseUrl || !supabaseKey) throw new Error("NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SECRET_KEY missing in .env.local");
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { ensureBrevoAttributes, upsertContact } = await import("../src/lib/brevo");
 
   // 1. Attributes + visitor IDs on existing contacts
@@ -120,12 +124,26 @@ async function main() {
   console.log(`contacts refreshed with visitor IDs: ${refreshed}`);
 
   // 2. Live content from the site
-  const products: Product[] = await writeClient.fetch(
-    `*[_type == "product" && defined(slug.current) && defined(images[0])] | order(_createdAt desc)[0...8]{ name, "slug": slug.current, "image": images[0].asset->url, priceNGN }`
-  );
+  const productRows = await supabase
+    .from("products")
+    .select("name, slug, images, price_ngn")
+    .eq("is_published", true)
+    .neq("images", "{}")
+    .order("created_at", { ascending: false })
+    .limit(8);
+  if (productRows.error) throw new Error(productRows.error.message);
+  const products: Product[] = (productRows.data || []).map((r) => ({ name: r.name, slug: r.slug, image: r.images?.[0], priceNGN: r.price_ngn ?? undefined }));
   const newest = products.slice(0, 4);
   const more = products.slice(4, 8).length >= 2 ? products.slice(4, 8) : newest;
-  const event = await writeClient.fetch(`*[_type == "event" && dateTime(endDate) > dateTime(now())] | order(startDate asc)[0]{${EVENT_SUMMARY_FIELDS}}`);
+  const eventRow = await supabase
+    .from("events")
+    .select("title, slug, tagline, startDate:start_date, endDate:end_date, venueName:venue_name, venueAddress:venue_address, flyerUrl:flyer_url")
+    .gt("end_date", new Date().toISOString())
+    .order("start_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (eventRow.error) throw new Error(eventRow.error.message);
+  const event = eventRow.data;
 
   // 3. Templates
   const T: { name: string; subject: string; tag: string; html: string }[] = [
@@ -304,7 +322,7 @@ async function main() {
   const CUST = L("BREVO_LIST_CUSTOMERS") || 4;
   const RSVP = L("BREVO_LIST_EVENTS") || 5;
   const everyone = [NEWS, CUST, RSVP];
-  const flyer = event?.flyerUrl ? `${event.flyerUrl}?w=1120&fit=max&auto=format` : undefined;
+  const flyer = event?.flyerUrl || undefined;
   const eventPath = event?.slug ? `/events/${event.slug}` : "/events";
   const dates = event ? formatEventDateRange(event) : "";
   const shortDates = event ? formatEventDateRange(event, { weekday: false }) : "";

@@ -2,6 +2,7 @@
 // file so they can't be called directly from a browser to send emails.
 import { deliverEmail, type EmailAttachment } from "@/src/lib/emailDelivery";
 import { type EventRecap, SITE_URL, eventUrl, formatEventDateRange } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 export function esc(value: unknown) {
   return String(value ?? "")
@@ -107,7 +108,7 @@ export function buildEventFollowUpEmail(
          .map(
            (p) => `<td width="${Math.floor(100 / products.length)}%" style="padding:4px;vertical-align:top;text-align:center;">
              <a href="${esc(`${SITE_URL}/product/${p.slug}`)}" style="text-decoration:none;color:#1a1a1a;">
-               ${p.image ? `<img src="${esc(p.image)}?w=240&h=300&fit=crop&auto=format" width="120" alt="${esc(p.name)}" style="display:block;width:100%;height:auto;border:0;">` : ""}
+               ${p.image ? `<img src="${esc(imageUrl(p.image, { width: 240, height: 300 }))}" width="120" alt="${esc(p.name)}" style="display:block;width:100%;height:auto;border:0;">` : ""}
                <span style="display:block;font-size:12px;margin-top:6px;">${esc(p.name)}</span>
              </a></td>`
          )
@@ -141,7 +142,7 @@ export function buildEventFollowUpEmail(
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:28px 12px;"><tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border:1px solid #e8e3d9;">
       <tr><td style="background:#111;color:#fff;text-align:center;padding:12px 0;font-size:12px;letter-spacing:6px;">DAHRIOLA</td></tr>
-      ${photo ? `<tr><td><img src="${esc(photo)}?w=1120&h=700&fit=crop&auto=format" alt="" width="560" style="display:block;width:100%;height:auto;border:0;"></td></tr>` : ""}
+      ${photo ? `<tr><td><img src="${esc(imageUrl(photo, { width: 1120, height: 700 }))}" alt="" width="560" style="display:block;width:100%;height:auto;border:0;"></td></tr>` : ""}
       <tr><td style="padding:28px 32px 8px;">
         <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:26px;margin:0 0 6px;">${kind === "attended" ? "Thank you for coming" : "We missed you"}</h1>
         <p style="margin:0 0 18px;font-size:12px;letter-spacing:2px;color:#8a8170;">${esc(`${event.title} · ${formatEventDateRange(event, { weekday: false })}`.toUpperCase())}</p>

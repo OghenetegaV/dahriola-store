@@ -1,12 +1,13 @@
 "use server";
 
 import { randomInt } from "crypto";
-import { writeClient } from "@/src/lib/sanityWrite";
+import { db, fetchAll, lc, isSupabaseConfigured, unwrap } from "@/src/lib/supabase/admin";
+import { getEventSummaryById } from "@/src/lib/eventsData";
 import { appendRow } from "@/src/lib/googleSheets";
 import { trackBrevoEvent, upsertContact } from "@/src/lib/brevo";
 import { identityToken } from "@/src/lib/identity";
 import { optBackIn } from "@/src/lib/marketing";
-import { EVENT_SUMMARY_FIELDS, type EventSummary } from "@/src/lib/events";
+import type { EventSummary } from "@/src/lib/events";
 import { sendRsvpConfirmation } from "@/src/app/actions/email";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,16 +52,13 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
 
   if (!name) return { success: false, message: "Please enter your name." };
   if (!EMAIL_REGEX.test(email)) return { success: false, message: "Please enter a valid email address." };
-  if (!process.env.SANITY_API_WRITE_TOKEN) {
-    console.error("submitRsvp: SANITY_API_WRITE_TOKEN is not set");
+  if (!isSupabaseConfigured()) {
+    console.error("submitRsvp: Supabase is not configured");
     return { success: false, message: "RSVP is unavailable right now. Please try again later." };
   }
 
   try {
-    const event: EventSummary | null = await writeClient.fetch(
-      `*[_type == "event" && _id == $id][0]{${EVENT_SUMMARY_FIELDS}}`,
-      { id: input.eventId }
-    );
+    const event: EventSummary | null = await getEventSummaryById(String(input.eventId || ""));
 
     if (!event) return { success: false, message: "This event could not be found." };
     if (!event.rsvpOpen || new Date(event.endDate) < new Date()) {
@@ -70,10 +68,17 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     const maxGuests = Math.max(0, event.maxGuests ?? 1);
     const guests = Math.min(Math.max(0, Math.floor(Number(input.guests) || 0)), maxGuests);
 
-    const existing = await writeClient.fetch(
-      `*[_type == "rsvp" && event._ref == $eventId && lower(email) == $email][0]{ name, guests, ticketCode }`,
-      { eventId: event._id, email }
-    );
+    const existing = unwrap(
+      await db()
+        .from("rsvps")
+        .select("name, guests, ticketCode:ticket_code")
+        .eq("event_id", event._id)
+        .eq("email_lc", lc(email))
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      "Checking for an existing RSVP"
+    ) as { name: string | null; guests: number; ticketCode: string } | null;
 
     // Already registered: resend their ticket rather than creating a duplicate
     if (existing) {
@@ -87,11 +92,11 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     }
 
     if (event.capacity) {
-      const taken: number[] = await writeClient.fetch(
-        `*[_type == "rsvp" && event._ref == $eventId].guests`,
-        { eventId: event._id }
+      const taken = await fetchAll<{ guests: number | null }>(
+        (from, to) => db().from("rsvps").select("guests").eq("event_id", event._id).order("id", { ascending: true }).range(from, to),
+        "Counting RSVPs"
       );
-      const headcount = taken.reduce((sum, g) => sum + 1 + (Number(g) || 0), 0);
+      const headcount = taken.reduce((sum, r) => sum + 1 + (Number(r.guests) || 0), 0);
       if (headcount + 1 + guests > event.capacity) {
         return { success: false, message: "Sorry, this event is now full." };
       }
@@ -100,19 +105,21 @@ export async function submitRsvp(input: RsvpInput): Promise<RsvpResult> {
     const ticketCode = makeTicketCode();
     const createdAt = new Date().toISOString();
 
-    await writeClient.create({
-      _type: "rsvp",
-      event: { _type: "reference", _ref: event._id },
-      name,
-      email,
-      phone,
-      guests,
-      source,
-      marketingOptIn: !!input.marketingOptIn,
-      ticketCode,
-      checkedIn: false,
-      createdAt,
-    });
+    unwrap(
+      await db().from("rsvps").insert({
+        event_id: event._id,
+        name,
+        email,
+        phone,
+        guests,
+        source,
+        marketing_opt_in: !!input.marketingOptIn,
+        ticket_code: ticketCode,
+        checked_in: false,
+        created_at: createdAt,
+      }),
+      "Saving the RSVP"
+    );
 
     // The RSVP is saved — Sheet and email failures are logged but don't fail it
     // Always written to the main (newsletter) spreadsheet; also copied to a
@@ -203,9 +210,9 @@ export type TicketLookup =
   | { success: false; message: string };
 
 async function eventStats(eventId: string) {
-  const rows: { guests?: number; checkedIn?: boolean }[] = await writeClient.fetch(
-    `*[_type == "rsvp" && event._ref == $eventId]{ guests, checkedIn }`,
-    { eventId }
+  const rows = await fetchAll<{ guests?: number; checkedIn?: boolean }>(
+    (from, to) => db().from("rsvps").select("guests, checkedIn:checked_in").eq("event_id", eventId).order("id", { ascending: true }).range(from, to),
+    "Loading RSVPs"
   );
   return rows.reduce(
     (acc, r) => {
@@ -224,20 +231,42 @@ export async function lookupTicket(code: string, passcode: string): Promise<Tick
   const ticketCode = String(code || "").trim().toUpperCase();
   if (!ticketCode) return { success: false, message: "Enter a ticket code." };
 
-  const ticket = await writeClient.fetch(
-    `*[_type == "rsvp" && ticketCode == $code] | order(createdAt desc)[0]{
-      _id, name, email, guests, ticketCode, checkedIn, checkedInAt,
-      "eventId": event._ref, "eventTitle": event->title
-    }`,
-    { code: ticketCode }
-  );
+  const row = unwrap(
+    await db()
+      .from("rsvps")
+      .select("_id:id, name, email, guests, ticketCode:ticket_code, checkedIn:checked_in, checkedInAt:checked_in_at, eventId:event_id, event:events(title)")
+      .eq("ticket_code", ticketCode)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    "Ticket lookup"
+  ) as unknown as {
+    _id: string;
+    name: string | null;
+    email: string | null;
+    guests: number | null;
+    ticketCode: string;
+    checkedIn: boolean;
+    checkedInAt: string | null;
+    eventId: string;
+    event: { title: string } | null;
+  } | null;
 
-  if (!ticket) return { success: false, message: `No ticket found for ${ticketCode}.` };
+  if (!row) return { success: false, message: `No ticket found for ${ticketCode}.` };
 
   return {
     success: true,
-    ticket: { ...ticket, guests: Number(ticket.guests) || 0, checkedIn: !!ticket.checkedIn },
-    stats: await eventStats(ticket.eventId),
+    ticket: {
+      _id: row._id,
+      name: row.name || "",
+      email: row.email || "",
+      guests: Number(row.guests) || 0,
+      ticketCode: row.ticketCode,
+      checkedIn: !!row.checkedIn,
+      checkedInAt: row.checkedInAt || undefined,
+      eventTitle: row.event?.title || "",
+    },
+    stats: await eventStats(row.eventId),
   };
 }
 
@@ -246,7 +275,10 @@ export async function checkInTicket(code: string, passcode: string): Promise<Tic
   if (!found.success || found.ticket.checkedIn) return found;
 
   const checkedInAt = new Date().toISOString();
-  await writeClient.patch(found.ticket._id).set({ checkedIn: true, checkedInAt }).commit();
+  unwrap(
+    await db().from("rsvps").update({ checked_in: true, checked_in_at: checkedInAt }).eq("id", found.ticket._id),
+    "Checking in"
+  );
   await trackBrevoEvent(found.ticket.email, "event_attended", {
     event_title: found.ticket.eventTitle,
     guests: found.ticket.guests,

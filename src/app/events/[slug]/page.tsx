@@ -1,24 +1,20 @@
 import type { Metadata } from "next";
-import type { PortableTextBlock } from "@portabletext/react";
 import { notFound } from "next/navigation";
-import { client } from "@/src/lib/sanity";
+import { getEventBySlug } from "@/src/lib/eventsData";
 import UpcomingEvent from "@/src/components/events/EventPage";
 import EventRecap from "@/src/components/events/EventRecap";
 import {
-  EVENT_RECAP_FIELDS,
-  EVENT_SUMMARY_FIELDS,
   type EventRecap as EventRecapData,
   eventUrl,
   formatEventDateRange,
   isEventPast,
 } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 export const dynamic = "force-dynamic";
 
 async function getEvent(slug: string): Promise<EventRecapData | null> {
-  return client.fetch(`*[_type == "event" && slug.current == $slug][0]{${EVENT_SUMMARY_FIELDS}, ${EVENT_RECAP_FIELDS}}`, {
-    slug,
-  });
+  return getEventBySlug(slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -31,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? `Photos, videos and highlights from ${event.title} — ${formatEventDateRange(event)}.`
     : `${event.tagline || event.title} — ${formatEventDateRange(event)}. RSVP now.`;
   const cover = past ? event.gallery[0]?.url || event.flyerUrl : event.flyerUrl;
-  const images = cover ? [{ url: `${cover}?w=1200&h=630&fit=crop` }] : ["/og-image.jpg"];
+  const images = cover ? [{ url: imageUrl(cover, { width: 1200, height: 630 }) }] : ["/og-image.jpg"];
 
   return {
     title: past ? `${event.title} — Recap` : event.title,
@@ -49,5 +45,5 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   // Once the event is over, the page becomes its recap
   if (isEventPast(event)) return <EventRecap event={event} />;
 
-  return <UpcomingEvent event={event} description={event.description as PortableTextBlock[] | undefined} />;
+  return <UpcomingEvent event={event} description={event.description} />;
 }

@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { PortableText, type PortableTextBlock } from "@portabletext/react";
+import RichText, { hasRichText } from "@/src/components/RichText";
 import { ArrowRight, Camera, ChevronLeft, ChevronRight, ExternalLink, Play, X } from "lucide-react";
 import { openNewsletterPopup } from "@/src/components/NewsletterPopup";
 import { useStore } from "@/src/store/useStore";
 import { type EventRecap as EventRecapData, eventLocation, formatEventDateRange, videoEmbed } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -98,7 +99,7 @@ function Lightbox({
           onClick={(e) => e.stopPropagation()}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${img.url}?w=2000&fit=max&auto=format`} alt={img.caption || "Event photo"} className="max-h-[82vh] max-w-full object-contain" />
+          <img src={imageUrl(img.url, { width: 2000 })} alt={img.caption || "Event photo"} className="max-h-[82vh] max-w-full object-contain" />
           <figcaption className="mt-4 text-center text-sm text-white/80">
             {img.caption && <span className="block">{img.caption}</span>}
             <span className="text-[11px] tracking-[0.2em] text-white/50">
@@ -149,7 +150,7 @@ export default function EventRecap({ event }: { event: EventRecapData }) {
       ? new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(ngn * (exchangeRates[currency] || 1))
       : "";
 
-  const story = (event.recap?.length ? event.recap : event.description) as PortableTextBlock[] | undefined;
+  const story = hasRichText(event.recap) ? event.recap : event.description;
 
   return (
     <div className="event-experience relative overflow-hidden">
@@ -164,7 +165,7 @@ export default function EventRecap({ event }: { event: EventRecapData }) {
             transition={{ duration: 2.4, ease: EASE }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${hero}?w=2000&fit=max&auto=format`} alt="" className="h-full w-full object-cover object-[center_20%]" />
+            <img src={imageUrl(hero, { width: 2000 })} alt="" className="h-full w-full object-cover object-[center_20%]" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10" />
           </motion.div>
         )}
@@ -230,7 +231,7 @@ export default function EventRecap({ event }: { event: EventRecapData }) {
           >
             <span className="text-[10px] uppercase tracking-[0.45em] text-brand-beryl">The story</span>
             <div className="mt-6 space-y-5 font-display text-xl leading-relaxed text-neutral-600 md:text-2xl">
-              <PortableText value={story} />
+              <RichText value={story} />
             </div>
           </motion.div>
         </section>
@@ -261,7 +262,7 @@ export default function EventRecap({ event }: { event: EventRecapData }) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`${img.url}?w=800&fit=max&auto=format`}
+                    src={imageUrl(img.url, { width: 800 })}
                     alt={img.caption || `Event photo ${i + 1}`}
                     loading="lazy"
                     width={img.width}
@@ -373,7 +374,7 @@ export default function EventRecap({ event }: { event: EventRecapData }) {
                       {p.image && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={`${p.image}?w=600&h=750&fit=crop&auto=format`}
+                          src={imageUrl(p.image, { width: 600, height: 750 })}
                           alt={p.name}
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />

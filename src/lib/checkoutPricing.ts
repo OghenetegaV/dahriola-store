@@ -1,6 +1,6 @@
-// Server-only: works out what an order costs from Sanity prices, the coupon and
+// Server-only: works out what an order costs from database prices, the coupon and
 // a signed shipping quote. The browser's own numbers are only for display.
-import { writeClient } from "@/src/lib/sanityWrite";
+import { productsByIds } from "@/src/lib/catalog";
 import { validateCoupon } from "@/src/app/actions/coupon";
 import { addressKey, verifyRate } from "@/src/lib/signing";
 import type { OrderLine } from "@/src/lib/orders";
@@ -51,17 +51,12 @@ export function rateAddressKey(a: Pick<DeliveryAddress, "country" | "state" | "c
   return addressKey(clean(a.country).toUpperCase(), a.state, a.city);
 }
 
-type ProductRow = { _id: string; name: string; priceNGN?: number; prints?: { _id: string; name: string }[] | null };
-
 export async function priceItems(items: CheckoutItemInput[]) {
   if (!Array.isArray(items) || items.length === 0) return { error: "Your cart is empty." } as const;
   if (items.length > 60) return { error: "Too many items in one order." } as const;
 
   const ids = [...new Set(items.map((i) => clean(i._id, 100)))];
-  const products = await writeClient.fetch<ProductRow[]>(
-    `*[_type == "product" && _id in $ids]{ _id, name, priceNGN, "prints": prints[]->{ _id, name } }`,
-    { ids }
-  );
+  const products = await productsByIds(ids, { withPrints: true });
   const byId = new Map(products.map((p) => [p._id, p]));
 
   const lines: (OrderLine & { giftListId?: string })[] = [];

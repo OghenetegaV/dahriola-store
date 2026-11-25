@@ -7,39 +7,20 @@ export type EventSummary = {
   _id: string;
   title: string;
   slug: string;
-  tagline?: string;
+  tagline?: string | null;
   startDate: string;
   endDate: string;
-  venueName?: string;
-  venueAddress?: string;
-  mapLink?: string;
-  flyerUrl?: string;
-  theme?: "christmas" | "default";
+  venueName?: string | null;
+  venueAddress?: string | null;
+  mapLink?: string | null;
+  flyerUrl?: string | null;
+  theme?: string | null;
   rsvpOpen?: boolean;
-  capacity?: number;
-  maxGuests?: number;
+  capacity?: number | null;
+  maxGuests?: number | null;
 };
 
-// GROQ projection that produces an EventSummary
-export const EVENT_SUMMARY_FIELDS = `
-  _id,
-  title,
-  "slug": slug.current,
-  tagline,
-  startDate,
-  endDate,
-  venueName,
-  venueAddress,
-  mapLink,
-  "flyerUrl": flyer.asset->url,
-  theme,
-  rsvpOpen,
-  capacity,
-  maxGuests
-`;
-
-// The event currently promoted with the site pop-up (not yet finished)
-export const ACTIVE_EVENT_QUERY = `*[_type == "event" && showPopup == true && dateTime(endDate) > dateTime(now())] | order(startDate asc)[0]{${EVENT_SUMMARY_FIELDS}}`;
+// Events are loaded by src/lib/eventsData.ts (server only).
 
 export function eventUrl(slug: string) {
   return `${SITE_URL}/events/${slug}`;
@@ -196,39 +177,14 @@ export type RecapVideoFile = { url: string; mimeType?: string; caption?: string 
 export type RecapProduct = { _id: string; name: string; slug: string; priceNGN?: number; image?: string };
 
 export type EventRecap = EventSummary & {
-  description?: unknown[];
-  recap?: unknown[];
+  description?: string | null;
+  recap?: string | null;
   gallery: RecapImage[];
   videos: string[];
   videoFiles: RecapVideoFile[];
   featuredProducts: RecapProduct[];
   attendeeCode?: string;
 };
-
-export const EVENT_RECAP_FIELDS = `
-  description,
-  recap,
-  attendeeCode,
-  "gallery": coalesce(gallery[]{
-    "url": asset->url,
-    "width": asset->metadata.dimensions.width,
-    "height": asset->metadata.dimensions.height,
-    "lqip": asset->metadata.lqip,
-    caption
-  }, []),
-  "videos": coalesce(videos, []),
-  "videoFiles": coalesce(videoFiles[]{ "url": asset->url, "mimeType": asset->mimeType, caption }, []),
-  "featuredProducts": coalesce(featuredProducts[]->{
-    _id, name, "slug": slug.current, priceNGN, "image": images[0].asset->url
-  }, [])
-`;
-
-/** All events for the /events page, newest first. */
-export const EVENTS_LIST_QUERY = `*[_type == "event" && defined(slug.current)] | order(startDate desc){
-  ${EVENT_SUMMARY_FIELDS},
-  "cover": coalesce(gallery[0].asset->url, flyer.asset->url),
-  "photoCount": count(gallery)
-}`;
 
 export function isEventPast(event: Pick<EventSummary, "endDate">, now = new Date()) {
   return new Date(event.endDate) < now;

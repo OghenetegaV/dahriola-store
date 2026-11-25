@@ -1,3 +1,13 @@
+# DAHRIOLA store
+
+Next.js storefront with a built-in store dashboard at `/admin`, backed by Supabase.
+
+- **Dashboard and database setup:** see [SUPABASE_SETUP.md](SUPABASE_SETUP.md)
+- `npm run admin:create` creates a dashboard login
+- `npm run import:sanity` copies the old Sanity content into Supabase
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

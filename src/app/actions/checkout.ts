@@ -1,7 +1,7 @@
 "use server";
 
 // Secure checkout. The browser shows prices, but what is charged and recorded
-// is worked out here from Sanity prices, the coupon and a signed shipping quote,
+// is worked out here from database prices, the coupon and a signed shipping quote,
 // and every payment is confirmed with Paystack before an order is marked paid.
 import { verifyPayment, type PaystackVerification } from "@/src/app/actions/payment";
 import { getShippingRates } from "@/src/app/actions/shipping";
@@ -21,7 +21,7 @@ import { getMarketingSettings, syncCustomerToBrevo } from "@/src/lib/marketing";
 import { trackUrl } from "@/src/lib/orderStatus";
 import { markCartRecovered } from "@/src/lib/abandonedCarts";
 import { trackBrevoEvent } from "@/src/lib/brevo";
-import { writeClient } from "@/src/lib/sanityWrite";
+import { db } from "@/src/lib/supabase/admin";
 import { randomId } from "@/src/lib/signing";
 
 const clean = (v: unknown, max = 200) => String(v ?? "").trim().slice(0, max);
@@ -67,8 +67,8 @@ export async function getGiftShippingRates(publicId: string, items: CheckoutItem
     country: a.country,
     postalCode: a.postalCode,
     itemCount: priced.lines.reduce((n, l) => n + l.quantity, 0),
-    receiverName: a.name || doc.ownerName,
-    receiverEmail: doc.ownerEmail,
+    receiverName: a.name || doc.ownerName || undefined,
+    receiverEmail: doc.ownerEmail || undefined,
     receiverPhone: a.phone,
     items: priced.lines.map((l) => ({ name: l.name, price: l.price, quantity: l.quantity })),
   });
@@ -273,7 +273,7 @@ export async function completeCheckout(input: CompleteInput) {
             gift: gift ? { recipientFirstName: gift.ownerName.split(" ")[0] || "them", message: gift.message } : undefined,
             trackUrl: trackUrl(reference),
           });
-          if (sent) await writeClient.patch(orderDoc._id).set({ receiptSentAt: new Date().toISOString() }).commit();
+          if (sent) await db().from("orders").update({ receipt_sent_at: new Date().toISOString() }).eq("id", orderDoc._id);
         }
       } catch (err) {
         console.error("Receipt email failed:", err);

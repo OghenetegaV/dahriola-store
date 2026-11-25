@@ -1,5 +1,6 @@
 // Server-only: abandoned checkouts — saving, restoring and the daily reminder.
-import { writeClient } from "@/src/lib/sanityWrite";
+import { COUNT, countRows, db, lc, unwrap } from "@/src/lib/supabase/admin";
+import { productsByIds } from "@/src/lib/catalog";
 import { hmac, safeEqual, sha256 } from "@/src/lib/signing";
 import { SITE_URL } from "@/src/lib/events";
 import { esc } from "@/src/lib/mailer";
@@ -17,7 +18,6 @@ import {
 import type { Budget } from "@/src/lib/automations";
 
 export type SavedCartItem = {
-  _key: string;
   productId: string;
   name: string;
   quantity: number;
@@ -46,14 +46,14 @@ export function restoreUrl(docId: string) {
 export async function markCartRecovered(email: string) {
   if (!email) return;
   try {
-    await writeClient
-      .patch(cartDocId(email))
-      .set({ recoveredAt: new Date().toISOString() })
-      .commit();
-  } catch {
-    // no saved checkout for this email — nothing to do
+    // Does nothing when there is no saved checkout for this email
+    await db().from("abandoned_carts").update({ recovered_at: new Date().toISOString() }).eq("id", cartDocId(email));
+  } catch (err) {
+    console.error("markCartRecovered failed:", err);
   }
 }
+
+type CartRow = { _id: string; email: string; name?: string | null; updatedAt: string; items: SavedCartItem[] | null };
 
 // ---------------------------------------------------------------------------
 // Daily: one reminder for checkouts left 3+ hours (and under 7 days) ago.
@@ -62,47 +62,55 @@ export async function runAbandonedCarts(settings: MarketingSettings, budget: Bud
   if (!settings.abandonedCartEnabled) return { ...stats, note: "off" };
 
   const now = Date.now();
-  const carts = await writeClient.fetch<
-    { _id: string; email: string; name?: string; updatedAt: string; items: SavedCartItem[] }[]
-  >(
-    `*[_type == "abandonedCart" && !defined(reminderSentAt) && !defined(recoveredAt)
-       && dateTime(updatedAt) < dateTime($cutoff) && dateTime(updatedAt) > dateTime($oldest)] | order(updatedAt desc)[0...100]{
-      _id, email, name, updatedAt, items
-    }`,
-    { cutoff: new Date(now - 3 * 3600_000).toISOString(), oldest: new Date(now - 7 * 86_400_000).toISOString() }
-  );
+  const carts = unwrap(
+    await db()
+      .from("abandoned_carts")
+      .select("_id:id, email, name, updatedAt:updated_at, items")
+      .is("reminder_sent_at", null)
+      .is("recovered_at", null)
+      .lt("updated_at", new Date(now - 3 * 3600_000).toISOString())
+      .gt("updated_at", new Date(now - 7 * 86_400_000).toISOString())
+      .order("updated_at", { ascending: false })
+      .limit(100),
+    "Loading abandoned checkouts"
+  ) as CartRow[];
+
+  const patch = async (id: string, values: Record<string, unknown>) =>
+    unwrap(await db().from("abandoned_carts").update(values).eq("id", id), "Updating the saved checkout");
 
   for (const cart of carts) {
     if (budget.left <= 0) break;
     const email = normEmail(cart.email);
-    const markSent = () => writeClient.patch(cart._id).set({ reminderSentAt: new Date().toISOString() }).commit();
+    const items = Array.isArray(cart.items) ? cart.items : [];
+    const updatedDay = new Date(cart.updatedAt).toISOString().slice(0, 10);
+    const markSent = () => patch(cart._id, { reminder_sent_at: new Date().toISOString() });
 
     // Bought after all (e.g. on another device)?
-    const ordered = await writeClient.fetch<number>(
-      `count(*[_type == "order" && lower(customerEmail) == $email && dateTime(createdAt) > dateTime($since)])`,
-      { email, since: new Date(new Date(cart.updatedAt).getTime() - 3600_000).toISOString() }
+    const ordered = await countRows(
+      db()
+        .from("orders")
+        .select("*", COUNT)
+        .eq("customer_email_lc", lc(email))
+        .gt("created_at", new Date(new Date(cart.updatedAt).getTime() - 3600_000).toISOString())
     );
     if (ordered > 0) {
-      await writeClient.patch(cart._id).set({ recoveredAt: new Date().toISOString() }).commit();
+      await patch(cart._id, { recovered_at: new Date().toISOString() });
       stats.skipped++;
       continue;
     }
-    if (!cart.items?.length || (await isOptedOut(email))) {
+    if (!items.length || (await isOptedOut(email))) {
       await markSent();
       stats.skipped++;
       continue;
     }
 
     budget.take();
-    const products = await writeClient.fetch<{ _id: string; slug?: string; image?: string }[]>(
-      `*[_type == "product" && _id in $ids]{ _id, "slug": slug.current, "image": images[0].asset->url }`,
-      { ids: cart.items.map((i) => i.productId) }
-    );
+    const products = await productsByIds(items.map((i) => i.productId));
     const byId = new Map(products.map((p) => [p._id, p]));
-    const cards = cart.items.map((i) => ({
+    const cards = items.map((i) => ({
       name: i.name,
       slug: byId.get(i.productId)?.slug,
-      image: byId.get(i.productId)?.image,
+      image: byId.get(i.productId)?.images[0],
       note: [i.size && `Size ${i.size}`, i.selectedPrintName].filter(Boolean).join(" · ") || undefined,
     }));
 
@@ -128,7 +136,7 @@ export async function runAbandonedCarts(settings: MarketingSettings, budget: Bud
 
     const res = await sendMarketingEmail({
       to: email,
-      name: cart.name,
+      name: cart.name || undefined,
       subject: "You left something in your bag",
       html: marketingShell({
         title: "Still thinking it over?",
@@ -137,7 +145,7 @@ export async function runAbandonedCarts(settings: MarketingSettings, budget: Bud
         reason: "You're receiving this because you started a checkout at dahriola.com.",
       }),
       kind: "abandoned-cart",
-      key: `cart-${cart._id}-${cart.updatedAt.slice(0, 10)}`,
+      key: `cart-${cart._id}-${updatedDay}`,
       couponCode: code,
     });
     await markSent();

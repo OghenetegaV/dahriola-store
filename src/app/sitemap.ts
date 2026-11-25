@@ -1,26 +1,14 @@
 import type { MetadataRoute } from "next";
-import { client } from "@/src/lib/sanity";
+import { listCategories, listProducts } from "@/src/lib/catalog";
+import { listEvents } from "@/src/lib/eventsData";
 
 const siteUrl = "https://www.dahriola.com";
 
+// Rebuilt hourly so new products and events are picked up
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const products = await client.fetch(
-    `*[_type == "product" && defined(slug.current)]{
-      "slug": slug.current,
-      _updatedAt
-    }`
-  );
-
-  const categories = await client.fetch(
-    `*[_type == "category" && defined(slug.current)]{
-      "slug": slug.current,
-      _updatedAt
-    }`
-  );
-
-  const events: { slug: string; _updatedAt: string }[] = await client.fetch(
-    `*[_type == "event" && defined(slug.current)]{ "slug": slug.current, _updatedAt }`
-  );
+  const [products, categories, events] = await Promise.all([listProducts(), listCategories(), listEvents()]);
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -81,7 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const eventPages: MetadataRoute.Sitemap = events.map((event) => ({
     url: `${siteUrl}/events/${event.slug}`,
-    lastModified: new Date(event._updatedAt),
+    lastModified: event._updatedAt ? new Date(event._updatedAt) : new Date(),
     changeFrequency: "weekly",
     priority: 0.6,
   }));

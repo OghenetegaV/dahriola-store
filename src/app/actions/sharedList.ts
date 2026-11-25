@@ -1,6 +1,7 @@
 "use server";
 
-import { writeClient } from "@/src/lib/sanityWrite";
+import { COUNT, countRows, db, unwrap } from "@/src/lib/supabase/admin";
+import { productsByIds } from "@/src/lib/catalog";
 import { randomId, safeEqual, sha256 } from "@/src/lib/signing";
 import { SITE_URL } from "@/src/lib/events";
 import { sendListCreatedEmail } from "@/src/lib/mailer";
@@ -65,10 +66,7 @@ export async function saveSharedList(input: SaveListInput): Promise<
 
     // Only real products can go on a list
     const ids = [...new Set(rawItems.map((i) => clean(i.productId, 100)))];
-    const products = await writeClient.fetch<{ _id: string; name: string }[]>(
-      `*[_type == "product" && _id in $ids]{ _id, name }`,
-      { ids }
-    );
+    const products = await productsByIds(ids);
     const names = new Map(products.map((p) => [p._id, p.name]));
 
     let address: ListAddress | null | undefined = undefined;
@@ -86,14 +84,14 @@ export async function saveSharedList(input: SaveListInput): Promise<
       if (!existing || !existing.editTokenHash || !safeEqual(existing.editTokenHash, sha256(input.editToken))) {
         return { success: false, message: "This list can't be edited from here. Share it again to create a new link." };
       }
-      const oldByKey = new Map((existing.items || []).map((i) => [i._key, i]));
+      const oldByKey = new Map((existing.items || []).map((i) => [i.key, i]));
       const items: ListItemDoc[] = rawItems
         .filter((i) => names.has(clean(i.productId, 100)))
         .map((i) => {
           const old = i.key ? oldByKey.get(i.key) : undefined;
           return {
             ...buildItem(i, names),
-            _key: old?._key || randomId(10),
+            key: old?.key || randomId(10),
             // keep "already bought" status on items that stay on the list
             ...(old?.purchased
               ? { purchased: true, purchasedAt: old.purchasedAt, purchasedBy: old.purchasedBy, orderReference: old.orderReference }
@@ -101,33 +99,40 @@ export async function saveSharedList(input: SaveListInput): Promise<
           };
         });
 
-      let patch = writeClient.patch(existing._id).set({
-        ownerName,
-        ownerEmail: ownerEmail || undefined,
-        message: clean(input.message, 400) || "",
-        keepSurprise: input.keepSurprise !== false,
-        items,
-        active: true,
-        updatedAt: new Date().toISOString(),
-      });
-      if (address) patch = patch.set({ deliveryAddress: address });
-      if (address === null) patch = patch.unset(["deliveryAddress"]);
-      await patch.commit();
+      unwrap(
+        await db()
+          .from("shared_lists")
+          .update({
+            owner_name: ownerName,
+            owner_email: ownerEmail || null,
+            message: clean(input.message, 400) || "",
+            keep_surprise: input.keepSurprise !== false,
+            items,
+            active: true,
+            // undefined = leave the saved address as it is
+            ...(address !== undefined ? { delivery_address: address } : {}),
+          })
+          .eq("id", existing._id),
+        "Updating the list"
+      );
       return {
         success: true,
         publicId: existing.publicId,
         editToken: input.editToken,
         shareUrl: `${SITE_URL}/list/${existing.publicId}`,
-        itemKeys: items.map((i) => ({ productId: i.product?._ref || "", key: i._key })),
+        itemKeys: items.map((i) => ({ productId: i.productId || "", key: i.key })),
       };
     }
 
     // ---- create a new list ----
     // Light abuse guard: at most 5 new lists per email address per hour
     if (ownerEmail) {
-      const recent = await writeClient.fetch<number>(
-        `count(*[_type == "sharedList" && ownerEmail == $email && createdAt > $since])`,
-        { email: ownerEmail, since: new Date(Date.now() - 3600_000).toISOString() }
+      const recent = await countRows(
+        db()
+          .from("shared_lists")
+          .select("*", COUNT)
+          .eq("owner_email", ownerEmail)
+          .gt("created_at", new Date(Date.now() - 3600_000).toISOString())
       );
       if (recent >= 5) return { success: false, message: "You've created several lists recently. Please try again later." };
     }
@@ -137,22 +142,24 @@ export async function saveSharedList(input: SaveListInput): Promise<
     const now = new Date().toISOString();
     const newItems = rawItems
       .filter((i) => names.has(clean(i.productId, 100)))
-      .map((i) => ({ ...buildItem(i, names), _key: randomId(10) }));
-    await writeClient.create({
-      _type: "sharedList",
-      kind,
-      publicId,
-      editTokenHash: sha256(editToken),
-      ownerName,
-      ownerEmail: ownerEmail || undefined,
-      message: clean(input.message, 400) || "",
-      keepSurprise: input.keepSurprise !== false,
-      active: true,
-      items: newItems,
-      deliveryAddress: address || undefined,
-      createdAt: now,
-      updatedAt: now,
-    });
+      .map((i) => ({ ...buildItem(i, names), key: randomId(10) }));
+    unwrap(
+      await db().from("shared_lists").insert({
+        kind,
+        public_id: publicId,
+        edit_token_hash: sha256(editToken),
+        owner_name: ownerName,
+        owner_email: ownerEmail || null,
+        message: clean(input.message, 400) || "",
+        keep_surprise: input.keepSurprise !== false,
+        active: true,
+        items: newItems,
+        delivery_address: address || null,
+        created_at: now,
+        updated_at: now,
+      }),
+      "Creating the list"
+    );
 
     const shareUrl = `${SITE_URL}/list/${publicId}`;
     if (ownerEmail) {
@@ -175,7 +182,7 @@ export async function saveSharedList(input: SaveListInput): Promise<
       publicId,
       editToken,
       shareUrl,
-      itemKeys: newItems.map((i) => ({ productId: i.product?._ref || "", key: i._key })),
+      itemKeys: newItems.map((i) => ({ productId: i.productId || "", key: i.key })),
     };
   } catch (err) {
     console.error("saveSharedList failed:", err);
@@ -183,10 +190,10 @@ export async function saveSharedList(input: SaveListInput): Promise<
   }
 }
 
-function buildItem(i: ShareItemInput, names: Map<string, string>): Omit<ListItemDoc, "_key"> {
+function buildItem(i: ShareItemInput, names: Map<string, string>): Omit<ListItemDoc, "key"> {
   const productId = clean(i.productId, 100);
   return {
-    product: { _ref: productId, _type: "reference" } as ListItemDoc["product"],
+    productId,
     productName: names.get(productId),
     size: clean(i.size, 20) || undefined,
     selectedPrintId: clean(i.selectedPrintId, 100) || undefined,
@@ -213,8 +220,8 @@ export async function getListForOwner(publicId: string, editToken: string) {
     active: doc.active !== false,
     deliveryAddress: doc.deliveryAddress || null,
     items: (doc.items || []).map((i) => ({
-      key: i._key,
-      productId: i.product?._ref || "",
+      key: i.key,
+      productId: i.productId || "",
       size: i.size,
       selectedPrintId: i.selectedPrintId,
       selectedPrintName: i.selectedPrintName,
@@ -233,6 +240,6 @@ export async function setListActive(publicId: string, editToken: string, active:
   if (!doc || !doc.editTokenHash || !safeEqual(doc.editTokenHash, sha256(editToken || ""))) {
     return { success: false };
   }
-  await writeClient.patch(doc._id).set({ active: !!active, updatedAt: new Date().toISOString() }).commit();
+  unwrap(await db().from("shared_lists").update({ active: !!active }).eq("id", doc._id), "Updating the list");
   return { success: true };
 }

@@ -1,14 +1,9 @@
 // Daily scheduled job (Vercel Cron, see vercel.json — Hobby plan runs it once a day).
 // Each task is independent so one failure doesn't stop the others.
 import { NextResponse } from "next/server";
-import { writeClient } from "@/src/lib/sanityWrite";
-import {
-  EVENT_RECAP_FIELDS,
-  EVENT_SUMMARY_FIELDS,
-  EVENT_TZ,
-  type EventRecap,
-  type EventSummary,
-} from "@/src/lib/events";
+import { COUNT, countRows, db, fetchAll, unwrap } from "@/src/lib/supabase/admin";
+import { EVENT_TZ } from "@/src/lib/events";
+import { listFollowUpEvents, listUpcomingEvents } from "@/src/lib/eventsData";
 import { sendEventReminder } from "@/src/app/actions/email";
 import { sendEventFollowUpEmail } from "@/src/lib/mailer";
 import { getMarketingSettings } from "@/src/lib/marketing";
@@ -39,9 +34,7 @@ function daysBetween(fromYmd: string, toYmd: string) {
 // "Two days to go" goes out two Lagos calendar days before the event,
 // "See you tomorrow" the day before — so the wording is always accurate.
 async function sendEventReminders(now: Date) {
-  const events: EventSummary[] = await writeClient.fetch(
-    `*[_type == "event" && dateTime(startDate) > dateTime(now())]{${EVENT_SUMMARY_FIELDS}}`
-  );
+  const events = await listUpcomingEvents();
 
   const summary: Record<string, { sent: number; failed: number }> = {};
 
@@ -50,18 +43,29 @@ async function sendEventReminders(now: Date) {
     const kind = daysOut === 2 ? "48h" : daysOut === 1 ? "24h" : null;
     if (!kind) continue;
 
-    const sentField = kind === "48h" ? "reminder48SentAt" : "reminder24SentAt";
-    const rsvps: { _id: string; name: string; email: string; guests?: number; ticketCode: string }[] =
-      await writeClient.fetch(
-        `*[_type == "rsvp" && event._ref == $eventId && !defined(${sentField})]{ _id, name, email, guests, ticketCode }`,
-        { eventId: event._id }
-      );
+    const sentField = kind === "48h" ? "reminder48_sent_at" : "reminder24_sent_at";
+    // Read the whole list first: rows drop out of this filter as they are marked sent
+    const rsvps = await fetchAll<{ _id: string; name: string; email: string; guests?: number; ticketCode: string }>(
+      (from, to) =>
+        db()
+          .from("rsvps")
+          .select("_id:id, name, email, guests, ticketCode:ticket_code")
+          .eq("event_id", event._id)
+          .is(sentField, null)
+          .not("email", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      "Loading RSVPs for reminders"
+    );
 
     const stats = { sent: 0, failed: 0 };
     for (const rsvp of rsvps) {
       const res = await sendEventReminder(event, rsvp, kind);
       if (res.success) {
-        await writeClient.patch(rsvp._id).set({ [sentField]: new Date().toISOString() }).commit();
+        unwrap(
+          await db().from("rsvps").update({ [sentField]: new Date().toISOString() }).eq("id", rsvp._id),
+          "Recording the reminder"
+        );
         stats.sent++;
       } else {
         stats.failed++;
@@ -76,18 +80,23 @@ async function sendEventReminders(now: Date) {
 // After an event, once the owner ticks "Send follow-up emails?": a thank-you to
 // everyone who checked in and a "we missed you" to everyone else who registered.
 async function sendEventFollowUps(budget: Budget) {
-  const events: EventRecap[] = await writeClient.fetch(
-    `*[_type == "event" && followUpsEnabled == true && dateTime(endDate) < dateTime(now())]{${EVENT_SUMMARY_FIELDS}, ${EVENT_RECAP_FIELDS}}`
-  );
+  const events = await listFollowUpEvents();
 
   const summary: Record<string, { attended: number; missed: number; failed: number; remaining: number }> = {};
 
   for (const event of events) {
     if (budget.left <= 0) break;
-    const rsvps: { _id: string; name: string; email: string; checkedIn?: boolean }[] = await writeClient.fetch(
-      `*[_type == "rsvp" && event._ref == $eventId && !defined(followUpSentAt) && defined(email)] | order(createdAt asc)[0...${budget.left}]{ _id, name, email, checkedIn }`,
-      { eventId: event._id }
-    );
+    const rsvps = unwrap(
+      await db()
+        .from("rsvps")
+        .select("_id:id, name, email, checkedIn:checked_in")
+        .eq("event_id", event._id)
+        .is("follow_up_sent_at", null)
+        .not("email", "is", null)
+        .order("created_at", { ascending: true })
+        .limit(Math.max(1, budget.left)),
+      "Loading RSVPs for follow-ups"
+    ) as { _id: string; name: string; email: string; checkedIn?: boolean }[];
 
     const stats = { attended: 0, missed: 0, failed: 0, remaining: 0 };
     for (const rsvp of rsvps) {
@@ -95,18 +104,20 @@ async function sendEventFollowUps(budget: Budget) {
       const kind = rsvp.checkedIn ? "attended" : "missed";
       const ok = await sendEventFollowUpEmail(event, rsvp, kind);
       if (ok) {
-        await writeClient
-          .patch(rsvp._id)
-          .set({ followUpSentAt: new Date().toISOString(), followUpType: kind })
-          .commit();
+        unwrap(
+          await db()
+            .from("rsvps")
+            .update({ follow_up_sent_at: new Date().toISOString(), follow_up_type: kind })
+            .eq("id", rsvp._id),
+          "Recording the follow-up"
+        );
         stats[kind]++;
       } else {
         stats.failed++;
       }
     }
-    stats.remaining = await writeClient.fetch(
-      `count(*[_type == "rsvp" && event._ref == $eventId && !defined(followUpSentAt) && defined(email)])`,
-      { eventId: event._id }
+    stats.remaining = await countRows(
+      db().from("rsvps").select("*", COUNT).eq("event_id", event._id).is("follow_up_sent_at", null).not("email", "is", null)
     );
     summary[event.title] = stats;
   }
@@ -132,7 +143,7 @@ export async function GET(req: Request) {
 
   const deadline = now.getTime() + TIME_LIMIT_MS;
 
-  // Safety net for order status emails (normally sent instantly by the Sanity webhook)
+  // Safety net for order status emails (normally sent as soon as an order is saved in the dashboard)
   try {
     results.orderStatusEmails = await processOrderStatusUpdates();
   } catch (error) {

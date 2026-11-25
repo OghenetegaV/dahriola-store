@@ -1,7 +1,10 @@
 // Server-only marketing automations, run once a day by /api/cron/daily.
 // Each returns a small summary for the cron log. All of them respect
 // unsubscribes and use the send log so nobody gets the same email twice.
-import { writeClient } from "@/src/lib/sanityWrite";
+import { db, fetchAll, lc, unwrap } from "@/src/lib/supabase/admin";
+import { listProducts, newestProductCards, productsByIds, toCardInfo } from "@/src/lib/catalog";
+import type { StoredOrderItem } from "@/src/lib/orders";
+import type { ListItemDoc } from "@/src/lib/sharedLists";
 import { getSheet } from "@/src/lib/googleSheets";
 import { EVENT_TZ, SITE_URL } from "@/src/lib/events";
 import { esc, sendMail } from "@/src/lib/mailer";
@@ -19,6 +22,7 @@ import {
   productCardsHtml,
   sendMarketingEmail,
 } from "@/src/lib/marketing";
+import { imageUrl } from "@/src/lib/images";
 
 /**
  * Shared daily allowance so marketing never crowds out order/RSVP emails, and
@@ -46,19 +50,31 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const firstName = (name?: string) => esc(String(name || "").trim().split(/\s+/)[0] || "there");
 
 async function wishlistFor(email: string): Promise<EmailProduct[]> {
-  const items = await writeClient.fetch<{ name: string; slug?: string; image?: string; size?: string; purchased?: boolean }[]>(
-    `*[_type == "sharedList" && kind == "wishlist" && active != false && lower(ownerEmail) == $email] | order(updatedAt desc)[0].items[]{
-      "name": coalesce(product->name, productName), "slug": product->slug.current, "image": product->images[0].asset->url, size, purchased
-    }`,
-    { email }
-  );
-  return (items || []).filter((i) => !i.purchased && i.slug).map((i) => ({ ...i, note: i.size ? `Size ${i.size}` : undefined }));
+  const list = unwrap(
+    await db()
+      .from("shared_lists")
+      .select("items")
+      .eq("kind", "wishlist")
+      .eq("active", true)
+      .eq("owner_email_lc", lc(email))
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    "Loading the wishlist"
+  ) as { items: ListItemDoc[] | null } | null;
+  const items = (list?.items || []).filter((i) => !i.purchased && i.productId);
+  const products = await productsByIds(items.map((i) => i.productId));
+  const byId = new Map(products.map((p) => [p._id, p]));
+  return items
+    .filter((i) => byId.get(i.productId)?.slug)
+    .map((i) => {
+      const p = byId.get(i.productId)!;
+      return { name: p.name, slug: p.slug, image: p.images[0], note: i.size ? `Size ${i.size}` : undefined };
+    });
 }
 
 async function newArrivals(): Promise<EmailProduct[]> {
-  return writeClient.fetch(
-    `*[_type == "product" && defined(slug.current)] | order(_createdAt desc)[0...4]{ name, "slug": slug.current, "image": images[0].asset->url }`
-  );
+  return newestProductCards({ limit: 4 });
 }
 
 // ---------------------------------------------------------------------------
@@ -119,11 +135,19 @@ export async function runAnniversaries(settings: MarketingSettings, budget: Budg
   if (!settings.anniversaryEnabled) return { ...stats, note: "off" };
   const today = lagosParts();
 
-  const orders = await writeClient.fetch<{ email: string; name?: string; createdAt: string; optIn?: boolean }[]>(
-    `*[_type == "order" && paymentVerified == true && defined(customerEmail) && defined(createdAt)] | order(createdAt asc){
-      "email": lower(customerEmail), "name": customerName, createdAt, "optIn": emailOptIn
-    }`
+  const rows = await fetchAll<{ email: string; name?: string; createdAt: string; optIn?: boolean }>(
+    (from, to) =>
+      db()
+        .from("orders")
+        .select("email:customer_email, name:customer_name, createdAt:created_at, optIn:email_opt_in")
+        .eq("payment_verified", true)
+        .not("customer_email", "is", null)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    "Loading orders"
   );
+  const orders = rows.map((o) => ({ ...o, email: normEmail(o.email) })).filter((o) => o.email);
   const firstOrder = new Map<string, { name?: string; createdAt: string; optIn: boolean }>();
   for (const o of orders) {
     const prev = firstOrder.get(o.email);
@@ -170,33 +194,46 @@ export async function runAnniversaries(settings: MarketingSettings, budget: Budg
 export async function runReviewRequests(settings: MarketingSettings, budget: Budget) {
   const stats = { recordedDeliveries: 0, sent: 0, skipped: 0, failed: 0 };
 
-  // Sanity doesn't timestamp the tick, so record it the first day we see it
-  const newlyDelivered = await writeClient.fetch<string[]>(`*[_type == "order" && delivered == true && !defined(deliveredAt)]._id`);
-  for (const id of newlyDelivered) {
-    await writeClient.patch(id).set({ deliveredAt: new Date().toISOString() }).commit();
+  // Safety net: the dashboard stamps the delivery date, but record it here for
+  // any order marked delivered without one
+  const newlyDelivered = unwrap(
+    await db().from("orders").select("id").eq("delivered", true).is("delivered_at", null),
+    "Loading delivered orders"
+  ) as { id: string }[];
+  for (const { id } of newlyDelivered) {
+    unwrap(await db().from("orders").update({ delivered_at: new Date().toISOString() }).eq("id", id), "Recording delivery");
     stats.recordedDeliveries++;
   }
   if (!settings.reviewRequestsEnabled) return { ...stats, note: "off" };
 
   const cutoff = new Date(Date.now() - settings.reviewRequestDelayDays * 86_400_000).toISOString();
-  const due = await writeClient.fetch<{ _id: string; email: string; name?: string; items: { name: string; productId?: string }[] }[]>(
-    `*[_type == "order" && delivered == true && paymentVerified == true && defined(customerEmail)
-       && dateTime(deliveredAt) <= dateTime($cutoff) && !defined(reviewRequestSentAt)][0...100]{
-      _id, "email": lower(customerEmail), "name": customerName, "items": items[]{ name, "productId": product._ref }
-    }`,
-    { cutoff }
-  );
+  const dueRows = unwrap(
+    await db()
+      .from("orders")
+      .select("_id:id, email:customer_email, name:customer_name, items")
+      .eq("delivered", true)
+      .eq("payment_verified", true)
+      .not("customer_email", "is", null)
+      .lte("delivered_at", cutoff)
+      .is("review_request_sent_at", null)
+      .limit(100),
+    "Loading orders due a review request"
+  ) as { _id: string; email: string; name?: string; items: StoredOrderItem[] | null }[];
+  const due = dueRows.map((o) => ({ ...o, email: normEmail(o.email), items: Array.isArray(o.items) ? o.items : [] }));
+
+  // Older orders don't link to products, so fall back to matching by name
+  const catalogue = due.length ? await listProducts() : [];
 
   for (const order of due) {
     if (budget.left <= 0) break;
-    // Older orders don't link to products, so fall back to matching by name
-    const ids = order.items.map((i) => i.productId).filter(Boolean);
-    const names = order.items.map((i) => i.name).filter(Boolean);
-    const products = await writeClient.fetch<EmailProduct[]>(
-      `*[_type == "product" && (_id in $ids || name in $names)]{ name, "slug": slug.current, "image": images[0].asset->url }`,
-      { ids, names }
-    );
-    const done = () => writeClient.patch(order._id).set({ reviewRequestSentAt: new Date().toISOString() }).commit();
+    const ids = new Set(order.items.map((i) => i.productId).filter(Boolean));
+    const names = new Set(order.items.map((i) => i.name).filter(Boolean));
+    const products: EmailProduct[] = catalogue.filter((p) => ids.has(p._id) || names.has(p.name)).map(toCardInfo);
+    const done = async () =>
+      unwrap(
+        await db().from("orders").update({ review_request_sent_at: new Date().toISOString() }).eq("id", order._id),
+        "Recording the review request"
+      );
     if (!products.length || (await isOptedOut(order.email))) {
       await done();
       stats.skipped++;
@@ -234,15 +271,26 @@ export async function runBackInStock(settings: MarketingSettings, budget: Budget
   const stats = { sent: 0, failed: 0 };
   if (!settings.backInStockEnabled) return { ...stats, note: "off" };
 
-  const ready = await writeClient.fetch<
-    { _id: string; email: string; product?: EmailProduct; printName?: string }[]
-  >(
-    `*[_type == "stockAlert" && !defined(notifiedAt) && print->stockQuantity > 0][0...200]{
-      _id, email,
-      "product": product->{ name, "slug": slug.current, "image": images[0].asset->url },
-      "printName": print->name
-    }`
-  );
+  const rows = unwrap(
+    await db()
+      .from("stock_alerts")
+      .select("_id:id, email, prints!inner(name, stock_quantity), product:products(name, slug, images)")
+      .is("notified_at", null)
+      .gt("prints.stock_quantity", 0)
+      .limit(200),
+    "Loading back-in-stock requests"
+  ) as unknown as {
+    _id: string;
+    email: string;
+    prints: { name: string } | null;
+    product: { name: string; slug: string; images: string[] | null } | null;
+  }[];
+  const ready = rows.map((r) => ({
+    _id: r._id,
+    email: r.email,
+    printName: r.prints?.name,
+    product: r.product ? ({ name: r.product.name, slug: r.product.slug, image: r.product.images?.[0] } as EmailProduct) : undefined,
+  }));
 
   for (const alert of ready) {
     if (!budget.take()) break;
@@ -254,14 +302,17 @@ export async function runBackInStock(settings: MarketingSettings, budget: Budget
         <tr><td style="padding:22px 32px 30px;text-align:center;">
           <h1 style="font-family:Georgia,serif;font-weight:normal;font-size:26px;margin:0 0 12px;">It's back!</h1>
           <p style="font-size:15px;line-height:1.6;">The <strong>${esc(alert.printName || "print")}</strong> print${p ? ` for <strong>${esc(p.name)}</strong>` : ""} is back in stock. Prints are limited, so don't wait too long.</p>
-          ${p?.image ? `<img src="${esc(p.image)}?w=520&h=650&fit=crop&auto=format" width="260" alt="${esc(p.name)}" style="display:block;margin:20px auto;width:260px;height:auto;border:0;">` : ""}
+          ${p?.image ? `<img src="${esc(imageUrl(p.image, { width: 520, height: 650 }))}" width="260" alt="${esc(p.name)}" style="display:block;margin:20px auto;width:260px;height:auto;border:0;">` : ""}
           ${buttonHtml(p?.slug ? `${SITE_URL}/product/${p.slug}` : SITE_URL, "Shop it now")}
           <p style="font-size:11px;color:#9a9284;margin-top:20px;">You asked us to let you know when this print was back. This is a one-off email.</p>
         </td></tr>
       </table></td></tr></table></body></html>`;
     const ok = await sendMail({ tag: "back-in-stock", to: alert.email, subject: `Back in stock: ${alert.printName || "your print"}${p ? ` · ${p.name}` : ""}`, html });
     if (ok) {
-      await writeClient.patch(alert._id).set({ notifiedAt: new Date().toISOString() }).commit();
+      unwrap(
+        await db().from("stock_alerts").update({ notified_at: new Date().toISOString() }).eq("id", alert._id),
+        "Recording the alert"
+      );
       stats.sent++;
     } else stats.failed++;
   }

@@ -4,20 +4,13 @@ import { useEffect, useState } from "react";
 import { trackViewItem } from "@/src/lib/analytics";
 import { recordProductView } from "@/src/app/actions/browse";
 import { getIdentity, personalisationAllowed } from "@/src/lib/identityClient";
-import { PortableText } from "@portabletext/react";
+import RichText, { hasRichText } from "@/src/components/RichText";
+import { imageUrl } from "@/src/lib/images";
 import { ChevronDown, X, Check } from "lucide-react";
 import AddToCartButton from "@/src/components/AddToCartButton";
 import BackInStockForm from "@/src/components/BackInStockForm";
 import SizeGuideModal from "@/src/components/SizeGuideModal";
 import LengthChartModal from "@/src/components/LengthChartModal";
-import { client } from "@/src/lib/sanity";
-import imageUrlBuilder from "@sanity/image-url";
-
-const builder = imageUrlBuilder(client);
-
-function urlFor(source: any) {
-  return builder.image(source);
-}
 
 // Standard size run for every category…
 const DEFAULT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
@@ -27,57 +20,12 @@ const DRESS_SIZES = ["XS", "S", "M", "L(12)", "L(14)", "XL(16)", "XL(18)", "2XL"
 const accordionTextClass =
   "text-[13px] md:text-[14px] leading-6 text-neutral-600";
 
-const portableTextComponents = {
-  block: {
-    normal: ({ children }: any) => (
-      <p className={`${accordionTextClass} mb-3`}>{children}</p>
-    ),
-    h1: ({ children }: any) => (
-      <h1 className="text-[20px] md:text-[24px] font-semibold text-black mb-3">
-        {children}
-      </h1>
-    ),
-    h2: ({ children }: any) => (
-      <h2 className="text-[18px] md:text-[20px] font-semibold text-black mb-3">
-        {children}
-      </h2>
-    ),
-    h3: ({ children }: any) => (
-      <h3 className="text-[16px] md:text-[18px] font-semibold text-black mb-2">
-        {children}
-      </h3>
-    ),
-    h4: ({ children }: any) => (
-      <h4 className="text-[15px] font-medium text-black mb-2">
-        {children}
-      </h4>
-    ),
-    h5: ({ children }: any) => (
-      <h5 className="text-[14px] font-medium text-black mb-1">
-        {children}
-      </h5>
-    ),
-    h6: ({ children }: any) => (
-      <h6 className="text-[13px] font-medium text-black mb-1">
-        {children}
-      </h6>
-    ),
-  },
-  marks: {
-    strong: ({ children }: any) => (
-      <strong className="font-semibold text-black">{children}</strong>
-    ),
-  },
-  list: {
-    bullet: ({ children }: any) => (
-      <ul className={`${accordionTextClass} list-disc pl-5 space-y-1 mb-3`}>
-        {children}
-      </ul>
-    ),
-  },
-  listItem: {
-    bullet: ({ children }: any) => <li className="leading-6">{children}</li>,
-  },
+const richTextClasses = {
+  p: `${accordionTextClass} mb-3`,
+  h: "text-[16px] md:text-[18px] font-semibold text-black mb-2",
+  strong: "font-semibold text-black",
+  ul: `${accordionTextClass} list-disc pl-5 space-y-1 mb-3`,
+  li: "leading-6",
 };
 
 function getProductionTime(product: any) {
@@ -266,7 +214,7 @@ export default function ProductPageClient({ product, backInStock = false }: { pr
                 >
                   {print.image ? (
                     <img
-                      src={urlFor(print.image).width(500).height(650).url()}
+                      src={imageUrl(print.image, { width: 500, height: 650 })}
                       alt={print.name}
                       className="w-full h-full object-cover"
                     />
@@ -416,26 +364,14 @@ export default function ProductPageClient({ product, backInStock = false }: { pr
       <section className="mt-10 space-y-3">
         <BoxAccordion title="Description">
           <div className="pt-1">
-            {Array.isArray(product.description) ? (
-              <PortableText
-                value={product.description}
-                components={portableTextComponents}
-              />
-            ) : (
-              <p className="text-[#444] text-[14px] leading-6">
-                {product.description}
-              </p>
-            )}
+            <RichText value={product.description} classes={richTextClasses} />
           </div>
         </BoxAccordion>
 
         <BoxAccordion title="Composition & Care">
           <div className="pt-1">
-            {Array.isArray(product?.category?.compositionCare) ? (
-              <PortableText
-                value={product.category.compositionCare}
-                components={portableTextComponents}
-              />
+            {hasRichText(product?.category?.compositionCare) ? (
+              <RichText value={product.category.compositionCare} classes={richTextClasses} />
             ) : (
               <p className="text-[14px] leading-6 text-[#444]">
                 No composition details available.
@@ -446,11 +382,8 @@ export default function ProductPageClient({ product, backInStock = false }: { pr
 
         <BoxAccordion title="Size & Fit">
           <div className="pt-1">
-            {Array.isArray(product?.category?.sizeFit) ? (
-              <PortableText
-                value={product.category.sizeFit}
-                components={portableTextComponents}
-              />
+            {hasRichText(product?.category?.sizeFit) ? (
+              <RichText value={product.category.sizeFit} classes={richTextClasses} />
             ) : (
               <p className="text-[14px] leading-6 text-[#444]">
                 No size information available.
@@ -522,10 +455,7 @@ export default function ProductPageClient({ product, backInStock = false }: { pr
                       <div className="relative aspect-[4/5] w-full bg-neutral-100 overflow-hidden">
                         {print.image ? (
                           <img
-                            src={urlFor(print.image)
-                              .width(700)
-                              .height(900)
-                              .url()}
+                            src={imageUrl(print.image, { width: 700, height: 900 })}
                             alt={print.name}
                             className="w-full h-full object-cover"
                           />
@@ -615,7 +545,7 @@ export default function ProductPageClient({ product, backInStock = false }: { pr
             <div className="max-h-[78vh] overflow-auto bg-neutral-50">
               {previewPrint.image ? (
                 <img
-                  src={urlFor(previewPrint.image).width(1200).url()}
+                  src={imageUrl(previewPrint.image, { width: 1200 })}
                   alt={previewPrint.name}
                   className="w-full h-auto object-contain"
                 />

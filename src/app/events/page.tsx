@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Camera, MapPin } from "lucide-react";
-import { client } from "@/src/lib/sanity";
+import { listEvents, type ListedEvent } from "@/src/lib/eventsData";
 import EventCountdown from "@/src/components/EventCountdown";
 import {
-  EVENTS_LIST_QUERY,
-  type EventSummary,
   eventLocation,
   formatEventDateRange,
   formatEventHours,
   isEventPast,
 } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 export const revalidate = 300;
 
@@ -19,10 +18,8 @@ export const metadata: Metadata = {
   description: "DAHRIOLA pop-ups, launches and gatherings in Lagos. RSVP for what's next and relive the moments from past events.",
 };
 
-type ListedEvent = EventSummary & { cover?: string; photoCount?: number };
-
 export default async function EventsPage() {
-  const events: ListedEvent[] = await client.fetch(EVENTS_LIST_QUERY);
+  const events: ListedEvent[] = await listEvents();
   const now = new Date();
   const upcoming = events.filter((e) => !isEventPast(e, now)).reverse(); // soonest first
   const past = events.filter((e) => isEventPast(e, now));
@@ -58,7 +55,7 @@ export default async function EventsPage() {
                     <div className="relative aspect-[4/5] md:aspect-auto md:min-h-[420px] overflow-hidden bg-neutral-200">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`${event.flyerUrl}?w=900&fit=max&auto=format`}
+                        src={imageUrl(event.flyerUrl, { width: 900 })}
                         alt={`${event.title} flyer`}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                       />
@@ -102,7 +99,7 @@ export default async function EventsPage() {
                     {event.cover && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`${event.cover}?w=800&h=600&fit=crop&auto=format`}
+                        src={imageUrl(event.cover, { width: 800, height: 600 })}
                         alt={event.title}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />

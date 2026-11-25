@@ -1,71 +1,71 @@
 "use server";
 
-import { writeClient as serverClient } from "@/src/lib/sanityWrite";
+import { COUNT, countRows, db, lc, unwrap } from "@/src/lib/supabase/admin";
+
+type CouponRow = {
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
+  expiry_date: string | null;
+  first_order_only: boolean;
+  assigned_email: string | null;
+  usage_limit: number | null;
+  times_used: number | null;
+};
 
 export async function validateCoupon(inputCode: string, customerEmail?: string) {
-  const query = `*[_type == "coupon" && code == $code && isActive == true][0]{
-    discountType,
-    discountValue,
-    expiryDate,
-    firstOrderOnly,
-    assignedEmail,
-    usageLimit,
-    timesUsed
-  }`;
+  const code = String(inputCode || "").trim().toUpperCase();
+  if (!code) return { success: false, message: "Invalid or inactive code" };
 
-  const coupon = await serverClient.fetch(query, {
-    code: String(inputCode || "").trim().toUpperCase(),
-  });
+  const coupon = unwrap(
+    await db()
+      .from("coupons")
+      .select("discount_type, discount_value, expiry_date, first_order_only, assigned_email, usage_limit, times_used")
+      .eq("code", code)
+      .eq("is_active", true)
+      .maybeSingle(),
+    "Checking the code"
+  ) as CouponRow | null;
 
   if (!coupon) return { success: false, message: "Invalid or inactive code" };
 
   // Check Expiry
-  if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+  if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
     return { success: false, message: "This coupon has expired" };
   }
 
   // Usage limit (personal codes are single-use)
-  if (coupon.usageLimit && Number(coupon.timesUsed || 0) >= Number(coupon.usageLimit)) {
+  if (coupon.usage_limit && Number(coupon.times_used || 0) >= Number(coupon.usage_limit)) {
     return { success: false, message: "This code has already been used" };
   }
 
+  const email = String(customerEmail || "").trim().toLowerCase();
+
   // Personal codes only work for the customer they were made for
-  if (coupon.assignedEmail) {
-    const email = String(customerEmail || "").trim().toLowerCase();
+  if (coupon.assigned_email) {
     if (!email) {
       return { success: false, message: "Enter your email above before applying this code" };
     }
-    if (email !== String(coupon.assignedEmail).trim().toLowerCase()) {
+    if (email !== String(coupon.assigned_email).trim().toLowerCase()) {
       return { success: false, message: "This code is linked to a different email address" };
     }
   }
 
   // First-order-only codes: reject if this email has ordered before
-  if (coupon.firstOrderOnly) {
-    const email = String(customerEmail || "").trim().toLowerCase();
+  if (coupon.first_order_only) {
     if (!email) {
-      return {
-        success: false,
-        message: "Enter your email above before applying this code",
-      };
+      return { success: false, message: "Enter your email above before applying this code" };
     }
-
-    const previousOrders = await serverClient.fetch(
-      `count(*[_type == "order" && lower(customerEmail) == $email])`,
-      { email }
+    const previousOrders = await countRows(
+      db().from("orders").select("*", COUNT).eq("customer_email_lc", lc(email))
     );
-
     if (previousOrders > 0) {
-      return {
-        success: false,
-        message: "This code is only valid on your first order",
-      };
+      return { success: false, message: "This code is only valid on your first order" };
     }
   }
 
   return {
     success: true,
-    discountType: coupon.discountType,
-    discountValue: coupon.discountValue,
+    discountType: coupon.discount_type,
+    discountValue: Number(coupon.discount_value),
   };
 }

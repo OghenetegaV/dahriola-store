@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Gift, Heart, Link2, Share2, ShoppingBag, Trash2 } from "lucide-react";
-import { urlFor } from "@/src/lib/sanity";
+import { imageUrl } from "@/src/lib/images";
 import { useStore } from "@/src/store/useStore";
 import { getProductsByIds, type WishlistProductData } from "@/src/app/actions/catalog";
 import { getListForOwner } from "@/src/app/actions/sharedList";
@@ -77,7 +77,7 @@ export default function WishlistPage() {
       _id: product._id,
       name: product.name,
       price: product.priceNGN,
-      image: product.images?.[0] ? urlFor(product.images[0]).url() : "",
+      image: product.images?.[0] || "",
       quantity: entry.quantity || 1,
       size: entry.size || "M",
       notes: entry.notes || "",
@@ -166,7 +166,7 @@ export default function WishlistPage() {
           const cat = (product.categoryName || "").toLowerCase();
           const sizes = cat.includes("dress") ? DRESS_SIZES : DEFAULT_SIZES;
           const needsLength = !cat.includes("jacket");
-          // Some products reference the same print twice in Sanity — show it once
+          // Guard against the same print being listed twice — show it once
           const prints = (product.prints || [])
             .filter((p) => p && p.isActive !== false)
             .filter((p, i, all) => all.findIndex((x) => x._id === p._id) === i);
@@ -177,7 +177,7 @@ export default function WishlistPage() {
                 {product.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={urlFor(product.images[0]).width(600).height(750).url()}
+                    src={imageUrl(product.images[0], { width: 600, height: 750 })}
                     alt={product.name}
                     className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500"
                   />

@@ -1,8 +1,9 @@
 // Server-only access to shared lists. The private delivery address and the
 // edit-token hash are only ever read here, never sent to a visitor's browser
 // (except the owner's own address, back to the owner, on the manage screen).
-import { writeClient } from "@/src/lib/sanityWrite";
-import { urlFor } from "@/src/lib/sanity";
+import { db, unwrap } from "@/src/lib/supabase/admin";
+import { productsByIds } from "@/src/lib/catalog";
+import { imageUrl } from "@/src/lib/images";
 import { safeEqual, sha256 } from "@/src/lib/signing";
 
 export type ListAddress = {
@@ -17,9 +18,10 @@ export type ListAddress = {
   postalCode?: string;
 };
 
+/** One item as stored in shared_lists.items */
 export type ListItemDoc = {
-  _key: string;
-  product?: { _ref: string };
+  key: string;
+  productId: string;
   productName?: string;
   size?: string;
   selectedPrintId?: string;
@@ -38,22 +40,28 @@ export type ListDoc = {
   _id: string;
   kind: "wishlist" | "cart";
   publicId: string;
-  ownerName?: string;
-  ownerEmail?: string;
-  message?: string;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  message?: string | null;
   keepSurprise?: boolean;
   active?: boolean;
-  editTokenHash?: string;
-  deliveryAddress?: ListAddress;
-  items?: ListItemDoc[];
+  editTokenHash?: string | null;
+  deliveryAddress?: ListAddress | null;
+  items?: ListItemDoc[] | null;
 };
+
+export const LIST_FIELDS = `_id:id, kind, publicId:public_id, ownerName:owner_name, ownerEmail:owner_email, message,
+  keepSurprise:keep_surprise, active, editTokenHash:edit_token_hash, deliveryAddress:delivery_address, items`;
 
 export async function loadListDoc(publicId: string) {
   if (!/^[A-Za-z0-9]{6,20}$/.test(publicId || "")) return null;
-  return writeClient.fetch<ListDoc | null>(`*[_type == "sharedList" && publicId == $publicId][0]`, { publicId });
+  return unwrap(
+    await db().from("shared_lists").select(LIST_FIELDS).eq("public_id", publicId).maybeSingle(),
+    "Loading the list"
+  ) as ListDoc | null;
 }
 
-export function hasUsableAddress(a?: ListAddress) {
+export function hasUsableAddress(a?: ListAddress | null) {
   return !!(a?.line1 && a?.city && a?.state && a?.country);
 }
 
@@ -86,8 +94,6 @@ export type PublicList = {
   items: PublicListItem[];
 };
 
-type ProductInfo = { _id: string; name: string; slug?: string; priceNGN?: number; images?: unknown[] };
-
 /** Everything a gift-buyer may see. No address, no email, no token. */
 export async function getPublicList(
   publicId: string,
@@ -96,13 +102,8 @@ export async function getPublicList(
   const doc = opts.doc !== undefined ? opts.doc : await loadListDoc(publicId);
   if (!doc || (doc.active === false && !opts.includeInactive)) return null;
 
-  const ids = [...new Set((doc.items || []).map((i) => i.product?._ref).filter(Boolean))] as string[];
-  const products = ids.length
-    ? await writeClient.fetch<ProductInfo[]>(
-        `*[_type == "product" && _id in $ids]{ _id, name, "slug": slug.current, priceNGN, images }`,
-        { ids }
-      )
-    : [];
+  const items = doc.items || [];
+  const products = await productsByIds(items.map((i) => i.productId).filter(Boolean));
   const byId = new Map(products.map((p) => [p._id, p]));
 
   return {
@@ -113,14 +114,14 @@ export async function getPublicList(
     active: doc.active !== false,
     keepSurprise: doc.keepSurprise !== false,
     hasAddress: hasUsableAddress(doc.deliveryAddress),
-    items: (doc.items || []).map((i) => {
-      const p = i.product?._ref ? byId.get(i.product._ref) : undefined;
+    items: items.map((i) => {
+      const p = i.productId ? byId.get(i.productId) : undefined;
       return {
-        key: i._key,
-        productId: i.product?._ref || "",
+        key: i.key,
+        productId: i.productId || "",
         name: p?.name || i.productName || "Item",
         slug: p?.slug,
-        image: p?.images?.[0] ? urlFor(p.images[0]).width(700).height(875).fit("crop").url() : undefined,
+        image: p?.images[0] ? imageUrl(p.images[0], { width: 700, height: 875 }) : undefined,
         priceNGN: p?.priceNGN,
         available: !!p && typeof p.priceNGN === "number",
         size: i.size,
@@ -142,16 +143,18 @@ export function isOwnerToken(doc: ListDoc | null, editToken?: string) {
 }
 
 export async function markItemsPurchased(doc: ListDoc, itemKeys: string[], buyerName: string, reference: string) {
-  const keys = [...new Set(itemKeys.filter(Boolean))].filter((k) => doc.items?.some((i) => i._key === k));
-  if (!keys.length) return;
-  let patch = writeClient.patch(doc._id).set({ updatedAt: new Date().toISOString() });
-  for (const key of keys) {
-    patch = patch.set({
-      [`items[_key=="${key}"].purchased`]: true,
-      [`items[_key=="${key}"].purchasedAt`]: new Date().toISOString(),
-      [`items[_key=="${key}"].purchasedBy`]: buyerName.slice(0, 80),
-      [`items[_key=="${key}"].orderReference`]: reference,
-    });
-  }
-  await patch.commit();
+  const keys = new Set(itemKeys.filter(Boolean));
+  if (!keys.size) return;
+
+  // Re-read so a change made since the buyer opened the list isn't overwritten
+  const fresh = (await loadListDoc(doc.publicId)) || doc;
+  const now = new Date().toISOString();
+  let changed = false;
+  const items = (fresh.items || []).map((i) => {
+    if (!keys.has(i.key)) return i;
+    changed = true;
+    return { ...i, purchased: true, purchasedAt: now, purchasedBy: buyerName.slice(0, 80), orderReference: reference };
+  });
+  if (!changed) return;
+  unwrap(await db().from("shared_lists").update({ items }).eq("id", fresh._id), "Updating the list");
 }

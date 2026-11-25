@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { urlFor } from "../lib/sanity";
 
-export default function ProductGallery({ images }: { images: any[] }) {
+export default function ProductGallery({ images }: { images: string[] }) {
   const [selectedImage, setSelectedImage] = useState(0);
 
   if (!images || images.length === 0) return <div className="aspect-[3/4] bg-neutral-100" />;
@@ -22,7 +21,7 @@ export default function ProductGallery({ images }: { images: any[] }) {
             }`}
           >
             <Image
-              src={urlFor(image).url()}
+              src={image}
               alt={`Thumbnail ${index}`}
               fill
               className="object-cover"
@@ -34,7 +33,7 @@ export default function ProductGallery({ images }: { images: any[] }) {
       {/* Main Feature Image */}
       <div className="relative aspect-[3/4] w-full h-full bg-neutral-50 overflow-hidden">
         <Image
-          src={urlFor(images[selectedImage]).url()}
+          src={images[selectedImage]}
           alt="Product feature"
           fill
           priority

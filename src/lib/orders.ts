@@ -2,13 +2,14 @@
 // anyone create orders or change stock directly. They are now only reachable
 // through completeCheckout (src/app/actions/checkout.ts), after the payment has
 // been checked with Paystack.
-import { writeClient } from "@/src/lib/sanityWrite";
+import "server-only";
+import { db, unwrap } from "@/src/lib/supabase/admin";
 import { sendLowStockNotification } from "@/src/app/actions/email";
 
 export type OrderLine = {
   _id: string;
   name: string;
-  price: number; // NGN unit price from Sanity
+  price: number; // NGN unit price from the database
   quantity: number;
   size?: string;
   selectedPrintId?: string;
@@ -17,6 +18,19 @@ export type OrderLine = {
   gender?: string;
   notes?: string;
   giftItemKey?: string;
+};
+
+/** One line of an order as stored in orders.items */
+export type StoredOrderItem = {
+  productId?: string;
+  name: string;
+  price?: number;
+  quantity?: number;
+  size?: string;
+  selectedPrintName?: string;
+  heightLength?: string;
+  gender?: string;
+  notes?: string;
 };
 
 export type OrderDocInput = {
@@ -49,96 +63,104 @@ export type OrderDocInput = {
 };
 
 export async function findOrderByReference(reference: string) {
-  return writeClient.fetch<{ _id: string; paymentVerified?: boolean } | null>(
-    `*[_type == "order" && paymentReference == $reference][0]{ _id, paymentVerified }`,
-    { reference }
-  );
+  return unwrap(
+    await db()
+      .from("orders")
+      .select("_id:id, paymentVerified:payment_verified")
+      .eq("payment_reference", reference)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    "Order lookup"
+  ) as { _id: string; paymentVerified?: boolean } | null;
 }
 
 export async function createOrderDoc(input: OrderDocInput) {
-  return writeClient.create({
-    _type: "order",
-    orderNumber: input.orderNumber,
-    customerName: input.customerName,
-    customerEmail: input.customerEmail,
-    customerPhone: input.customerPhone || "",
-    shippingAddress: input.shippingAddress,
-    shippingMethod: input.shippingMethod || "",
-    currency: "NGN",
-    subtotal: input.subtotal,
-    shippingFee: input.shippingFee,
-    discountCode: input.discountCode || "",
-    discountAmount: input.discountAmount && input.discountAmount > 0 ? input.discountAmount : undefined,
-    totalAmount: input.totalAmount,
-    amountPaid: input.amountPaid,
-    displayCurrency: input.displayCurrency && input.displayCurrency !== "NGN" ? input.displayCurrency : undefined,
-    displayTotal: input.displayCurrency && input.displayCurrency !== "NGN" ? input.displayTotal : undefined,
-    paymentReference: input.paymentReference,
-    paymentVerified: input.paymentVerified,
-    verificationNote: input.verificationNote || undefined,
-    emailOptIn: !!input.emailOptIn,
-    textOptIn: !!input.textOptIn,
-    delivered: false,
-    status: "received",
-    statusEmailedFor: "received",
-    statusHistory: [{ _key: "received", status: "received", at: new Date().toISOString() }],
-    isGift: !!input.gift,
-    giftListId: input.gift?.listId,
-    giftRecipient: input.gift?.ownerName,
-    giftDeliverToOwner: input.gift ? input.gift.deliverToOwner : undefined,
-    giftMessage: input.gift?.message || undefined,
-    items: input.items.map((item, i) => ({
-      _key: `${i}-${item._id}`.slice(0, 60),
-      name: item.name,
-      product: item._id ? { _type: "reference", _ref: item._id, _weak: true } : undefined,
-      price: item.price,
-      quantity: item.quantity,
-      size: item.size,
-      selectedPrintName: item.selectedPrintName || "",
-      heightLength: item.heightLength || "",
-      gender: item.gender || "",
-      notes: item.notes || "",
-    })),
-    createdAt: new Date().toISOString(),
-  });
+  const now = new Date().toISOString();
+  const foreign = !!input.displayCurrency && input.displayCurrency !== "NGN";
+  const items: StoredOrderItem[] = input.items.map((item) => ({
+    productId: item._id || undefined,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    size: item.size,
+    selectedPrintName: item.selectedPrintName || "",
+    heightLength: item.heightLength || "",
+    gender: item.gender || "",
+    notes: item.notes || "",
+  }));
+
+  return unwrap(
+    await db()
+      .from("orders")
+      .insert({
+        order_number: input.orderNumber,
+        customer_name: input.customerName,
+        customer_email: input.customerEmail,
+        customer_phone: input.customerPhone || "",
+        shipping_address: input.shippingAddress,
+        shipping_method: input.shippingMethod || "",
+        currency: "NGN",
+        subtotal: input.subtotal,
+        shipping_fee: input.shippingFee,
+        discount_code: input.discountCode || "",
+        discount_amount: input.discountAmount && input.discountAmount > 0 ? input.discountAmount : null,
+        total_amount: input.totalAmount,
+        amount_paid: input.amountPaid ?? null,
+        display_currency: foreign ? input.displayCurrency : null,
+        display_total: foreign ? input.displayTotal ?? null : null,
+        payment_reference: input.paymentReference,
+        payment_verified: input.paymentVerified,
+        verification_note: input.verificationNote || null,
+        email_opt_in: !!input.emailOptIn,
+        text_opt_in: !!input.textOptIn,
+        delivered: false,
+        status: "received",
+        status_emailed_for: "received",
+        status_history: [{ status: "received", at: now }],
+        is_gift: !!input.gift,
+        gift_list_id: input.gift?.listId ?? null,
+        gift_recipient: input.gift?.ownerName ?? null,
+        gift_deliver_to_owner: input.gift ? input.gift.deliverToOwner : null,
+        gift_message: input.gift?.message || null,
+        items,
+        created_at: now,
+      })
+      .select("_id:id")
+      .single(),
+    "Saving the order"
+  ) as { _id: string };
 }
 
 /** Counts a coupon use once a paid order has been recorded. */
 export async function recordCouponUse(code?: string) {
   if (!code) return;
   try {
-    const id = await writeClient.fetch<string | null>(`*[_type == "coupon" && code == $code][0]._id`, { code });
-    if (id) await writeClient.patch(id).setIfMissing({ timesUsed: 0 }).inc({ timesUsed: 1 }).commit();
+    unwrap(await db().rpc("record_coupon_use", { p_code: code }), "Coupon usage count");
   } catch (err) {
     console.error("Coupon usage count failed:", err);
   }
 }
 
-type PrintStock = { _id: string; name: string; stockQuantity?: number; lowStockThreshold?: number };
+type PrintStock = { name: string; stock_quantity: number; low_stock_threshold: number };
 
 export async function reducePrintStock(lines: OrderLine[]) {
   for (const item of lines) {
     if (!item.selectedPrintId) continue;
     try {
-      const print = await writeClient.fetch<PrintStock | null>(
-        `*[_type == "print" && _id == $id][0]{ _id, name, stockQuantity, lowStockThreshold }`,
-        { id: item.selectedPrintId }
-      );
+      // Done inside the database, so two orders at once can't overwrite each other
+      const rows = unwrap(
+        await db().rpc("decrement_print_stock", {
+          p_print_id: item.selectedPrintId,
+          p_quantity: Math.max(1, Number(item.quantity || 1)),
+        }),
+        "Stock update"
+      ) as PrintStock[] | null;
+      const print = rows?.[0];
       if (!print) continue;
 
-      const threshold = Number(print.lowStockThreshold ?? 2);
-      // dec() is atomic, so two orders at once can't overwrite each other
-      const updated = await writeClient
-        .patch(print._id)
-        .setIfMissing({ stockQuantity: 0 })
-        .dec({ stockQuantity: Math.max(1, Number(item.quantity || 1)) })
-        .commit<{ stockQuantity?: number }>();
-
-      let remaining = Number(updated.stockQuantity ?? 0);
-      if (remaining < 0) {
-        await writeClient.patch(print._id).set({ stockQuantity: 0 }).commit();
-        remaining = 0;
-      }
+      const threshold = Number(print.low_stock_threshold ?? 2);
+      const remaining = Number(print.stock_quantity ?? 0);
       if (remaining <= threshold) {
         await sendLowStockNotification({
           printName: print.name || item.selectedPrintName || "Unknown print",
