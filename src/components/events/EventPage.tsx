@@ -53,8 +53,68 @@ export default function EventPage({ event, description }: { event: EventSummary;
 
   return (
     <main className="bg-[#fbfaf7] text-neutral-900">
-      {/* ── Header ── */}
-      <section className="px-5 pb-12 pt-32 md:px-8 md:pb-16 md:pt-40">
+      {/* ── Phones: flyer edge to edge, then the countdown and buttons ── */}
+      <section className="pt-20 lg:hidden">
+        <h1 className="sr-only">{event.title}</h1>
+        {event.flyerUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl(event.flyerUrl, { width: 1100 })} alt={`${event.title} flyer`} className="block h-auto w-full" />
+        ) : (
+          <div className="flex aspect-[4/5] flex-col items-center justify-center bg-[#F2F0ED] px-5 text-center">
+            <p className={eyebrow}>Save the date</p>
+            <p className="mt-4 font-display text-5xl tracking-[-0.04em] text-black">{event.title}</p>
+            <p className="mt-4 font-display text-3xl tracking-[-0.03em] text-neutral-700">
+              {formatEventDateRange(event, { weekday: false, year: false })}
+            </p>
+          </div>
+        )}
+
+        <div className="relative overflow-hidden bg-[#0b0d0c] px-5 pb-9 pt-8 text-white">
+          {/* A soft green glow, picking up the light in the flyer */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[130%] -translate-x-1/2 rounded-[50%] opacity-60 blur-3xl"
+            style={{ background: "radial-gradient(closest-side, rgba(124,242,154,0.55), transparent)" }}
+          />
+          <div className="relative mx-auto max-w-md">
+            <p className="flex items-center justify-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.35em] text-white">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7CF29A] opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#7CF29A]" />
+              </span>
+              Doors open in
+            </p>
+            <EventCountdown target={event.startDate} variant="urgent" className="mt-5 text-center font-display text-3xl text-[#7CF29A]" />
+            <p className="mt-5 text-center text-[10px] font-bold uppercase leading-5 tracking-[0.28em] text-white/60">
+              {formatEventDateRange(event, { weekday: false })} · {formatEventHours(event).replace(" daily", "")}
+              <br />
+              {area}
+            </p>
+
+            <div className="mt-7 flex flex-col gap-3">
+              {event.rsvpOpen && (
+                <a
+                  href="#rsvp"
+                  className="inline-flex h-[52px] w-full items-center justify-center rounded-full bg-[#7CF29A] px-8 text-[12px] font-bold uppercase tracking-[0.2em] text-black shadow-[0_0_34px_-6px_rgba(124,242,154,0.8)] transition active:scale-[0.98]"
+                >
+                  Reserve your place
+                </a>
+              )}
+              <a
+                href={googleCalendarUrl(event)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-[52px] w-full items-center justify-center rounded-full border border-white/25 px-8 text-[12px] font-bold uppercase tracking-[0.2em] text-white transition active:scale-[0.98]"
+              >
+                Add to calendar
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Header (larger screens) ── */}
+      <section className="hidden px-5 pb-12 pt-32 md:px-8 md:pb-16 md:pt-40 lg:block">
         <div className="mx-auto max-w-4xl text-center">
           <FadeIn>
             <div className="mx-auto mb-5 flex h-9 w-9 items-center justify-center">
@@ -100,9 +160,9 @@ export default function EventPage({ event, description }: { event: EventSummary;
       </section>
 
       {/* ── Flyer + details / RSVP ── */}
-      <section className="px-5 pb-20 md:px-8 md:pb-28">
+      <section className="px-5 pb-20 pt-8 md:px-8 md:pb-28 lg:pt-0">
         <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
-          <aside className="lg:col-span-5">
+          <aside className="hidden lg:col-span-5 lg:block">
             <FadeIn delay={0.2} className="lg:sticky lg:top-28">
               {event.flyerUrl ? (
                 <div className="overflow-hidden rounded-[2rem] bg-neutral-100 shadow-[0_35px_90px_-50px_rgba(0,0,0,0.55)]">

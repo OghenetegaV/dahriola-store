@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 type Props = {
   target: string; // ISO date
-  variant?: "boxes" | "inline" | "flip" | "minimal";
+  variant?: "boxes" | "inline" | "flip" | "minimal" | "urgent";
   className?: string;
 };
 
@@ -39,7 +39,7 @@ export default function EventCountdown({ target, variant = "boxes", className = 
       <div
         className={className}
         aria-hidden="true"
-        style={{ minHeight: variant === "flip" ? 110 : variant === "minimal" ? 58 : variant === "boxes" ? 64 : 16 }}
+        style={{ minHeight: variant === "flip" ? 110 : variant === "urgent" ? 92 : variant === "minimal" ? 58 : variant === "boxes" ? 64 : 16 }}
       />
     );
   }
@@ -53,6 +53,36 @@ export default function EventCountdown({ target, variant = "boxes", className = 
       <span className={className}>
         {time.days}d {String(time.hours).padStart(2, "0")}h {String(time.minutes).padStart(2, "0")}m
       </span>
+    );
+  }
+
+  // Loud, for dark backgrounds: big glowing numbers in dark tiles, with the
+  // seconds picked out in green so the clock visibly runs down
+  if (variant === "urgent") {
+    const units = [
+      { label: "Days", value: time.days },
+      { label: "Hours", value: time.hours },
+      { label: "Mins", value: time.minutes },
+      { label: "Secs", value: time.seconds, live: true },
+    ];
+    return (
+      <div
+        className={`grid grid-cols-4 gap-2 ${className}`}
+        role="timer"
+        aria-label={`${time.days} days ${time.hours} hours ${time.minutes} minutes to go`}
+      >
+        {units.map((u) => (
+          <div key={u.label} className="rounded-xl border border-white/10 bg-white/[0.06] px-1 py-4 text-center">
+            <div
+              className={`font-display text-[2.6rem] leading-none tracking-[-0.02em] tabular-nums ${u.live ? "text-[#7CF29A]" : "text-white"}`}
+              style={{ textShadow: u.live ? "0 0 22px rgba(124,242,154,0.75)" : "0 0 18px rgba(124,242,154,0.45)" }}
+            >
+              {String(u.value).padStart(2, "0")}
+            </div>
+            <div className="mt-2.5 text-[9px] font-bold uppercase tracking-[0.25em] text-white/55">{u.label}</div>
+          </div>
+        ))}
+      </div>
     );
   }
 
