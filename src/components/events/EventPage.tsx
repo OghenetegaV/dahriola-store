@@ -1,11 +1,12 @@
 "use client";
 
-// Upcoming event page (dahriola.com/rsvp leads here). Deliberately quiet:
-// it follows the Our Story / Bespoke pages — stone background, large serif
-// title, a framed image beside a white content card, and one gentle fade-in.
+// Upcoming event page (dahriola.com/rsvp leads here). Opens on a dark hero
+// with the flyer and a live countdown, then settles into the quiet stone
+// background and white cards of the Our Story / Bespoke pages.
+import { useState } from "react";
 import { motion, type HTMLMotionProps } from "framer-motion";
 import RichText, { hasRichText } from "@/src/components/RichText";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronDown } from "lucide-react";
 import EventCountdown from "@/src/components/EventCountdown";
 import RsvpForm from "@/src/components/RsvpForm";
 import {
@@ -32,6 +33,7 @@ const card = "rounded-[2rem] border border-neutral-100 bg-white shadow-[0_30px_9
 const eyebrow = "text-[10px] font-bold uppercase tracking-[0.35em] text-brand-beryl";
 
 export default function EventPage({ event, description }: { event: EventSummary; description?: string | null }) {
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
   const multiDay = eventDayCount(event) > 1;
   const area = (event.venueAddress || "").split(",").slice(-2).join(",").trim() || "Lagos";
   const mapQuery = event.venueAddress || event.venueName || "";
@@ -113,122 +115,154 @@ export default function EventPage({ event, description }: { event: EventSummary;
         </div>
       </section>
 
-      {/* ── Header (larger screens) ── */}
-      <section className="hidden px-5 pb-12 pt-32 md:px-8 md:pb-16 md:pt-40 lg:block">
-        <div className="mx-auto max-w-4xl text-center">
-          <FadeIn>
-            <div className="mx-auto mb-5 flex h-9 w-9 items-center justify-center">
-              <span className="block h-2 w-2 rounded-full bg-brand-beryl" />
-            </div>
-            <p className={`${eyebrow} mb-5 tracking-[0.45em]`}>DAHRIOLA Events</p>
-            <h1 className="font-display text-5xl leading-[0.95] tracking-[-0.04em] text-black md:text-7xl lg:text-8xl">
-              {event.title}
-            </h1>
-          </FadeIn>
+      {/* ── Hero (larger screens): copy + countdown beside the flyer ── */}
+      <section className="relative hidden overflow-hidden bg-[#0b0d0c] pt-20 text-white lg:block">
+        {/* Green light pooling behind the flyer, plus a faint one top-left */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-40 top-1/2 h-[900px] w-[900px] -translate-y-1/2 rounded-full opacity-50 blur-3xl"
+          style={{ background: "radial-gradient(closest-side, rgba(124,242,154,0.35), transparent)" }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full opacity-30 blur-3xl"
+          style={{ background: "radial-gradient(closest-side, rgba(124,242,154,0.3), transparent)" }}
+        />
 
-          <FadeIn delay={0.12}>
-            {event.tagline && <p className="mx-auto mt-6 max-w-xl text-[15px] leading-7 text-neutral-500 md:text-base">{event.tagline}</p>}
+        <div className="relative mx-auto grid min-h-[calc(100svh-5rem)] max-w-7xl grid-cols-12 items-center gap-12 px-8 py-10 xl:gap-16">
+          <div className="col-span-6">
+            <FadeIn>
+              <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.4em] text-[#7CF29A]">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7CF29A] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#7CF29A]" />
+                </span>
+                DAHRIOLA Events
+              </p>
+              <h1 className="mt-6 font-display text-7xl leading-[0.92] tracking-[-0.04em] text-white xl:text-8xl">{event.title}</h1>
+              {event.tagline && <p className="mt-6 max-w-lg text-base leading-7 text-white/60">{event.tagline}</p>}
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-neutral-500 sm:flex-row sm:gap-4">
-              <span>{formatEventDateRange(event, { weekday: false })}</span>
-              <Diamond />
-              <span>{formatEventHours(event).replace(" daily", "")}</span>
-              <Diamond />
-              <span>{area}</span>
-            </div>
+              <div className="mt-8 flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-[0.3em] text-white/70">
+                <span>{formatEventDateRange(event, { weekday: false })}</span>
+                <Diamond />
+                <span>{formatEventHours(event).replace(" daily", "")}</span>
+                <Diamond />
+                <span>{area}</span>
+              </div>
+            </FadeIn>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-              {event.rsvpOpen && (
+            <FadeIn delay={0.12} className="mt-12 max-w-xl">
+              <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.35em] text-white/50">Doors open in</p>
+              <EventCountdown target={event.startDate} variant="urgent" size="lg" className="font-display text-4xl text-[#7CF29A]" />
+
+              <div className="mt-10 flex flex-wrap items-center gap-3">
+                {event.rsvpOpen && (
+                  <a
+                    href="#rsvp"
+                    className="inline-flex h-14 min-w-[210px] items-center justify-center rounded-full bg-[#7CF29A] px-9 text-[12px] font-bold uppercase tracking-[0.2em] text-black shadow-[0_0_40px_-8px_rgba(124,242,154,0.8)] transition hover:shadow-[0_0_50px_-4px_rgba(124,242,154,0.9)] hover:brightness-105"
+                  >
+                    Reserve your place
+                  </a>
+                )}
                 <a
-                  href="#rsvp"
-                  className="inline-flex h-12 min-w-[180px] items-center justify-center rounded-full bg-black px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-white transition hover:bg-neutral-800"
+                  href={googleCalendarUrl(event)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-14 min-w-[210px] items-center justify-center rounded-full border border-white/25 px-9 text-[12px] font-bold uppercase tracking-[0.2em] text-white transition hover:border-white hover:bg-white/5"
                 >
-                  Reserve your place
+                  Add to calendar
                 </a>
-              )}
-              <a
-                href={googleCalendarUrl(event)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-12 min-w-[180px] items-center justify-center rounded-full border border-neutral-200 bg-white px-8 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-900 transition hover:border-black"
-              >
-                Add to calendar
-              </a>
-            </div>
+              </div>
+            </FadeIn>
+          </div>
+
+          <FadeIn delay={0.2} className="col-span-6 flex justify-end">
+            {event.flyerUrl ? (
+              <div className="overflow-hidden rounded-[2rem] ring-1 ring-white/10 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9),0_0_80px_-30px_rgba(124,242,154,0.5)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl(event.flyerUrl, { width: 1100 })}
+                  alt={`${event.title} flyer`}
+                  className="block h-auto max-h-[calc(100svh-8rem)] w-auto max-w-full"
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-[4/5] w-full max-w-md flex-col items-center justify-center rounded-[2rem] border border-white/10 bg-white/[0.04] text-center">
+                <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#7CF29A]">Save the date</p>
+                <p className="mt-4 font-display text-6xl tracking-[-0.04em] text-white">
+                  {formatEventDateRange(event, { weekday: false, year: false })}
+                </p>
+              </div>
+            )}
           </FadeIn>
         </div>
       </section>
 
-      {/* ── Flyer + details / RSVP ── */}
-      <section className="px-5 pb-20 pt-8 md:px-8 md:pb-28 lg:pt-0">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
-          <aside className="hidden lg:col-span-5 lg:block">
-            <FadeIn delay={0.2} className="lg:sticky lg:top-28">
-              {event.flyerUrl ? (
-                <div className="overflow-hidden rounded-[2rem] bg-neutral-100 shadow-[0_35px_90px_-50px_rgba(0,0,0,0.55)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl(event.flyerUrl, { width: 1100 })} alt={`${event.title} flyer`} className="block h-auto w-full" />
+      {/* ── Details + RSVP ── */}
+      <section className="px-5 pb-20 pt-8 md:px-8 md:pb-28 lg:pt-20">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-stretch gap-6 lg:grid-cols-2 lg:gap-8">
+          <FadeIn delay={0.28} className={`${card} p-6 md:p-10 lg:p-12`}>
+            <p className={eyebrow}>The details</p>
+            <dl className="mt-6">
+              {details.map((d) => (
+                <div key={d.label} className="grid grid-cols-1 gap-1 border-b border-neutral-100 py-5 first:pt-0 last:border-0 last:pb-0 sm:grid-cols-[130px_1fr] sm:gap-6">
+                  <dt className="pt-0.5 text-[9px] font-bold uppercase tracking-widest text-neutral-400">{d.label}</dt>
+                  <dd className="text-[15px] leading-7 text-neutral-800">
+                    {d.value}
+                    {d.link && (
+                      <a
+                        href={d.link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 flex w-fit items-center gap-1 text-[13px] text-brand-beryl underline-offset-4 hover:underline"
+                      >
+                        {d.link.text} <ArrowUpRight size={13} />
+                      </a>
+                    )}
+                  </dd>
                 </div>
-              ) : (
-                <div className="flex aspect-[4/5] flex-col items-center justify-center rounded-[2rem] bg-[#F2F0ED] text-center">
-                  <p className={eyebrow}>Save the date</p>
-                  <p className="mt-4 font-display text-6xl tracking-[-0.04em] text-black">
-                    {formatEventDateRange(event, { weekday: false, year: false })}
-                  </p>
-                </div>
-              )}
+              ))}
+            </dl>
 
-              <div className={`${card} mt-6 px-6 py-6 md:px-8`}>
-                <p className="mb-5 text-center text-[9px] font-bold uppercase tracking-widest text-neutral-400">Doors open in</p>
-                <EventCountdown target={event.startDate} variant="minimal" />
-              </div>
-            </FadeIn>
-          </aside>
-
-          <div className="space-y-6 lg:col-span-7">
-            <FadeIn delay={0.28} className={`${card} p-6 md:p-10 lg:p-12`}>
-              <p className={eyebrow}>The details</p>
-              <dl className="mt-6">
-                {details.map((d) => (
-                  <div key={d.label} className="grid grid-cols-1 gap-1 border-b border-neutral-100 py-5 first:pt-0 last:border-0 last:pb-0 sm:grid-cols-[130px_1fr] sm:gap-6">
-                    <dt className="pt-0.5 text-[9px] font-bold uppercase tracking-widest text-neutral-400">{d.label}</dt>
-                    <dd className="text-[15px] leading-7 text-neutral-800">
-                      {d.value}
-                      {d.link && (
-                        <a
-                          href={d.link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 flex w-fit items-center gap-1 text-[13px] text-brand-beryl underline-offset-4 hover:underline"
-                        >
-                          {d.link.text} <ArrowUpRight size={13} />
-                        </a>
-                      )}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-
-              {hasRichText(description) && (
-                <div className="mt-10 border-t border-neutral-100 pt-10">
-                  <div className="space-y-6 text-[15px] leading-8 text-neutral-700 md:text-[16px]">
+            {hasRichText(description) && (
+              <div className="mt-10 border-t border-neutral-100 pt-10">
+                <div className="relative">
+                  <div
+                    id="event-description"
+                    className={`space-y-6 overflow-hidden text-[15px] leading-8 text-neutral-700 md:text-[16px] ${
+                      descriptionOpen ? "" : "max-h-[8rem]"
+                    }`}
+                  >
                     <RichText value={description} />
                   </div>
+                  {!descriptionOpen && (
+                    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
+                  )}
                 </div>
-              )}
-            </FadeIn>
-
-            <FadeIn inView id="rsvp" className={`${card} scroll-mt-28 p-6 md:p-10 lg:p-12`}>
-              <p className={eyebrow}>RSVP</p>
-              <h2 className="mt-4 font-display text-4xl tracking-[-0.04em] text-black md:text-5xl">Reserve your place</h2>
-              <p className="mt-3 max-w-md text-sm leading-6 text-neutral-500">
-                Register below and we&apos;ll email your ticket and a calendar invite straight away.
-              </p>
-              <div className="mt-8">
-                <RsvpForm event={event} />
+                <button
+                  type="button"
+                  onClick={() => setDescriptionOpen((o) => !o)}
+                  aria-expanded={descriptionOpen}
+                  aria-controls="event-description"
+                  className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-beryl transition hover:text-black"
+                >
+                  {descriptionOpen ? "Show less" : "Read more"}
+                  <ChevronDown size={14} className={`transition-transform ${descriptionOpen ? "rotate-180" : ""}`} />
+                </button>
               </div>
-            </FadeIn>
-          </div>
+            )}
+          </FadeIn>
+
+          <FadeIn inView id="rsvp" className={`${card} scroll-mt-28 p-6 md:p-10 lg:p-12`}>
+            <p className={eyebrow}>RSVP</p>
+            <h2 className="mt-4 font-display text-4xl tracking-[-0.04em] text-black md:text-5xl">Reserve your place</h2>
+            <p className="mt-3 max-w-md text-sm leading-6 text-neutral-500">
+              Register below and we&apos;ll email your ticket and a calendar invite straight away.
+            </p>
+            <div className="mt-8">
+              <RsvpForm event={event} />
+            </div>
+          </FadeIn>
         </div>
       </section>
 
