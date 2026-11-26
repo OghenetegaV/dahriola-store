@@ -114,7 +114,7 @@ export default async function RootLayout({
       >
         {/* The dashboard at /admin has its own layout: no shop header, footer or pop-ups */}
         <SiteChrome>
-          <Navbar />
+          <Navbar event={activeEvent} />
         </SiteChrome>
         <main>{children}</main>
         <SiteChrome>
@@ -123,7 +123,7 @@ export default async function RootLayout({
               The newsletter popup stays mounted so the footer/announcement triggers still work. */}
           {activeEvent && <EventPopup event={activeEvent} />}
           <NewsletterPopup autoOpen={!activeEvent} />
-          <Footer />
+          <Footer event={activeEvent} />
           <GoogleAnalytics />
           <CookieConsent />
           <VisitorTracker />

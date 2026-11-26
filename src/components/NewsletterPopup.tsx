@@ -22,9 +22,9 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-// Ages 13–100
-const THIS_YEAR = new Date().getFullYear();
-const BIRTH_YEARS = Array.from({ length: 88 }, (_, i) => String(THIS_YEAR - 13 - i));
+// Longest each month can be (February allows the 29th)
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const pad2 = (n: number) => String(n).padStart(2, "0");
 
 export function openNewsletterPopup(email?: string) {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { email } }));
@@ -44,7 +44,8 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
-  const [birthYear, setBirthYear] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const daysInMonth = birthMonth ? DAYS_IN_MONTH[Number(birthMonth) - 1] : 31;
 
   useEffect(() => {
     let claimedCode: string | null = null;
@@ -105,12 +106,12 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
     e.preventDefault();
     if (loading) return;
     setError("");
-    if (birthYear && !birthMonth) {
-      setError("Please choose your birth month too.");
+    if (Boolean(birthDay) !== Boolean(birthMonth)) {
+      setError(birthDay ? "Please choose your birth month too." : "Please choose your birth day too.");
       return;
     }
-    // Stored as "YYYY-MM", or "--MM" (ISO month without year) when no year is given
-    const birthday = birthMonth ? `${birthYear || "-"}-${birthMonth}` : "";
+    // Stored as "--MM-DD" (ISO 8601 date without a year)
+    const birthday = birthMonth && birthDay ? `--${birthMonth}-${birthDay}` : "";
     try {
       setLoading(true);
       const response = await fetch("/api/newsletter", {
@@ -130,7 +131,7 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
         } catch {}
         setFormData({ name: "", email: "", birthday: "", source: "" });
         setBirthMonth("");
-        setBirthYear("");
+        setBirthDay("");
       } else {
         setError(data.error || "Something went wrong. Please try again.");
       }
@@ -229,28 +230,33 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
                           </legend>
                           <div className="grid grid-cols-2 gap-4">
                             <select
-                              aria-label="Birth month"
-                              value={birthMonth}
-                              onChange={(e) => setBirthMonth(e.target.value)}
+                              aria-label="Birth day"
+                              value={birthDay}
+                              onChange={(e) => setBirthDay(e.target.value)}
                               className="w-full border-b pb-3 bg-transparent"
                             >
-                              <option value="">Month</option>
-                              {MONTHS.map((m, i) => (
-                                <option key={m} value={String(i + 1).padStart(2, "0")}>
-                                  {m}
+                              <option value="">Day</option>
+                              {Array.from({ length: daysInMonth }, (_, i) => pad2(i + 1)).map((d) => (
+                                <option key={d} value={d}>
+                                  {Number(d)}
                                 </option>
                               ))}
                             </select>
                             <select
-                              aria-label="Birth year"
-                              value={birthYear}
-                              onChange={(e) => setBirthYear(e.target.value)}
+                              aria-label="Birth month"
+                              value={birthMonth}
+                              onChange={(e) => {
+                                const month = e.target.value;
+                                setBirthMonth(month);
+                                // Clear a day the new month doesn't have (e.g. 31 → April)
+                                if (month && Number(birthDay) > DAYS_IN_MONTH[Number(month) - 1]) setBirthDay("");
+                              }}
                               className="w-full border-b pb-3 bg-transparent"
                             >
-                              <option value="">Year</option>
-                              {BIRTH_YEARS.map((y) => (
-                                <option key={y} value={y}>
-                                  {y}
+                              <option value="">Month</option>
+                              {MONTHS.map((m, i) => (
+                                <option key={m} value={pad2(i + 1)}>
+                                  {m}
                                 </option>
                               ))}
                             </select>

@@ -13,12 +13,15 @@ import {
   Instagram,
   Heart,
   Search,
+  ArrowRight,
 } from "lucide-react";
 import { getCategories, getNavProducts } from "@/src/app/actions/catalog";
 import { useStore } from "@/src/store/useStore";
 import CartDrawer from "./CartDrawer";
 import ProductSearch from "./ProductSearch";
 import { getWishlist } from "@/src/lib/wishlist";
+import { type EventSummary, formatEventDateRange } from "@/src/lib/events";
+import { imageUrl } from "@/src/lib/images";
 
 interface Category {
   title: string;
@@ -50,7 +53,7 @@ const currencyToCountry: Record<string, string> = {
 
 const COLLECTION_NAMES = ["Soweto", "Nia", "Thabang", "ayeye", "Djembe"];
 
-export default function Navbar() {
+export default function Navbar({ event }: { event?: EventSummary | null }) {
   const pathname = usePathname();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -64,8 +67,6 @@ export default function Navbar() {
   const [products, setProducts] = useState<any[]>([]);
 
   const { cart, currency, setCurrency } = useStore();
-
-  if (pathname?.startsWith("/admin")) return null;
 
   // Lock/unlock body scroll when mobile menu is open
   useEffect(() => {
@@ -127,6 +128,8 @@ export default function Navbar() {
     };
   }, []);
 
+  if (pathname?.startsWith("/admin")) return null;
+
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const isHomePage = pathname === "/";
   const shouldShowSolid = scrolled || !isHomePage;
@@ -136,6 +139,8 @@ export default function Navbar() {
     : "bg-transparent border-transparent";
 
   const textColor = shouldShowSolid ? "text-neutral-900" : "text-white";
+  // The promoted event if there is one, otherwise the events archive
+  const eventsHref = event ? `/events/${event.slug}` : "/events";
   const iconColor = shouldShowSolid ? "text-brand-beryl" : "text-white";
 
   return (
@@ -384,6 +389,38 @@ export default function Navbar() {
             </button>
           </div>
 
+          {/* Upcoming event, first thing in the drawer while one is promoted */}
+          {event && (
+            <Link
+              href={eventsHref}
+              onClick={() => setIsOpen(false)}
+              className="group -mt-8 mb-12 flex items-center gap-4 overflow-hidden rounded-2xl bg-[#0b0d0c] p-3 pr-4 text-white"
+            >
+              {event.flyerUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl(event.flyerUrl, { width: 160 })}
+                  alt=""
+                  className="h-16 w-14 shrink-0 rounded-lg object-cover"
+                />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.3em] text-[#7CF29A]">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7CF29A] opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#7CF29A]" />
+                  </span>
+                  Upcoming event
+                </p>
+                <p className="mt-1.5 truncate font-display text-lg leading-tight">{event.title}</p>
+                <p className="mt-1 text-[9px] uppercase tracking-[0.2em] text-white/55">
+                  {formatEventDateRange(event, { weekday: false, year: false })}
+                </p>
+              </div>
+              <ArrowRight size={16} className="shrink-0 text-white/60 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          )}
+
           <nav className="flex flex-col gap-10">
             {/* New Collection */}
             <div className="flex flex-col">
@@ -443,6 +480,14 @@ export default function Navbar() {
               className="font-display text-2xl text-neutral-900 tracking-tight"
             >
               Bespoke Gallery
+            </Link>
+
+            <Link
+              href="/events"
+              onClick={() => setIsOpen(false)}
+              className="font-display text-2xl text-neutral-900 tracking-tight"
+            >
+              Events
             </Link>
           </nav>
 

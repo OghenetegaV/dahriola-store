@@ -48,6 +48,8 @@ export type BrevoAttributes = Partial<{
   FIRSTNAME: string;
   LASTNAME: string;
   BIRTH_MONTH: number;
+  BIRTH_DAY: number;
+  /** No longer collected; kept for contacts who gave it before */
   BIRTH_YEAR: number;
   SIGNUP_SOURCE: string;
   FIRST_ORDER_DATE: string; // YYYY-MM-DD
@@ -65,6 +67,7 @@ const ATTRIBUTE_TYPES: Record<keyof BrevoAttributes, "text" | "float" | "date" |
   FIRSTNAME: "text",
   LASTNAME: "text",
   BIRTH_MONTH: "float",
+  BIRTH_DAY: "float",
   BIRTH_YEAR: "float",
   SIGNUP_SOURCE: "text",
   FIRST_ORDER_DATE: "date",

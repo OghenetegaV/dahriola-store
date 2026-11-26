@@ -9,8 +9,9 @@ import { openCookieSettings } from "@/src/lib/consent";
 import PolicyModal from "./PolicyModal";
 import { openNewsletterPopup } from "./NewsletterPopup";
 import { POLICIES } from "@/src/constants/policies";
+import { type EventSummary, formatEventDateRange } from "@/src/lib/events";
 
-export default function Footer() {
+export default function Footer({ event }: { event?: EventSummary | null }) {
   const [categories, setCategories] = useState<{ title: string; slug: string }[]>([]);
   const [isRtwOpen, setIsRtwOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -172,7 +173,19 @@ export default function Footer() {
             <h5 className="text-[10px] uppercase tracking-[0.4em] font-black text-white/40">The Studio</h5>
             <div className="flex flex-col gap-5">
               <Link href="/our-story" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Our Story</Link>
-              <Link href="/events" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Events</Link>
+              <Link
+                href={event ? `/events/${event.slug}` : "/events"}
+                title={event ? `${event.title}, ${formatEventDateRange(event, { weekday: false })}` : undefined}
+                className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all"
+              >
+                Events
+                {event && (
+                  <span className="relative flex h-1.5 w-1.5" aria-label="Upcoming event">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7CF29A] opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#7CF29A]" />
+                  </span>
+                )}
+              </Link>
               <Link href="/track" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Track Order</Link>
               <button type="button" onClick={openCookieSettings} className="text-left text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Cookie Settings</button>
               <Link href="/bespoke" className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-brand-beryl transition-all">Appointments</Link>

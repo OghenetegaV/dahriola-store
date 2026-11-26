@@ -3,7 +3,7 @@
 // Upcoming event page (dahriola.com/rsvp leads here). Opens on a dark hero
 // with the flyer and a live countdown, then settles into the quiet stone
 // background and white cards of the Our Story / Bespoke pages.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, type HTMLMotionProps } from "framer-motion";
 import RichText, { hasRichText } from "@/src/components/RichText";
 import { ArrowUpRight, ChevronDown } from "lucide-react";
@@ -34,6 +34,20 @@ const eyebrow = "text-[10px] font-bold uppercase tracking-[0.35em] text-brand-be
 
 export default function EventPage({ event, description }: { event: EventSummary; description?: string | null }) {
   const [descriptionOpen, setDescriptionOpen] = useState(false);
+  // Only offer "Read more" when the collapsed description actually cuts text off
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const [descriptionClipped, setDescriptionClipped] = useState(false);
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+    const measure = () => {
+      if (!descriptionOpen) setDescriptionClipped(el.scrollHeight > el.clientHeight + 1);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [descriptionOpen, description]);
   const multiDay = eventDayCount(event) > 1;
   const area = (event.venueAddress || "").split(",").slice(-2).join(",").trim() || "Lagos";
   const mapQuery = event.venueAddress || event.venueName || "";
@@ -229,26 +243,29 @@ export default function EventPage({ event, description }: { event: EventSummary;
                 <div className="relative">
                   <div
                     id="event-description"
+                    ref={descriptionRef}
                     className={`space-y-6 overflow-hidden text-[15px] leading-8 text-neutral-700 md:text-[16px] ${
                       descriptionOpen ? "" : "max-h-[8rem]"
                     }`}
                   >
                     <RichText value={description} />
                   </div>
-                  {!descriptionOpen && (
+                  {!descriptionOpen && descriptionClipped && (
                     <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent" />
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDescriptionOpen((o) => !o)}
-                  aria-expanded={descriptionOpen}
-                  aria-controls="event-description"
-                  className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-beryl transition hover:text-black"
-                >
-                  {descriptionOpen ? "Show less" : "Read more"}
-                  <ChevronDown size={14} className={`transition-transform ${descriptionOpen ? "rotate-180" : ""}`} />
-                </button>
+                {(descriptionClipped || descriptionOpen) && (
+                  <button
+                    type="button"
+                    onClick={() => setDescriptionOpen((o) => !o)}
+                    aria-expanded={descriptionOpen}
+                    aria-controls="event-description"
+                    className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-beryl transition hover:text-black"
+                  >
+                    {descriptionOpen ? "Show less" : "Read more"}
+                    <ChevronDown size={14} className={`transition-transform ${descriptionOpen ? "rotate-180" : ""}`} />
+                  </button>
+                )}
               </div>
             )}
           </FadeIn>

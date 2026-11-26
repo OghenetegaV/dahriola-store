@@ -57,11 +57,11 @@ export async function POST(req: Request) {
     // Marketing: a new sign-up is an opt-in (even if they unsubscribed before)
     try {
       await optBackIn(email);
-      const { month, year } = parseBirthday(birthday);
+      const { month, day } = parseBirthday(birthday);
       const [first, ...rest] = name.split(/\s+/);
       await upsertContact(
         email,
-        { FIRSTNAME: first || undefined, LASTNAME: rest.join(" ") || undefined, BIRTH_MONTH: month, BIRTH_YEAR: year, SIGNUP_SOURCE: source || "Newsletter pop-up" },
+        { FIRSTNAME: first || undefined, LASTNAME: rest.join(" ") || undefined, BIRTH_MONTH: month, BIRTH_DAY: day, SIGNUP_SOURCE: source || "Newsletter pop-up" },
         ["NEWSLETTER"],
         { resubscribe: true }
       );

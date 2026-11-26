@@ -7,7 +7,7 @@ import { openNewsletterPopup } from "./NewsletterPopup";
 import EventCountdown from "./EventCountdown";
 import type { EventSummary } from "@/src/lib/events";
 
-type Message = { text: string; newsletter?: boolean; event?: EventSummary };
+type Message = { text: string; newsletter?: boolean; event?: EventSummary; href?: string };
 
 const baseMessages: Message[] = [
   { text: "🚚worldwide shipping" },
@@ -17,9 +17,10 @@ const baseMessages: Message[] = [
 
 export default function AnnouncementBar({ event }: { event?: EventSummary | null }) {
   const [index, setIndex] = useState(0);
+  // A promoted event leads the rotation; otherwise point people at past events
   const messages: Message[] = event
     ? [{ text: "Lagos pop-up in", event }, ...baseMessages]
-    : baseMessages;
+    : [...baseMessages, { text: "📸see our events", href: "/events" }];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -47,6 +48,10 @@ export default function AnnouncementBar({ event }: { event?: EventSummary | null
             >
               {messages[index].text}{" "}
               <EventCountdown target={messages[index].event!.startDate} variant="inline" /> · RSVP
+            </Link>
+          ) : messages[index].href ? (
+            <Link href={messages[index].href!} className="uppercase tracking-[0.3em] underline underline-offset-4">
+              {messages[index].text}
             </Link>
           ) : messages[index].newsletter ? (
             <button

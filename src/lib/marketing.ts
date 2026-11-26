@@ -89,9 +89,20 @@ export async function optBackIn(email: string) {
   unwrap(await db().from("marketing_opt_outs").delete().eq("email", normEmail(email)), "Removing the unsubscribe");
 }
 
-/** "YYYY-MM" or "--MM" (month only) → { month, year } */
-export function parseBirthday(value?: string) {
-  const m = String(value || "").match(/^(\d{4}|-)-(\d{1,2})$/);
+/**
+ * Birthday as saved by the newsletter form → { month, day?, year? }.
+ * Current sign-ups store "--MM-DD" (day and month, no year); older rows
+ * may hold "YYYY-MM" or "--MM".
+ */
+export function parseBirthday(value?: string): { month?: number; day?: number; year?: number } {
+  const v = String(value || "").trim();
+  const dayMonth = v.match(/^--(\d{1,2})-(\d{1,2})$/);
+  if (dayMonth) {
+    const month = Number(dayMonth[1]);
+    const day = Number(dayMonth[2]);
+    return month >= 1 && month <= 12 && day >= 1 && day <= 31 ? { month, day } : {};
+  }
+  const m = v.match(/^(\d{4}|-)-(\d{1,2})$/);
   if (!m) return {};
   const month = Number(m[2]);
   const year = m[1] === "-" ? undefined : Number(m[1]);
