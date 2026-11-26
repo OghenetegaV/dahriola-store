@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { Check, Download, ExternalLink, Plus, Trash2, Users } from "lucide-react";
 import { deleteEvent, saveEvent, type EventInput } from "@/src/app/admin/actions/events";
 import { slugify } from "@/src/lib/admin/format";
 import { imageUrl } from "@/src/lib/images";
@@ -196,8 +196,25 @@ export default function EventForm({
               <a href={`/events/${initial.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 font-medium text-brand-beryl hover:underline">
                 <ExternalLink size={13} /> View the event page
               </a>
-              <Link href={`/admin/events/${initial.id}/rsvps`} className="block font-medium text-brand-beryl hover:underline">
-                See the {rsvpCount} RSVP{rsvpCount === 1 ? "" : "s"}
+            </div>
+          </Card>
+        )}
+
+        {!isNew && (
+          <Card title="Guest list" description={`${rsvpCount} ${rsvpCount === 1 ? "person has" : "people have"} registered.`}>
+            <div className="space-y-2.5">
+              {/* A file download, so a plain link (not next/link) is right here */}
+              <a
+                href={`/admin/export/rsvps?event=${encodeURIComponent(initial.id || "")}`}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-beryl px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-900"
+              >
+                <Download size={16} /> Download as spreadsheet
+              </a>
+              <Link
+                href={`/admin/events/${initial.id}/rsvps`}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-800 hover:border-neutral-500"
+              >
+                <Users size={16} /> See the guest list
               </Link>
             </div>
           </Card>

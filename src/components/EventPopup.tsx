@@ -8,19 +8,16 @@ import EventCountdown from "./EventCountdown";
 import { trackSelectPromotion, trackViewPromotion } from "@/src/lib/analytics";
 import { type EventSummary, formatEventDateRange, formatEventHours } from "@/src/lib/events";
 import { imageUrl } from "@/src/lib/images";
-
-const SNOOZE_MS = 2 * 24 * 60 * 60 * 1000; // don't auto-open again for 2 days after closing
+import { EVENT_POPUP, eventPopupKey, popupIsDue, popupIsSilenced, recordPopupClosed } from "@/src/lib/popupTiming";
 
 export default function EventPopup({ event }: { event: EventSummary }) {
   const [isOpen, setIsOpen] = useState(false);
-  const closedKey = `dahriola-event-closed-${event._id}`;
+  const closedKey = eventPopupKey(event._id);
 
   useEffect(() => {
-    let closedAt = 0;
-    try {
-      closedAt = Number(localStorage.getItem(closedKey) || 0);
-    } catch {}
-    if (Date.now() - closedAt < SNOOZE_MS) return;
+    // Comes back at intervals after being closed (see popupTiming), and never
+    // again for someone who has already RSVP'd on this browser
+    if (popupIsSilenced(closedKey) || !popupIsDue(closedKey, EVENT_POPUP)) return;
     if (window.location.pathname.startsWith(`/events/${event.slug}`)) return;
 
     const timer = setTimeout(() => {
@@ -31,9 +28,7 @@ export default function EventPopup({ event }: { event: EventSummary }) {
   }, [closedKey, event.slug, event._id, event.title]);
 
   const close = () => {
-    try {
-      localStorage.setItem(closedKey, String(Date.now()));
-    } catch {}
+    recordPopupClosed(closedKey);
     setIsOpen(false);
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { eventPopupKey, silencePopup } from "@/src/lib/popupTiming";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { submitRsvp } from "@/src/app/actions/rsvp";
@@ -37,6 +38,8 @@ export default function RsvpForm({ event }: { event: EventSummary }) {
     try {
       const res = await submitRsvp({ eventId: event._id, ...form });
       if (res.success) {
+        // They're coming: stop the event pop-up from asking again on this browser
+        silencePopup(eventPopupKey(event._id));
         setResult({ ticketCode: res.ticketCode, alreadyRegistered: res.alreadyRegistered });
         if (!res.alreadyRegistered) trackRsvp(event.title, form.guests);
         setIdentity(res.did);

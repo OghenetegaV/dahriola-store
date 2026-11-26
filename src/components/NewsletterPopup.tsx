@@ -15,7 +15,7 @@ const DEFAULT_CODE = "WELCOME10";
 const RETIRED_CODES = ["true", "THESOUND", "WELCOME@10"]; // values saved by older versions of the popup
 const CLAIMED_KEY = "dahriola_discount_claimed";
 const CLOSED_KEY = "dahriola-newsletter-closed";
-const SNOOZE_MS = 3 * 24 * 60 * 60 * 1000; // don't auto-open again for 3 days after closing
+import { NEWSLETTER_POPUP, popupIsDue, recordPopupClosed } from "@/src/lib/popupTiming";
 export const OPEN_EVENT = "dahriola:open-newsletter";
 
 const MONTHS = [
@@ -48,10 +48,8 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
 
   useEffect(() => {
     let claimedCode: string | null = null;
-    let closedAt = 0;
     try {
       claimedCode = localStorage.getItem(CLAIMED_KEY);
-      closedAt = Number(localStorage.getItem(CLOSED_KEY) || 0);
     } catch {}
 
     // Anyone who already signed up sees their code when they reopen it
@@ -70,7 +68,8 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
     };
     window.addEventListener(OPEN_EVENT, openPopup);
 
-    const recentlyClosed = Date.now() - closedAt < SNOOZE_MS;
+    // Comes back at intervals after being closed (see popupTiming)
+    const recentlyClosed = !popupIsDue(CLOSED_KEY, NEWSLETTER_POPUP);
     const timer =
       autoOpen && !claimedCode && !recentlyClosed
         ? setTimeout(() => setIsOpen(true), 5000)
@@ -83,9 +82,7 @@ export default function NewsletterPopup({ autoOpen = true }: { autoOpen?: boolea
   }, [autoOpen]);
 
   const closePopup = () => {
-    try {
-      localStorage.setItem(CLOSED_KEY, String(Date.now()));
-    } catch {}
+    recordPopupClosed(CLOSED_KEY);
     setIsOpen(false);
   };
 

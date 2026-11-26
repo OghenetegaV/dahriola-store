@@ -77,9 +77,9 @@ export default async function RsvpsPage({
         action={
           <a
             href={`/admin/export/rsvps?event=${encodeURIComponent(id)}`}
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+            className="inline-flex h-12 items-center gap-2.5 rounded-lg bg-brand-beryl px-6 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-neutral-900"
           >
-            <Download size={15} /> Download as spreadsheet
+            <Download size={18} /> Download guest list (spreadsheet)
           </a>
         }
       />

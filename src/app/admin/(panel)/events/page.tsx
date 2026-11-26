@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Download, Plus, Users } from "lucide-react";
 import { db, fetchAll, unwrap } from "@/src/lib/supabase/admin";
 import { formatEventDateRange } from "@/src/lib/events";
 import { imageUrl } from "@/src/lib/images";
@@ -77,8 +77,8 @@ export default async function EventsPage() {
               const past = new Date(e.end_date) < now;
               const s = stats.get(e.id) || { people: 0, arrived: 0 };
               return (
-                <li key={e.id}>
-                  <Link href={`/admin/events/${e.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50">
+                <li key={e.id} className="flex flex-col gap-3 px-5 py-4 hover:bg-neutral-50 lg:flex-row lg:items-center">
+                  <Link href={`/admin/events/${e.id}`} className="flex min-w-0 flex-1 items-center gap-4">
                     <span className="h-16 w-12 shrink-0 overflow-hidden rounded-md bg-neutral-100">
                       {e.flyer_url && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -105,6 +105,21 @@ export default async function EventsPage() {
                       {past && <span className="block tabular-nums">{s.arrived} came</span>}
                     </span>
                   </Link>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Link
+                      href={`/admin/events/${e.id}/rsvps`}
+                      className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3.5 text-[13px] font-medium text-neutral-800 hover:border-neutral-500"
+                    >
+                      <Users size={15} /> Guest list
+                    </Link>
+                    {/* A file download, so a plain link (not next/link) is right here */}
+                    <a
+                      href={`/admin/export/rsvps?event=${encodeURIComponent(e.id)}`}
+                      className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-beryl px-3.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-neutral-900"
+                    >
+                      <Download size={15} /> Download spreadsheet
+                    </a>
+                  </div>
                 </li>
               );
             })}
